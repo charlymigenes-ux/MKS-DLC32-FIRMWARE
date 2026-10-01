@@ -176,7 +176,7 @@ boolean setFilePos(uint32_t pos) {
     }
 
     sd_current_line_number = 0;
-    myFile.seek(pos);
+    return myFile.seek(pos);  // faltaba return -> valor indefinido (Protocol.cpp:168)
 }
 
 
@@ -283,8 +283,18 @@ SDState set_sd_state(SDState state) {
 }
 
 SDState write_file(const char* path, const char* message) {
-    
-
+    // Estaba VACIA: caia al final de una funcion con retorno y devolvia un
+    // SDState basura (-Wreturn-type). Implementacion minima coherente.
+    if (path == NULL || message == NULL) {
+        return sd_state;
+    }
+    File f = SD.open(path, FILE_WRITE);
+    if (!f) {
+        return SDState::NotPresent;
+    }
+    f.print(message);
+    f.close();
+    return SDState::Idle;
 }
 
 // void SdCard::writeFile(const char* path, const char* message)

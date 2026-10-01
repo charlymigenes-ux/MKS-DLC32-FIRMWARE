@@ -20,7 +20,7 @@
     along with Grbl_ESP32.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define USE_BOARD_V2_0
+// #define USE_BOARD_V2_0
 
 #define USE_LCD_DMA
 
@@ -58,6 +58,12 @@
 // I2S (steppers & other output-only pins)
 #define USE_I2S_OUT
 #define USE_I2S_STEPS
+// Modo I2S de los motores: STATIC. ST_I2S_STREAM se probo y en esta placa la maquina
+// pierde la direccion (se va de corrido hasta topar). Causas ya descartadas: falta de
+// setup time de DIR ($Stepper/Direction/Delay=4), buffer DMA recortado (restaurado a
+// 5x2000 como en upstream) y una regresion de MKS en la ruta I2S (I2SOut.cpp es
+// identico al de bdring/Grbl_Esp32). Sospecha sin verificar: i2s_out_write() corre sin
+// lock y las tareas de LVGL y WiFi pueden escribir pines I2S a la vez que el streaming.
 #define DEFAULT_STEPPER ST_I2S_STATIC
 
 // I2S pins set
@@ -83,11 +89,16 @@
 #endif
 
 // Laser pin set
-#define SPINDLE_TYPE                SpindleType::PWM 
+// El SpindleType::PWM generico nunca soporta M4 (Spindle::inLaserMode() siempre devuelve
+// false, sin importar $32). LightBurn y similares generan M4, asi que se usa la subclase
+// Laser, cuyo inLaserMode() si lee $32; con $32=0 se comporta como un husillo PWM normal.
+#define SPINDLE_TYPE                SpindleType::LASER
 #ifdef USE_BOARD_V2_0
 #define SPINDLE_OUTPUT_PIN          GPIO_NUM_32
-#else 
+#define LASER_OUTPUT_PIN            GPIO_NUM_32
+#else
 #define SPINDLE_OUTPUT_PIN          GPIO_NUM_22
+#define LASER_OUTPUT_PIN            GPIO_NUM_22
 #endif
 
 #define X_LIMIT_PIN                 GPIO_NUM_36
@@ -127,16 +138,22 @@
 #define GRBL_SPI_FREQ 			    40000000
 
 // === Default settings
+//
+// Valores calibrados para una maquina laser/CNC de 300x300 mm con homing por finales
+// de carrera. Los settings viven en NVS y sobreviven a un reflasheo, asi que estos
+// defaults solo se aplican tras un $RST=* o un erase_flash.
+//
 // #define DEFAULT_STEP_PULSE_MICROSECONDS I2S_OUT_USEC_PER_PULSE
 #define DEFAULT_STEP_PULSE_MICROSECONDS     10
+
 
 #define DEFAULT_STEPPER_IDLE_LOCK_TIME      25
 
 #define DEFAULT_STEPPING_INVERT_MASK    	0 // uint8_t
-#define DEFAULT_DIRECTION_INVERT_MASK   	1 // uint8_t
+#define DEFAULT_DIRECTION_INVERT_MASK   	2 // uint8_t          $3
 #define DEFAULT_INVERT_ST_ENABLE        	0 // boolean
 #define DEFAULT_INVERT_LIMIT_PINS       	1 // boolean
-#define DEFAULT_INVERT_PROBE_PIN        	1 // boolean
+#define DEFAULT_INVERT_PROBE_PIN        	0 // boolean          $6
 
 #define DEFAULT_STATUS_REPORT_MASK 			1
 
@@ -145,48 +162,48 @@
 #define DEFAULT_REPORT_INCHES       		0           // false
 
 #define DEFAULT_SOFT_LIMIT_ENABLE 			0           // false
-#define DEFAULT_HARD_LIMIT_ENABLE 			0           // false
+#define DEFAULT_HARD_LIMIT_ENABLE 			1           // true     $21
 
 #define DEFAULT_HOMING_CYCLE_0              (bit(X_AXIS) | bit(Y_AXIS))
 #define DEFAULT_HOMING_CYCLE_1              0           // (bit(Z_AXIS))        /* If you want star Z axis, select (bit(Z_AXIS)) */
-#define DEFAULT_HOMING_ENABLE           	0           // false
-#define DEFAULT_HOMING_DIR_MASK         	1           // move positive dir Z,negative X,Y
+#define DEFAULT_HOMING_ENABLE           	1           // true     $22
+#define DEFAULT_HOMING_DIR_MASK         	3           // $23: X,Y invertidos
 #define DEFAULT_HOMING_FEED_RATE        	300.0       // mm/min
-#define DEFAULT_HOMING_SEEK_RATE        	1000.0      // mm/min
+#define DEFAULT_HOMING_SEEK_RATE        	3000.0      // mm/min   $25
 #define DEFAULT_HOMING_DEBOUNCE_DELAY   	250         // msec (0-65k)
-#define DEFAULT_HOMING_PULLOFF          	1.0         // mm
+#define DEFAULT_HOMING_PULLOFF          	2.0         // mm       $27
 
 #ifdef USE_SPINDLE_RELAY
     #define DEFAULT_SPINDLE_RPM_MAX 1.0 // must be 1 so PWM duty is alway 100% to prevent relay damage
 #else
-    #define DEFAULT_SPINDLE_RPM_MAX 10000.0 // can be change to your spindle max
+    #define DEFAULT_SPINDLE_RPM_MAX 1000.0 // $30: S1000 = 100% de potencia laser
 #endif
 #define DEFAULT_SPINDLE_RPM_MIN 0.0 // rpm
 
-#define DEFAULT_LASER_MODE 0 // false
+#define DEFAULT_LASER_MODE 1 // $32: true -- es una cortadora laser, M4 debe funcionar
 
 #define DEFAULT_X_STEPS_PER_MM 80.0
 #define DEFAULT_Y_STEPS_PER_MM 80.0
 #define DEFAULT_Z_STEPS_PER_MM 80.0
 
-#define DEFAULT_X_MAX_RATE 6000.0 // mm/s
-#define DEFAULT_Y_MAX_RATE 6000.0 // mm/s
-#define DEFAULT_Z_MAX_RATE 6000.0 // mm/s
+#define DEFAULT_X_MAX_RATE 10000.0 // mm/min  $110
+#define DEFAULT_Y_MAX_RATE 10000.0 // mm/min  $111
+#define DEFAULT_Z_MAX_RATE 8000.0 // mm/min   $112
 
 #define DEFAULT_X_ACCELERATION 500.0 // mm/sec^2
 #define DEFAULT_Y_ACCELERATION 500.0 // mm/sec^2
 #define DEFAULT_Z_ACCELERATION 500.0 // mm/sec^2
 
-#define DEFAULT_X_MAX_TRAVEL 450.0 // mm NOTE: Must be a positive value.
-#define DEFAULT_Y_MAX_TRAVEL 450.0 // mm NOTE: Must be a positive value.
-#define DEFAULT_Z_MAX_TRAVEL 50.0 // mm NOTE: Must be a positive value.
+#define DEFAULT_X_MAX_TRAVEL 300.0 // mm  $130: area real de la maquina
+#define DEFAULT_Y_MAX_TRAVEL 300.0 // mm  $131: area real de la maquina
+#define DEFAULT_Z_MAX_TRAVEL 80.0 // mm   $132
 
-#define DEFAULT_SPINDLE_FREQ        1920// 8000.0   // 1KHz
+#define DEFAULT_SPINDLE_FREQ        1000    // Hz  $33: PWM del laser
 #define DEFAULT_LASER_FULL_POWER    1000
 #define DEFAULT_SPINDLE_MAX_VALUE   1000    
 #define DEFAULT_SPINDLE_MIN_VALUE   0
 
 
-#define DEFAULT_BEEP_STATUS                 1
+#define DEFAULT_BEEP_STATUS                 1       // $38: buzzer encendido (pitido al tocar la LCD)
 #define DEFAULT_LANGUAGE_STATUS             1       // default simple engliash
 

@@ -59,10 +59,16 @@
 // const int I2S_OUT_USEC_PER_PULSE = 4;
 const int I2S_OUT_USEC_PER_PULSE = 4;
 
-const int I2S_OUT_DMABUF_COUNT = 2;
-// const int I2S_OUT_DMABUF_COUNT = 5;    /* number of DMA buffers to store data */
-// const int I2S_OUT_DMABUF_LEN = 2000; /* maximum size in bytes (4092 is DMA's limit) */
-const int I2S_OUT_DMABUF_LEN = 1000;
+// restaurados a los valores de bdring/Grbl_Esp32. MKS los habia recortado a
+// 2 x 1000, o sea de 10 ms de pasos amortiguados a 2 ms. En modo STREAM el DMA lo
+// alimenta i2sOutTask, que compite con LVGL de la pantalla y con el WiFi; si se
+// queda sin CPU mas de lo que dura el buffer, el I2S sigue sacando lo ultimo que
+// tenia y repite pulsos de step en la ultima direccion latcheada -- la maquina se
+// va de corrido hasta topar. Con 2 ms de margen eso pasa; por eso MKS forzo STATIC
+// en sus machine files en vez de arreglar el buffer.
+// Cuesta 10000 bytes de RAM DMA en vez de 2000; sobra (el build usa 22.9%).
+const int I2S_OUT_DMABUF_COUNT = 5;    /* number of DMA buffers to store data */
+const int I2S_OUT_DMABUF_LEN   = 2000; /* maximum size in bytes (4092 is DMA's limit) */
 
 const int I2S_OUT_DELAY_DMABUF_MS = (I2S_OUT_DMABUF_LEN / sizeof(uint32_t) * I2S_OUT_USEC_PER_PULSE / 1000);
 const int I2S_OUT_DELAY_MS        = (I2S_OUT_DELAY_DMABUF_MS * (I2S_OUT_DMABUF_COUNT + 1));

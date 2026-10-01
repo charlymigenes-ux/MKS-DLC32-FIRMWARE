@@ -1,4 +1,5 @@
 #include "MKS_draw_tool.h"
+#include "MKS_draw_language.h"   // mc_language: textos del LCD
 
 lv_style_t about_src1_style;
 lv_style_t btn_tool_style;
@@ -9,6 +10,7 @@ lv_obj_t *about_src1;
 lv_obj_t *tool_img_back; 
 lv_obj_t *tool_img_wifi; 
 lv_obj_t *tool_img_language; 
+lv_obj_t *tool_img_beep; 
 
 lv_obj_t *tool_label_line1; 
 lv_obj_t *tool_label_line2; 
@@ -16,6 +18,7 @@ lv_obj_t *tool_label_line3;
 lv_obj_t *label_tool_back; 
 lv_obj_t *label_tool_wifi; 
 lv_obj_t *label_tool_language; 
+lv_obj_t *label_tool_beep; 
 
 lv_obj_t* label_board_version;
 lv_obj_t* label_Firmware_version;
@@ -36,6 +39,31 @@ LV_IMG_DECLARE(back);
 LV_IMG_DECLARE(wifi_tool);	
 LV_IMG_DECLARE(png_back_pre);
 LV_IMG_DECLARE(png_wifi_pre);
+LV_IMG_DECLARE(beep_on);
+LV_IMG_DECLARE(beep_on_pre);
+LV_IMG_DECLARE(beep_off);
+LV_IMG_DECLARE(beep_off_pre);
+
+// Estado mostrado del beep ($38). Se invierte al tocar y se envia el comando;
+// asi dos toques seguidos no leen el valor viejo mientras $38 aun se procesa.
+static bool tool_beep_on = false;
+
+static void tool_beep_refresh(void) {
+    lv_imgbtn_set_src(tool_img_beep, LV_BTN_STATE_PR,  tool_beep_on ? &beep_on_pre : &beep_off_pre);
+    lv_imgbtn_set_src(tool_img_beep, LV_BTN_STATE_REL, tool_beep_on ? &beep_on     : &beep_off);
+    lv_imgbtn_set_state(tool_img_beep, LV_BTN_STATE_REL);
+    lv_label_set_text(label_tool_beep, tool_beep_on ? "Beep ON" : "Beep OFF");
+    lv_obj_align(label_tool_beep, tool_img_beep, LV_ALIGN_OUT_BOTTOM_MID, 0, 0);
+}
+
+static void event_btn_tool_beep(lv_obj_t* obj, lv_event_t event) {
+
+    if (event == LV_EVENT_RELEASED) {
+        tool_beep_on = !tool_beep_on;
+        MKS_GRBL_CMD_SEND((tool_beep_on ? "$38=1\n" : "$38=0\n"));
+        tool_beep_refresh();
+    }
+}
 
 static void event_btn_tool_wifi(lv_obj_t* obj, lv_event_t event) {
 
@@ -85,6 +113,9 @@ void mks_draw_tool(void) {
 
     tool_img_language = lv_imgbtn_creat_mks(mks_global.mks_src_1, tool_img_language, &png_language_pre, &png_language, LV_ALIGN_IN_RIGHT_MID, -100, -15, event_btn_tool_language);
 
+    tool_beep_on = beep_status->get();
+    tool_img_beep = lv_imgbtn_creat_mks(mks_global.mks_src_1, tool_img_beep, tool_beep_on ? &beep_on_pre : &beep_off_pre, tool_beep_on ? &beep_on : &beep_off, LV_ALIGN_IN_RIGHT_MID, -170, -15, event_btn_tool_beep);
+
     lv_style_copy(&style_line, &lv_style_plain);
     style_line.line.color = LV_COLOR_MAKE(0x00, 0x3b, 0x75);
     style_line.line.width = 1;
@@ -97,13 +128,14 @@ void mks_draw_tool(void) {
     tool_line3 = mks_lv_set_line(mks_global.mks_src, tool_line3, tool_line_points[2]);
     lv_line_set_style(tool_line3, LV_LINE_STYLE_MAIN, &style_line);
 
-    label_for_imgbtn_name(mks_global.mks_src_1, label_tool_back, tool_img_back, 0, 0, "Back");
+    label_for_imgbtn_name(mks_global.mks_src_1, label_tool_back, tool_img_back, 0, 0, mc_language.back);
 
 #if defined(ENABLE_WIFI)
     label_for_imgbtn_name(mks_global.mks_src_1, label_tool_wifi, tool_img_wifi, 0, 0, "Wifi");
 #endif
 
-    label_for_imgbtn_name(mks_global.mks_src_1, label_tool_language, tool_img_language, 0, 0, "Language");
+    label_for_imgbtn_name(mks_global.mks_src_1, label_tool_language, tool_img_language, 0, 0, mc_language.language);
+    label_tool_beep = label_for_imgbtn_name(mks_global.mks_src_1, label_tool_beep, tool_img_beep, 0, 0, tool_beep_on ? "Beep ON" : "Beep OFF");
     
 
     mks_lvgl_long_sroll_label_with_wight_set_center(mks_global.mks_src, label_board_version, 10, 120, BOARD_NAME, 400);

@@ -64,7 +64,7 @@ typedef struct {
     lv_obj_t* ready_label_wpos;
 
     // lv_obj_t* ready_label_status;   //用于显示label
-    
+
     lv_obj_t* ready_label_xpos;
     lv_obj_t* ready_label_ypos;
     lv_obj_t* ready_label_zpos;

@@ -340,7 +340,7 @@ void make_settings() {
         axis_settings[axis]->steps_per_mm = setting;
     }
 
-    language_select              = new IntSetting(GRBL, WG, "40", "Language", DEFAULT_LANGUAGE_STATUS, 0, 2);
+    language_select              = new IntSetting(GRBL, WG, "40", "Language", DEFAULT_LANGUAGE_STATUS, 0, 3);  // max 3: 0=cn 1=en 2=de 3=es
     beep_status                  = new FlagSetting(GRBL, WG, "38", "beep_status", DEFAULT_BEEP_STATUS);
     
     // Spindle Settings

@@ -1,0 +1,9 @@
+# Tabla de particiones para DLC32 con chip flash de 8MB real (confirmado con esptool flash-id
+# contra la placa; el firmware original solo usaba huge_app.csv, pensada para 4MB, dejando
+# la mitad del chip sin usar). Un solo slot de app (sin OTA) con SPIFFS grande para la interfaz web.
+# Name,     Type, SubType,  Offset,   Size,     Flags
+nvs,        data, nvs,      0x9000,   0x5000,
+otadata,    data, ota,      0xe000,   0x2000,
+app0,       app,  ota_0,    0x10000,  0x400000,
+spiffs,     data, spiffs,   0x410000, 0x3E0000,
+coredump,   data, coredump, 0x7F0000, 0x10000,

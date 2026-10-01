@@ -27,9 +27,12 @@ typedef enum {
 }GRBL_MOVE_SPEED;
 
 typedef enum {
-    SimpleChinese,      
+    SimpleChinese,
     English,
     Deutsch,
+    Espanol,   // $40=3: español (language_es.h). Debe ir el ultimo: el valor
+               // del enum es el numero de $40 (ver mks_grbl_parg_init y el
+               // refresco periodico de MKS_FREERTOS_TASK.cpp).
 }GRBL_Language;
 
 typedef enum {

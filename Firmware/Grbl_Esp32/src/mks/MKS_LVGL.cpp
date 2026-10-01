@@ -1,4 +1,5 @@
 #include "MKS_LVGL.h"
+#include "MKS_draw_language.h"
 #include "TFT_eSPI.h"
 
 #define LV_BUF_SIZE              10 * LV_HOR_RES_MAX
@@ -82,13 +83,13 @@ bool my_indev_touch(struct _lv_indev_drv_t * indev_drv, lv_indev_data_t * data) 
         data->point.y = last_y;
         data->state = LV_INDEV_STATE_PR;
         
-        BEEP_ON;
+        ts35_beep_on();   // respeta $38 (beep_status); BEEP_ON dependia de USE_BEEP, comentado
     }
     else {
         data->point.x = last_x;
         data->point.y = last_y;
         data->state = LV_INDEV_STATE_REL;
-        BEEP_OFF;
+        ts35_beep_off();
     }
     return false;
 }   
@@ -106,8 +107,16 @@ void mks_grbl_parg_init(void) {
 
     if(language_select->get() == 0) mks_grbl.language = SimpleChinese;
     else if(language_select->get() == 1) mks_grbl.language = English;
-    else if(language_select->get() == 1) mks_grbl.language = Deutsch;
-    
+    else if(language_select->get() == 2) mks_grbl.language = Deutsch;  // era "== 1": alemán inalcanzable
+    else if(language_select->get() == 3) mks_grbl.language = Espanol;  // español (language_es.h)
+    // fuera de 0..3 no se toca: conserva el valor por defecto de mks_grbl
+
+    // Carga las cadenas del LCD segun el idioma leido de $40. Sin esta llamada,
+    // mc_language quedaba a ceros al arrancar: los labels recibian NULL y
+    // lv_label_set_text(lab, NULL) solo refresca, de modo que se quedaba el
+    // "Text" por defecto de LVGL (iconos y titulos de la portada).
+    mc_language_init();
+ 
     mks_grbl.light_status = GRBL_Light_Off;
     mks_grbl.move_dis = M_10_MM;
     mks_grbl.move_speed = HIGHT_SPEED;

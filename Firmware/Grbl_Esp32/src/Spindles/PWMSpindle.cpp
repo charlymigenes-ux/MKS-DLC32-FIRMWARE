@@ -165,10 +165,6 @@ namespace Spindles {
 
         uint32_t pwm_value;
 
-        uint32_t origin_value;
-        uint32_t last_value;
-        uint32_t diff_value;
-        uint8_t mode;
 
 
         if (_output_pin == UNDEFINED_PIN) {
@@ -184,9 +180,6 @@ namespace Spindles {
         } else if (rpm != 0 && rpm <= _min_rpm) {
             rpm = _min_rpm;
         }
-
-        origin_value = sys.spindle_speed;
-        last_value = rpm;
 
         sys.spindle_speed = rpm;
 
@@ -207,34 +200,11 @@ namespace Spindles {
         set_enable_pin(gc_state.modal.spindle != SpindleState::Disable);
 
 
-        // diff_value
-        if(origin_value < last_value) {
-            diff_value = last_value - origin_value;
-        }
-        else if(origin_value > last_value) {
-            diff_value = origin_value - last_value;
-        }
-
-        if(last_value == 0) {  
-            set_output(0);
-        }
-        else if(origin_value < last_value) {
-            for(uint32_t i = origin_value; i < last_value; i++) {
-                set_output(calc_pwm_value(i));
-                if((last_value - i) < (diff_value / 2)) { delay(1); }  
-            }
-        }
-        else if(origin_value == last_value) {
-
-        }
-        else if(origin_value > last_value) {
-            for(uint32_t i = origin_value; i > last_value; i--) {
-                set_output(calc_pwm_value(i));
-                // delay(1);
-            }
-        }
-
-        // set_output(pwm_value);
+        // la rampa de MKS (bucle de set_output() + delay(1) entre el rpm anterior y el nuevo)
+        // se ejecutaba DENTRO de la ISR del stepper (set_rpm() se llama al cargar cada segmento):
+        // bloqueaba la ISR hasta ~375 ms por subida y delay() en ISR abortaba con
+        // "vTaskDelay assert failed" (panic motivo=4). set_output() ya es seguro en ISR.
+        set_output(pwm_value);
 
         return 0;
     }

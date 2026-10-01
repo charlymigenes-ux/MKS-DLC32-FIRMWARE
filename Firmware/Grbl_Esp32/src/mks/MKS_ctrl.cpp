@@ -132,6 +132,7 @@ bool mks_wifi_check_is_out(bool flag) {
             return false;
         }
     }
+    return false;  // faltaba return -> valor indefinido
 }
 #endif
 

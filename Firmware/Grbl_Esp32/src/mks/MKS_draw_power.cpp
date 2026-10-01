@@ -1,4 +1,5 @@
 #include "MKS_draw_power.h"
+#include "MKS_draw_language.h"   // mc_language: textos del LCD
 #include "MKS_LVGL.h"
 
 POWER_PAGE_T power_page;
@@ -30,12 +31,13 @@ static uint8_t get_event(lv_obj_t* obj) {
     else if (obj == power_page.pwr_low)     return ID_P_LOW;
     else if (obj == power_page.pwr_off)     return ID_P_OFF;
     else if (obj == power_page.Back) 		return ID_P_BACK;
+    return 255;  // sin coincidencia: el id basura podia caer en ID_P_OFF (laser)
 }
 
 static void event_pwr_on_off(void) {
 
 	if(sys.state != State::Idle) {
-		draw_pwr_popup_1("Please wait machine idle!");
+		draw_pwr_popup_1(mc_language.dis_wait_idle);
 		return ;
 	}
 
@@ -55,7 +57,7 @@ static void event_pwr_l(void) {
 
 
 	if(sys.state != State::Idle) {
-		draw_pwr_popup_1("Please wait machine idle!");
+		draw_pwr_popup_1(mc_language.dis_wait_idle);
 		return ;
 	}
 
@@ -74,7 +76,7 @@ static void event_pwr_l(void) {
 static void event_pwr_h(void) {
 
 	if(sys.state != State::Idle) {
-		draw_pwr_popup_1("Please wait machine idle!");
+		draw_pwr_popup_1(mc_language.dis_wait_idle);
 		return ;
 	}
 
@@ -159,10 +161,10 @@ void mks_draw_power(void) {
 		power_page.pwr_low = lv_imgbtn_creat_n_mks(mks_global.mks_src_2, power_page.pwr_low, &SP_L_UP, &SP_L_UP,PWR_IMGBTN_HIGH_X_POS+PWR_IMGBTN_OFFSET_X, PWR_IMGBTN_HIGH_Y_POS, event_handler);
 		power_page.pwr_off = lv_imgbtn_creat_n_mks(mks_global.mks_src_2, power_page.pwr_low, &SP_ON, &SP_ON, PWR_IMGBTN_HIGH_X_POS+PWR_IMGBTN_OFFSET_X*2, PWR_IMGBTN_HIGH_Y_POS, event_handler);
 	}
-	power_page.label_Back = mks_lvgl_long_sroll_label_with_wight_set_center(mks_global.mks_src_1, power_page.label_Back, 20,60, "Back", 50);
+	power_page.label_Back = mks_lvgl_long_sroll_label_with_wight_set_center(mks_global.mks_src_1, power_page.label_Back, 20,60, mc_language.back, 50);
 	
 #if defined(USE_BL_TOUCH)
-	label_cailb = mks_lvgl_long_sroll_label_with_wight_set_center(p_scr1, label_cailb, 350, 60, "Z Home", 60);
+	label_cailb = mks_lvgl_long_sroll_label_with_wight_set_center(p_scr1, label_cailb, 350, 60, mc_language.z_home, 60);
 #endif
 
 	mks_ui_page.mks_ui_page = MKS_UI_Adjust;
@@ -219,10 +221,10 @@ void draw_pwr_popup_1(const char *text) {
 	lv_btn_set_style(power_page.btn_sure,LV_BTN_STYLE_PR, &power_page.p_popup_btn_color);
 
 	power_page.label_sure = mks_lvgl_long_sroll_label_with_wight_set_center(power_page.p_popup, power_page.label_sure, 90, 50, text, 200);
-	power_page.label_popup = mks_lvgl_long_sroll_label_with_wight_set_center(power_page.btn_sure, power_page.label_popup, 50, 0, "Yes",50);
+	power_page.label_popup = mks_lvgl_long_sroll_label_with_wight_set_center(power_page.btn_sure, power_page.label_popup, 50, 0, mc_language.yes,50);
 
 #else
-	mks_draw_common_popup_info_com("Warning", (char *)text, " ", event_handler_popup_sure_1);
+	mks_draw_common_popup_info_com(mc_language.dis_warning, (char *)text, " ", event_handler_popup_sure_1);
 #endif
 }
 

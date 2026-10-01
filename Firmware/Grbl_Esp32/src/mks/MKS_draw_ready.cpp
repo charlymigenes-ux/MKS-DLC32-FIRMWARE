@@ -1,4 +1,5 @@
 #include "MKS_draw_ready.h"
+#include "MKS_draw_language.h"   // mc_language: textos del LCD
 
 MKS_PAGE_READY ready_src;
 lv_style_t bkl_color;    // main
@@ -19,11 +20,12 @@ static uint8_t get_event(lv_obj_t* obj) {
     else if (obj == ready_src.ready_imgbtn_Sculpture)       return ID_R_SCULPTURE;
     else if (obj == ready_src.ready_imgbtn_Tool)            return ID_R_TOOL;
     else if (obj == ready_src.ready_imgbtn_wifi_status )    return ID_R_NONE;
+    return ID_R_NONE;  // sin coincidencia: no limpiar la UI ni cambiar de pagina
 }
 
 
-static void event_handler_none(lv_obj_t* obj, lv_event_t event) { 
-	
+static void event_handler_none(lv_obj_t* obj, lv_event_t event) {
+
 	if (event == LV_EVENT_RELEASED) {
 
 	}
@@ -33,8 +35,8 @@ static void event_handler(lv_obj_t* obj, lv_event_t event) {
 
     uint8_t id = get_event(obj);
 
-    if(event == LV_EVENT_PRESSED) { 
-        // ts35_beep_on(); 
+    if(event == LV_EVENT_PRESSED) {
+        // ts35_beep_on();
     }
 
     mks_ui_page.mks_ui_page = MKS_UI_PAGE_LOADING;
@@ -43,19 +45,19 @@ static void event_handler(lv_obj_t* obj, lv_event_t event) {
         if((id != ID_R_NONE)) {
             mks_lv_clean_ui();
         }
-        
+
         switch(id) {
             // case ID_R_ADJUST:        mks_draw_power(); break;
             case ID_R_CONTRL:         mks_draw_move();; break;
-            case ID_R_SCULPTURE:     
+            case ID_R_SCULPTURE:
                 file_popup_select_flag = false;
                 mks_draw_craving();;
             break;
             case ID_R_TOOL:     mks_draw_tool();  break;
 #ifdef ENABLE_WIFI
-            // case ID_R_WIFI:  
+            // case ID_R_WIFI:
             //     mks_grbl.wifi_back_from = 0;
-            //     mks_draw_wifi(); 
+            //     mks_draw_wifi();
             // break;
 #endif
             case ID_R_NONE: break;
@@ -66,7 +68,7 @@ static void event_handler(lv_obj_t* obj, lv_event_t event) {
 lv_obj_t *logo;
 uint32_t logo_count = 0;
 void mks_draw_logo(void) {
-    mks_ui_page.mks_ui_page = MKS_UI_Logo;      
+    mks_ui_page.mks_ui_page = MKS_UI_Logo;
     mks_global.mks_src = lv_obj_create(NULL, NULL);
     mks_global.mks_src = lv_scr_act();
     lv_obj_set_style(mks_global.mks_src ,&mks_global.mks_src_style);
@@ -91,16 +93,21 @@ void mks_draw_ready(void) {
 
 static void disp_imgbtn(void) {
 
-    if (mks_get_wifi_status() == false){ 
+    if (mks_get_wifi_status() == false){
         ready_src.ready_imgbtn_wifi_status = lv_imgbtn_creat_n_mks(mks_global.mks_src ,ready_src.ready_imgbtn_wifi_status, &png_wifi_disconnect, &png_wifi_disconnect, 0, 0, event_handler);
     }
     else{
         ready_src.ready_imgbtn_wifi_status = lv_imgbtn_creat_n_mks(mks_global.mks_src ,ready_src.ready_imgbtn_wifi_status, &png_wifi_connect, &png_wifi_connect, 0, 0, event_handler);
     }
 
-    ready_src.ready_imgbtn_Control = lv_imgbtn_creat_mks(mks_global.mks_src_1, ready_src.ready_imgbtn_Control, &png_ctrl_pre, &Control, LV_ALIGN_IN_TOP_LEFT,102, 10, event_handler);
-    ready_src.ready_imgbtn_Sculpture = lv_imgbtn_creat_mks(mks_global.mks_src_1, ready_src.ready_imgbtn_Sculpture, &png_file_pre, &Sculpture, LV_ALIGN_IN_TOP_LEFT, 202, 10, event_handler);
-    ready_src.ready_imgbtn_Tool = lv_imgbtn_creat_mks(mks_global.mks_src_1, ready_src.ready_imgbtn_Tool, &png_tool_pre, &Tool, LV_ALIGN_IN_TOP_LEFT, 302, 10, event_handler);
+    // Tres columnas iguales a lo ancho del panel; cada icono (60 px) centrado en la suya.
+    const lv_coord_t col_w = READY_src1_x_size / 3;
+    const lv_coord_t btn_x0 = col_w / 2 - 30;
+    const lv_coord_t btn_y = 14;
+
+    ready_src.ready_imgbtn_Control = lv_imgbtn_creat_mks(mks_global.mks_src_1, ready_src.ready_imgbtn_Control, &png_ctrl_pre, &Control, LV_ALIGN_IN_TOP_LEFT, btn_x0, btn_y, event_handler);
+    ready_src.ready_imgbtn_Sculpture = lv_imgbtn_creat_mks(mks_global.mks_src_1, ready_src.ready_imgbtn_Sculpture, &png_file_pre, &Sculpture, LV_ALIGN_IN_TOP_LEFT, btn_x0 + col_w, btn_y, event_handler);
+    ready_src.ready_imgbtn_Tool = lv_imgbtn_creat_mks(mks_global.mks_src_1, ready_src.ready_imgbtn_Tool, &png_tool_pre, &Tool, LV_ALIGN_IN_TOP_LEFT, btn_x0 + 2 * col_w, btn_y, event_handler);
 }
 
 static void disp_img(void) {
@@ -130,14 +137,14 @@ static void disp_label(void) {
 
 
     #if defined(ENABLE_WIFI)
-        if (mks_get_wifi_status() == false){ 
+        if (mks_get_wifi_status() == false){
             ready_src.ready_label_wifi_status = label_for_text(mks_global.mks_src, ready_src.ready_label_wifi_status, NULL, 34, 6, LV_ALIGN_IN_TOP_LEFT, mc_language.wifi_disconnect);
         }else {
             ready_src.ready_label_wifi_status = label_for_text(mks_global.mks_src, ready_src.ready_label_wifi_status, NULL, 34, 6, LV_ALIGN_IN_TOP_LEFT, mc_language.wifi_connect);
         }
-    #else 
+    #else
         // ready_src.ready_label_wifi_status = mks_lv_static_label(ready_src.ready_btn_wifi, ready_src.ready_label_wifi_status, 40, 0, "Disconnect", 110);
-        ready_src.ready_label_wifi_status = label_for_btn_name(ready_src.ready_btn_wifi, ready_src.ready_label_wifi_status, 0, 0, "WIFI:Disconnect");
+        ready_src.ready_label_wifi_status = label_for_btn_name(ready_src.ready_btn_wifi, ready_src.ready_label_wifi_status, 0, 0, mc_language.wifi_status_off);
     #endif
 }
 
@@ -152,7 +159,7 @@ char m_zpos_str[50] = "Z:0.0";
 char wifi_status_str[50];
 char wifi_ip_str[100];
 
-void mks_widi_show_ip(IPAddress ip, uint8_t p) { 
+void mks_widi_show_ip(IPAddress ip, uint8_t p) {
     if(p) {
         strcat(wifi_ip_str, ip.toString().c_str());
     }else {
@@ -182,17 +189,16 @@ void ready_data_updata(void) {
     lv_label_set_static_text(ready_src.ready_label_xpos, m_xpos_str);
     lv_label_set_static_text(ready_src.ready_label_ypos, m_ypos_str);
     lv_label_set_static_text(ready_src.ready_label_zpos, m_zpos_str);
-    
+
     #if defined(ENABLE_WIFI)
     if (mks_get_wifi_status() == false){
-        ready_src.ready_label_wifi_status = mks_lv_label_updata(ready_src.ready_label_wifi_status, "WIFI:Disconnect");
+        ready_src.ready_label_wifi_status = mks_lv_label_updata(ready_src.ready_label_wifi_status, mc_language.wifi_status_off);
     }
     else {
-        ready_src.ready_label_wifi_status = mks_lv_label_updata(ready_src.ready_label_wifi_status, "WIFI:Connect");
+        ready_src.ready_label_wifi_status = mks_lv_label_updata(ready_src.ready_label_wifi_status, mc_language.wifi_status_on);
     }
     #endif
 }
-
 
 
 

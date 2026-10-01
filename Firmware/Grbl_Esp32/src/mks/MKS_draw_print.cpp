@@ -1,4 +1,5 @@
 #include "MKS_draw_print.h"
+#include "MKS_draw_language.h"   // mc_language: textos del LCD
 #include "../System.h"
 
 PWR_CTRL_t mks_pwr_ctrl;
@@ -47,7 +48,7 @@ static void event_handler_suspend(lv_obj_t* obj, lv_event_t event) {
         if(sys.state == State::Hold) {
             lv_imgbtn_set_src(print_src.print_imgbtn_suspend, LV_BTN_STATE_PR, &png_start_pre);
             lv_imgbtn_set_src(print_src.print_imgbtn_suspend, LV_BTN_STATE_REL, &png_start);
-            lv_label_set_static_text(print_src.print_Label_p_suspend, "Star");
+            lv_label_set_static_text(print_src.print_Label_p_suspend, mc_language.start);
             MKS_GRBL_CMD_SEND("~");
             if(print_setting._need_to_start_write) {
                 sys_rt_s_override = print_setting.cur_spindle_pwr;
@@ -56,7 +57,7 @@ static void event_handler_suspend(lv_obj_t* obj, lv_event_t event) {
         else if(sys.state == State::Cycle)    {
             lv_imgbtn_set_src(print_src.print_imgbtn_suspend, LV_BTN_STATE_PR, &png_pause_pre);
             lv_imgbtn_set_src(print_src.print_imgbtn_suspend, LV_BTN_STATE_REL, &png_pause);
-            lv_label_set_static_text(print_src.print_Label_p_suspend, "Pause");
+            lv_label_set_static_text(print_src.print_Label_p_suspend, mc_language.pause);
             MKS_GRBL_CMD_SEND("!");
             // spindle->stop();
         } 
@@ -65,7 +66,7 @@ static void event_handler_suspend(lv_obj_t* obj, lv_event_t event) {
 
 static void event_handler_stop(lv_obj_t* obj, lv_event_t event) {
     if (event == LV_EVENT_RELEASED) {
-        mks_draw_print_popup("Do you want to stop print?");
+        mks_draw_print_popup(mc_language.dis_print_stop_sure);
     }
 }
 
@@ -138,9 +139,9 @@ void mks_draw_print(void) {
     lv_bar_set_style(print_src.print_bar_print, LV_BAR_STYLE_BG , &print_src.print_bar_bg_style);
     lv_bar_set_style(print_src.print_bar_print, LV_BAR_STYLE_INDIC , &print_src.print_bar_indic_style);
 
-    print_src.print_Label_p_suspend = label_for_imgbtn_name_mid(mks_global.mks_src, print_src.print_Label_p_suspend, print_src.print_imgbtn_suspend ,-35 ,0 ,"Pause");
-    print_src.print_Label_p_stop = label_for_imgbtn_name_mid(mks_global.mks_src, print_src.print_Label_p_stop, print_src.print_imgbtn_stop ,-40 ,0 ,"Stop");
-    print_src.print_Label_p_adj = label_for_imgbtn_name_mid(mks_global.mks_src, print_src.print_Label_p_adj, print_src.print_imgbtn_adj ,-20 ,0 ,"Adjustment");
+    print_src.print_Label_p_suspend = label_for_imgbtn_name_mid(mks_global.mks_src, print_src.print_Label_p_suspend, print_src.print_imgbtn_suspend ,-35 ,0 ,mc_language.pause);
+    print_src.print_Label_p_stop = label_for_imgbtn_name_mid(mks_global.mks_src, print_src.print_Label_p_stop, print_src.print_imgbtn_stop ,-40 ,0 ,mc_language.stop);
+    print_src.print_Label_p_adj = label_for_imgbtn_name_mid(mks_global.mks_src, print_src.print_Label_p_adj, print_src.print_imgbtn_adj ,-20 ,0 ,mc_language.adjust);
     
 
 
@@ -233,13 +234,13 @@ void mks_draw_print_popup(const char* text) {
 	lv_btn_set_style(btn_popup_sure, LV_BTN_STYLE_REL, &print_src.print_popup_btn_style);
     lv_btn_set_style(btn_popup_sure,LV_BTN_STYLE_PR,&print_src.print_popup_btn_style);
 
-    label_for_btn_name(btn_popup_sure, print_src.print_Label_popup_sure, 30, 0, "Yes");
+    label_for_btn_name(btn_popup_sure, print_src.print_Label_popup_sure, 30, 0, mc_language.yes);
 
 	btn_popup_cancle = mks_lv_btn_set(print_src.print_stop_popup, btn_popup_cancle, 100,40,230,130,event_btn_cancle);
 	lv_btn_set_style(btn_popup_cancle, LV_BTN_STYLE_REL, &print_src.print_popup_btn_style);
     lv_btn_set_style(btn_popup_cancle,LV_BTN_STYLE_PR,&print_src.print_popup_btn_style);
 
-    label_for_btn_name(btn_popup_cancle, print_src.print_Label_popup_sure, 50, 0, "Cancel");
+    label_for_btn_name(btn_popup_cancle, print_src.print_Label_popup_sure, 50, 0, mc_language.cancel);
     mks_lvgl_long_sroll_label_with_wight_set(print_src.print_stop_popup, print_src.print_Label_popup, 80, 60, text, 200);
 }
 
@@ -276,8 +277,8 @@ void mks_draw_finsh_pupop(void) {
     lv_btn_set_style(btn_finsh_popup_sure, LV_BTN_STYLE_REL, &print_src.print_popup_btn_style);
     lv_btn_set_style(btn_finsh_popup_sure,LV_BTN_STYLE_PR,&print_src.print_popup_btn_style);
 
-    label_for_btn_name(btn_finsh_popup_sure, print_src.print_Label_popup_sure, 0, 0, "Yes");
-    label_for_screen(print_src.print_finsh_popup, print_src.print_Label_popup, 0, -20, "File is print done!");
+    label_for_btn_name(btn_finsh_popup_sure, print_src.print_Label_popup_sure, 0, 0, mc_language.yes);
+    label_for_screen(print_src.print_finsh_popup, print_src.print_Label_popup, 0, -20, mc_language.dis_print_done);
 }
 
 char bar_percen_str[20];
@@ -307,7 +308,7 @@ static void event_pwr_setting_add(lv_obj_t* obj, lv_event_t event) {
                 print_setting.cur_spindle_pwr = SpindleSpeedOverride::Max;    
             }
         }
-        sprintf(power_add_dec_buf, "Power:%d%%", print_setting.cur_spindle_pwr);
+        sprintf(power_add_dec_buf, mc_language.power_fmt, print_setting.cur_spindle_pwr);
         lv_label_set_static_text(pwr_label_power, power_add_dec_buf);
     }
 }
@@ -329,7 +330,7 @@ static void event_pwr_setting_dec(lv_obj_t* obj, lv_event_t event) {
                 print_setting.cur_spindle_pwr = SpindleSpeedOverride::Min;
             }
         }
-        sprintf(power_add_dec_buf, "Power:%d%%", print_setting.cur_spindle_pwr);
+        sprintf(power_add_dec_buf, mc_language.power_fmt, print_setting.cur_spindle_pwr);
         lv_label_set_static_text(pwr_label_power, power_add_dec_buf);
     }
 }
@@ -467,7 +468,7 @@ void mks_print_pwr_set(void) {
         lv_btn_set_style(print_src.print_btn_1_mm,LV_BTN_STYLE_PR,&print_src.print_mm_btn2_style); 
     }
 
-    sprintf(buf, "Power:%d%%", sys_rt_s_override);
+    sprintf(buf, mc_language.power_fmt, sys_rt_s_override);
 
     pwr_label_power = label_for_screen(print_src.print_pwr_speed_src, pwr_label_power, 0, -60, buf);
 
@@ -512,7 +513,7 @@ static void event_speed_setting_add(lv_obj_t* obj, lv_event_t event) {
                 print_setting.cur_spindle_speed = FeedOverride::Max;
             }
         }
-        sprintf(speed_add_dec_buf, "Speed:%d%%", print_setting.cur_spindle_speed);
+        sprintf(speed_add_dec_buf, mc_language.speed_fmt, print_setting.cur_spindle_speed);
         lv_label_set_static_text(pwr_label_speed, speed_add_dec_buf);
     }
 }
@@ -531,7 +532,7 @@ static void event_speed_setting_dec(lv_obj_t* obj, lv_event_t event) {
                 print_setting.cur_spindle_speed = FeedOverride::Min;
             }
         }
-        sprintf(speed_add_dec_buf, "Speed:%d%%", print_setting.cur_spindle_speed);
+        sprintf(speed_add_dec_buf, mc_language.speed_fmt, print_setting.cur_spindle_speed);
         lv_label_set_static_text(pwr_label_speed, speed_add_dec_buf);
     }
 }
@@ -673,7 +674,7 @@ void mks_print_speed_set(void) {
         lv_btn_set_style(print_src.print_btn_10_mm,LV_BTN_STYLE_PR,&print_src.print_popup_btn_style);
     }
 
-    sprintf(buf, "Speed:%d%%", sys_rt_f_override);
+    sprintf(buf, mc_language.speed_fmt, sys_rt_f_override);
     // pwr_label_speed = mks_lvgl_long_sroll_label_with_wight_set_center(print_src.print_pwr_speed_src, pwr_label_speed, 20, 50, buf, 100); 
     pwr_label_speed = label_for_screen(print_src.print_pwr_speed_src, pwr_label_speed, 0, -60, buf);
 
@@ -738,6 +739,7 @@ uint8_t get_sp_event_id(lv_obj_t* obj) {
     else if(obj == print_src.print_imgbtn_pwr) return ID_SP_FEED_RATE;
     else if(obj == print_src.print_imgbtn_speed) return ID_SP_SPINDLE_SPEED;
     else if(obj == print_src.print_imgbtn_rapid) return ID_SP_RAPID_SPEED;
+    return 255;  // sin coincidencia: sin accion
 }
 
 
@@ -835,7 +837,7 @@ static void sp_add_dec(uint8_t num, uint8_t step, bool dir) {
             print_setting.cur_spindle_pwr = SpindleSpeedOverride::Min;
         }   
 
-        sprintf(spindle_speed_dis_str, "Spindle speed: %d%%", print_setting.cur_spindle_pwr);
+        sprintf(spindle_speed_dis_str, mc_language.spindle_speed_fmt, print_setting.cur_spindle_pwr);
         lv_label_set_text(label_spindle_speed, spindle_speed_dis_str);
     }
     else if(num == 1) {
@@ -851,7 +853,7 @@ static void sp_add_dec(uint8_t num, uint8_t step, bool dir) {
             print_setting.cur_spindle_speed = FeedOverride::Min;
         } 
 
-        sprintf(feed_rate_dis_str, "Feed rate: %d%%", print_setting.cur_spindle_speed);
+        sprintf(feed_rate_dis_str, mc_language.feed_rate_fmt, print_setting.cur_spindle_speed);
         lv_label_set_text(label_feed_rate, feed_rate_dis_str);
     }
     else if(num == 2) {
@@ -867,7 +869,7 @@ static void sp_add_dec(uint8_t num, uint8_t step, bool dir) {
             print_setting.cur_spindle_rapid = RapidOverride::Low;
         } 
 
-        sprintf(rapid_dis_str, "Rapid speed: %d%%", print_setting.cur_spindle_rapid);
+        sprintf(rapid_dis_str, mc_language.rapid_fmt, print_setting.cur_spindle_rapid);
         lv_label_set_text(label_rapid_speed, rapid_dis_str);
     }
 }
@@ -969,18 +971,18 @@ void draw_adj_popup(void) {
     print_src.print_imgbtn_rapid = mks_lv_btn_set(print_src.print_pwr_speed_src, print_src.print_imgbtn_rapid, 270, 40, 10, 100, event_handler_sp);
     
     
-    sprintf(feed_rate_dis_str, "Feed rate: %d%%",  print_setting.cur_spindle_speed);
-    sprintf(spindle_speed_dis_str, "Spindle speed: %d%%", print_setting.cur_spindle_pwr);
-    sprintf(rapid_dis_str, "Rapid speed: %d%%", print_setting.cur_spindle_rapid);
+    sprintf(feed_rate_dis_str, mc_language.feed_rate_fmt,  print_setting.cur_spindle_speed);
+    sprintf(spindle_speed_dis_str, mc_language.spindle_speed_fmt, print_setting.cur_spindle_pwr);
+    sprintf(rapid_dis_str, mc_language.rapid_fmt, print_setting.cur_spindle_rapid);
     
     label_feed_rate = label_for_text(print_src.print_pwr_speed_src, label_feed_rate, print_src.print_imgbtn_speed, 10, 0, LV_ALIGN_IN_LEFT_MID,  feed_rate_dis_str);
     label_spindle_speed = label_for_text(print_src.print_pwr_speed_src, label_spindle_speed, print_src.print_imgbtn_pwr, 10, 0, LV_ALIGN_IN_LEFT_MID,  spindle_speed_dis_str);
     label_rapid_speed = label_for_text(print_src.print_pwr_speed_src, label_rapid_speed, print_src.print_imgbtn_rapid, 10, 0, LV_ALIGN_IN_LEFT_MID,  rapid_dis_str);
 
-    label_for_text(print_src.print_pwr_speed_src, label_back, print_src.print_sp_btn_return, 0, 0, LV_ALIGN_IN_BOTTOM_MID,     "Back");
-    label_for_text(print_src.print_pwr_speed_src, label_confirm, print_src.print_sp_btn_sure, 0, 0, LV_ALIGN_IN_BOTTOM_MID,    "Confirm");
-    label_for_text(print_src.print_pwr_speed_src, label_add, print_src.print_sp_imgbtn_add, 0, 0, LV_ALIGN_IN_BOTTOM_MID,      "Add");
-    label_for_text(print_src.print_pwr_speed_src, label_dec, print_src.print_sp_imgbtn_dec, 0, 0, LV_ALIGN_IN_BOTTOM_MID,      "Reduce");
+    label_for_text(print_src.print_pwr_speed_src, label_back, print_src.print_sp_btn_return, 0, 0, LV_ALIGN_IN_BOTTOM_MID,     mc_language.back);
+    label_for_text(print_src.print_pwr_speed_src, label_confirm, print_src.print_sp_btn_sure, 0, 0, LV_ALIGN_IN_BOTTOM_MID,    mc_language.confirm);
+    label_for_text(print_src.print_pwr_speed_src, label_add, print_src.print_sp_imgbtn_add, 0, 0, LV_ALIGN_IN_BOTTOM_MID,      mc_language.add);
+    label_for_text(print_src.print_pwr_speed_src, label_dec, print_src.print_sp_imgbtn_dec, 0, 0, LV_ALIGN_IN_BOTTOM_MID,      mc_language.reduce);
     label_persen = label_for_text(print_src.print_pwr_speed_src, label_persen, print_src.print_btn_1_mm, 0, 0, LV_ALIGN_CENTER, persen_dis_str);
 
     img_add = mks_lvgl_img_set_algin(print_src.print_pwr_speed_src ,img_add, &png_sp_add, LV_ALIGN_IN_TOP_LEFT, 308, 18);

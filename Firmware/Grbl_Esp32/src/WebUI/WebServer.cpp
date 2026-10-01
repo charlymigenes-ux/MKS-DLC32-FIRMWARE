@@ -895,7 +895,7 @@ namespace WebUI {
         if (_socket_server && st) {
             String s = "ERROR:" + String(code) + ":";
             s += st;
-            _socket_server->sendTXT(_id_connection, s);
+            _socket_server->broadcastTXT(s);
             if (web_error != 0 && _webserver && _webserver->client().available() > 0) {
                 _webserver->send(web_error, "text/xml", st);
             }
@@ -1312,6 +1312,27 @@ namespace WebUI {
                     }
                 }
             }
+            // renombrar un archivo -- SD.rename() ya lo soporta la libreria FS,
+            // solo faltaba exponerlo aqui igual que delete/createdir.
+            if (_webserver->arg("action") == "rename" && _webserver->hasArg("filename") && _webserver->hasArg("newname")) {
+                String oldname = _webserver->arg("filename");
+                String newname = _webserver->arg("newname");
+                String oldpath = path + oldname;
+                String newpath = path + newname;
+                oldpath.replace("//", "/");
+                newpath.replace("//", "/");
+                if (!SD.exists(oldpath)) {
+                    sstatus = oldname + " does not exist!";
+                } else if (SD.exists(newpath)) {
+                    sstatus = newname + " already exists!";
+                } else {
+                    if (SD.rename(oldpath, newpath)) {
+                        sstatus = oldname + " renamed to " + newname;
+                    } else {
+                        sstatus = "Cannot rename " + oldname;
+                    }
+                }
+            }
         }
         //check if no need build file list
         if (_webserver->hasArg("dontlist") && _webserver->arg("dontlist") == "yes") {
@@ -1585,6 +1606,29 @@ namespace WebUI {
                 _socket_server->broadcastTXT(s);
 
                 grbl_send(CLIENT_SERIAL , "WebUI connected!\n");
+
+#ifdef ENABLE_JOB_DIAG
+                // Diagnostico de paradas: decirle al cliente que acaba de
+                // conectarse por que arranco el ESP32 y hace cuanto. Si entre una
+                // sesion y la siguiente ha cambiado el motivo (o el uptime ha
+                // vuelto a cero) es que ha habido reinicio.
+                {
+                    static const char* motivos[] = { "?", "poweron", "ext", "sw", "panic",
+                                                     "intwdt", "taskwdt", "wdt", "deepsleep",
+                                                     "brownout", "sdio" };
+                    int               m = (int)diag_boot_reason;
+                    const char*       nom = (m >= 0 && m <= 10) ? motivos[m] : "?";
+                    long              up = (long)((esp_timer_get_time() - diag_boot_t0) / 1000);
+                    String            b = "[diag] arranque motivo=";
+                    b += String(m);
+                    b += " (";
+                    b += nom;
+                    b += ") uptime=";
+                    b += String(up);
+                    b += "ms\r\n";
+                    _socket_server->sendTXT(num, b);
+                }
+#endif  // ENABLE_JOB_DIAG
             } break;
             case WStype_TEXT:
                 //USE_SERIAL.printf("[%u] get Text: %s\n", num, payload);

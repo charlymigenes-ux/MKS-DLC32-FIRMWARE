@@ -1,4 +1,5 @@
 #include "MKS_draw_inFile.h"
+#include "MKS_draw_language.h"   // mc_language: textos del LCD
 
 inFILE_PAGE_T infile_page;
 
@@ -88,6 +89,7 @@ static uint8_t get_id(lv_obj_t* obj) {
 	else if (obj == move_page.xy_clear)			return ID_INF_XY_POS;
 	else if (obj == move_page.z_clear)			return ID_INF_Z_POS;
 	else if (obj == move_page.knife)			return ID_INF_KNIFE;
+	return 255;  // sin coincidencia: sin accion
 }
 
 static void event_handler_cave_yes(lv_obj_t* obj, lv_event_t event) {
@@ -167,9 +169,9 @@ static void set_xy_pos(lv_obj_t* obj, lv_event_t event) {
 	if(event != LV_EVENT_RELEASED) return;
 	if(sys.state == State::Idle && mks_get_motor_status() ) {
 		MKS_GRBL_CMD_SEND("G92X0Y0\n");
-		mks_draw_common_popup_info_com("Info", "Positioning success", " ", event_henadle_pupup_com);
+		mks_draw_common_popup_info_com(mc_language.dis_info, mc_language.dis_pos_succeed, " ", event_henadle_pupup_com);
 	}else {
-		mks_draw_common_popup_info_com("Warning", "Please wait machine stop!", " ", event_henadle_pupup_com);
+		mks_draw_common_popup_info_com(mc_language.dis_warning, mc_language.dis_wait_mc_stop, " ", event_henadle_pupup_com);
 	}
 }
 
@@ -177,9 +179,9 @@ static void set_z_pos(lv_obj_t* obj, lv_event_t event) {
 	if(event != LV_EVENT_RELEASED) return;
 	if(sys.state == State::Idle && mks_get_motor_status() ) {
 		MKS_GRBL_CMD_SEND("G92Z0\n");
-		mks_draw_common_popup_info_com("Info", "Positioning success", " ", event_henadle_pupup_com);
+		mks_draw_common_popup_info_com(mc_language.dis_info, mc_language.dis_pos_succeed, " ", event_henadle_pupup_com);
 	}else {
-		mks_draw_common_popup_info_com("Warning", "Please wait machine stop!", " ", event_henadle_pupup_com);
+		mks_draw_common_popup_info_com(mc_language.dis_warning, mc_language.dis_wait_mc_stop, " ", event_henadle_pupup_com);
 	}
 }
 
@@ -190,9 +192,9 @@ static void set_xyz_pos(lv_obj_t* obj, lv_event_t event) {
 
 		if(sys.state == State::Idle && mks_get_motor_status() ) {
 			MKS_GRBL_CMD_SEND("G92X0Y0Z0\n");
-			mks_draw_common_popup_info_com("Info", "Positioning success", " ", event_henadle_pupup_com);
+			mks_draw_common_popup_info_com(mc_language.dis_info, mc_language.dis_pos_succeed, " ", event_henadle_pupup_com);
 		}else {
-			mks_draw_common_popup_info_com("Warning", "Please wait machine stop!", " ", event_henadle_pupup_com);
+			mks_draw_common_popup_info_com(mc_language.dis_warning, mc_language.dis_wait_mc_stop, " ", event_henadle_pupup_com);
 		}
 	}
 }
@@ -201,12 +203,12 @@ static void set_knife() {
 
 	if(probe_invert->get()) {
 		MKS_GRBL_CMD_SEND("G21 G91 G38.2 Z-50 F80\n");
-		mks_draw_common_pupup_info("Info", "Setting probe...", " ");
+		mks_draw_common_pupup_info(mc_language.dis_info, mc_language.dis_probe_set, " ");
 		probe_run.status = PROBE_STAR;
 
 	}else {
 		set_click_status(true);
-		mks_draw_common_popup_info_com("Info", "Setting error!", "Please set $6=1!", event_henadle_pupup_com);
+		mks_draw_common_popup_info_com(mc_language.dis_info, mc_language.dis_setting_error, mc_language.dis_set_6_1, event_henadle_pupup_com);
 	}
 }
 
@@ -228,13 +230,13 @@ static void event_handler_speed(void){
 
 	if(mks_grbl.move_speed == LOW_SPEED) {
 		mks_grbl.move_speed = MID_SPEED;
-		mks_lv_label_updata(move_page.label_speed, "Mid Speed");
+		mks_lv_label_updata(move_page.label_speed, mc_language.speed_mid);
 	}else if(mks_grbl.move_speed == MID_SPEED) {
 		mks_grbl.move_speed = HIGHT_SPEED;
-		mks_lv_label_updata(move_page.label_speed, "High Speed");
+		mks_lv_label_updata(move_page.label_speed, mc_language.speed_high);
 	}else if(mks_grbl.move_speed == HIGHT_SPEED) {
 		mks_grbl.move_speed = LOW_SPEED;
-		mks_lv_label_updata(move_page.label_speed, "Low Speed");
+		mks_lv_label_updata(move_page.label_speed, mc_language.speed_low);
 	}
 }
 
@@ -350,10 +352,10 @@ static void disp_imgbtn_1(void) {
 	move_page.knife = lv_imgbtn_creat_mks(mks_global.mks_src_1, move_page.knife, &png_knife_pre, &png_knife, LV_ALIGN_IN_TOP_LEFT, 310, 5, event_handler);
 	move_page.next = lv_imgbtn_creat_mks(mks_global.mks_src_1, move_page.next, &png_l_next_pre, &png_l_next, LV_ALIGN_IN_TOP_LEFT, 380, 5, disp_down_set);
 
-	move_page.label_xy_clear = label_for_imgbtn_name(mks_global.mks_src_1, move_page.label_xy_clear, move_page.xy_clear, 0, 0, "XY Clear");
-	move_page.label_z_clear = label_for_imgbtn_name(mks_global.mks_src_1, move_page.label_z_clear, move_page.z_clear, 0, 0, "Z Clear");
-	move_page.label_knife = label_for_imgbtn_name(mks_global.mks_src_1, move_page.label_knife, move_page.knife, 0, 0, "Knife");
-	move_page.label_next = label_for_imgbtn_name(mks_global.mks_src_1, move_page.label_next, move_page.next, 0, 0, "Next");
+	move_page.label_xy_clear = label_for_imgbtn_name(mks_global.mks_src_1, move_page.label_xy_clear, move_page.xy_clear, 0, 0, mc_language.xy_clear);
+	move_page.label_z_clear = label_for_imgbtn_name(mks_global.mks_src_1, move_page.label_z_clear, move_page.z_clear, 0, 0, mc_language.z_clear);
+	move_page.label_knife = label_for_imgbtn_name(mks_global.mks_src_1, move_page.label_knife, move_page.knife, 0, 0, mc_language.knife);
+	move_page.label_next = label_for_imgbtn_name(mks_global.mks_src_1, move_page.label_next, move_page.next, 0, 0, mc_language.next);
 }
 
 static void disp_imgbtn_1_del(void) {
@@ -373,9 +375,9 @@ static void disp_imgbtn_2(void) {
 	move_page.cooling = lv_imgbtn_creat_mks(mks_global.mks_src_1, move_page.cooling, &png_cooling_pre, &png_cooling, LV_ALIGN_IN_TOP_LEFT, 240, 5, set_cooling);
 	move_page.position = lv_imgbtn_creat_mks(mks_global.mks_src_1, move_page.position, &png_position_pre, &png_position, LV_ALIGN_IN_TOP_LEFT, 310, 5, set_xyz_pos);
 
-	move_page.label_cooling = label_for_imgbtn_name(mks_global.mks_src_1, move_page.label_cooling, move_page.cooling, 0, 0, "Cooling");
-	move_page.label_position = label_for_imgbtn_name(mks_global.mks_src_1, move_page.label_position, move_page.position, 0, 0, "Position");
-	move_page.label_up = label_for_imgbtn_name(mks_global.mks_src_1, move_page.label_up, move_page.up, 0, 0, "Up");
+	move_page.label_cooling = label_for_imgbtn_name(mks_global.mks_src_1, move_page.label_cooling, move_page.cooling, 0, 0, mc_language.cooling);
+	move_page.label_position = label_for_imgbtn_name(mks_global.mks_src_1, move_page.label_position, move_page.position, 0, 0, mc_language.position);
+	move_page.label_up = label_for_imgbtn_name(mks_global.mks_src_1, move_page.label_up, move_page.up, 0, 0, mc_language.up);
 }
 
 static void disp_imgbtn_2_del(void) {
@@ -421,7 +423,7 @@ static void disp_btn(void) {
 
 static void disp_label(void) {
 
-	label_for_imgbtn_name(mks_global.mks_src_1, move_page.Label_back, move_page.Back, 0, 0, "Back");
+	label_for_imgbtn_name(mks_global.mks_src_1, move_page.Label_back, move_page.Back, 0, 0, mc_language.back);
 	
 	move_page.label_xpos = label_for_text(mks_global.mks_src_1, move_page.label_xpos, NULL, 93, 5, LV_ALIGN_IN_TOP_LEFT,  	"X:0");
 	move_page.label_ypos = label_for_text(mks_global.mks_src_1, move_page.label_ypos, NULL, 93, 36, LV_ALIGN_IN_TOP_LEFT,	"Y:0");
@@ -436,14 +438,14 @@ static void disp_label(void) {
 	}
 	
 	if(mks_grbl.move_speed == LOW_SPEED) {
-		move_page.label_speed = mks_lvgl_long_sroll_label_with_wight_set_center(move_page.btn_speed, move_page.label_speed, 0, 0, "Low Speed", 100); //l:500, m:1000, h:2000
+		move_page.label_speed = mks_lvgl_long_sroll_label_with_wight_set_center(move_page.btn_speed, move_page.label_speed, 0, 0, mc_language.speed_low, 100); //l:500, m:1000, h:2000
 	}else if(mks_grbl.move_speed == MID_SPEED) {
-		move_page.label_speed = mks_lvgl_long_sroll_label_with_wight_set_center(move_page.btn_speed, move_page.label_speed, 0, 0, "Mid Speed", 100);
+		move_page.label_speed = mks_lvgl_long_sroll_label_with_wight_set_center(move_page.btn_speed, move_page.label_speed, 0, 0, mc_language.speed_mid, 100);
 	}else if(mks_grbl.move_speed == HIGHT_SPEED) {
-		move_page.label_speed = mks_lvgl_long_sroll_label_with_wight_set_center(move_page.btn_speed, move_page.label_speed, 0, 0, "High Speed", 100);
+		move_page.label_speed = mks_lvgl_long_sroll_label_with_wight_set_center(move_page.btn_speed, move_page.label_speed, 0, 0, mc_language.speed_high, 100);
 	}	
 
-	infile_page.label_sculpture = mks_lvgl_long_sroll_label_with_wight_set_center(infile_page.btn_sculpture, infile_page.label_sculpture, 0, 0, "Sculpture", 100);
+	infile_page.label_sculpture = mks_lvgl_long_sroll_label_with_wight_set_center(infile_page.btn_sculpture, infile_page.label_sculpture, 0, 0, mc_language.sculpture, 100);
 }
 
 void infile_clean_obj(lv_obj_t *obj_src) {

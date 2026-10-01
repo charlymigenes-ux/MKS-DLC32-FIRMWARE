@@ -11,11 +11,13 @@ typedef struct {
     lv_obj_t *imgbtn_simple_cn;         // 简体中文
     lv_obj_t *imgbtn_en;                // 英语
     lv_obj_t *imgbtn_de;                // 德语
+    lv_obj_t *imgbtn_es;                // español ($40=3)
 
     lv_obj_t *label_back;
     lv_obj_t *label_simple_cn;         // 简体中文
     lv_obj_t *label_en;                // 英语
     lv_obj_t *label_de;                // 德语
+    lv_obj_t *label_es;                // español
 
 
 }LANGUAGE_PAGE_T;
@@ -78,8 +80,80 @@ typedef struct {
     const char *dis_probe_set;
     const char *dis_probe_succeed;
     const char *dis_probe_fail;
+
+    /* Botones y popups que antes estaban fijos en ingles en cada pagina
+     * (Yes/Cancel/Back/Pause/Stop/Frame/...): ahora se cuelgan de aqui para
+     * que sigan el idioma elegido en $40. */
+    const char *cancel;
+    const char *frame;
+    const char *carve_file_sure;
+    const char *pause;
+    const char *start;
+    const char *confirm;
+    const char *add;
+    const char *reduce;
+    const char *exit;
+    const char *language;
+    const char *scanf;
+    const char *reconnect;
+    const char *connect;
+    const char *password;
+    const char *z_home;
+    const char *update_title;
+
+    /* Avisos y mensajes de dialogo */
+    const char *dis_info;
+    const char *dis_warning;
+    const char *dis_error;
+    const char *dis_pos_succeed;
+    const char *dis_wait_mc_stop;
+    const char *dis_unlock;
+    const char *dis_unlock_success;
+    const char *dis_setting_error;
+    const char *dis_set_6_1;
+    const char *dis_wait_idle;
+    const char *dis_file_too_big;
+    const char *dis_continue_sure;
+    const char *dis_file_loading;
+    const char *dis_loading_file;
+    const char *dis_sd_busy;
+    const char *dis_running;
+    const char *dis_print_stop_sure;
+    const char *dis_print_done;
+    const char *wifi_scanning;
+    const char *wifi_connecting;
+    const char *wifi_disconnecting;
+    const char *wifi_pwd_prompt;
+    const char *wifi_status_on;
+    const char *wifi_status_off;
+    const char *dis_update_succeed;
+    const char *dis_update_restart;
+    const char *dis_update_fail;
+    const char *dis_update_fail_help;
+
+    /* Formatos con %d (overrides de velocidad/potencia, etc.) */
+    const char *power_fmt;
+    const char *speed_fmt;
+    const char *spindle_speed_fmt;
+    const char *feed_rate_fmt;
+    const char *rapid_fmt;
+
+    /* Pagina de pruebas (test) */
+    const char *test_title;
+    const char *probe_check;
+    const char *x_limit_check;
+    const char *y_limit_check;
+    const char *z_limit_check;
+    const char *sd_check;
+    const char *i2c_check;
+    const char *cpu_temp;
+    const char *test_warning;
 }mc_lg_muilt_t;
 extern mc_lg_muilt_t mc_language;
+
+// Rellena mc_language con las cadenas del LCD. OJO: antes solo se llamaba desde
+// set_language() (al cambiar el idioma desde la pantalla), nunca al arrancar.
+void mc_language_init(void);
 
 
 void draw_language(void);

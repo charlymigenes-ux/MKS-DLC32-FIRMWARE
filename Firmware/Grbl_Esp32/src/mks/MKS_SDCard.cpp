@@ -389,4 +389,5 @@ bool SdCard::sd_data_update(const char* path, const char *str) {
     }else {
         grbl_send(CLIENT_SERIAL, "no read\n"); 
     }
+    return false;  // faltaba return -> valor indefinido
 }

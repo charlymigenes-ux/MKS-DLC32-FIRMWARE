@@ -1,4 +1,5 @@
 #include "MKS_draw_frame.h"
+#include "MKS_draw_language.h"   // mc_language: textos del LCD
 #include "../WebUI/WebSettings.h"
 #include "../WebUI/ESPResponse.h"
 #include "../SDCard.h"
@@ -52,7 +53,7 @@ void mks_draw_frame(void) {
                                                                             frame_page.label_text, 
                                                                             FRAME_LABEL_RUN_STATUS_X, 
                                                                             FRAME_LABEL_RUN_STATUS_Y+10, 
-                                                                            "Loading File...", 
+                                                                            mc_language.dis_loading_file, 
                                                                             255);
     mks_ui_page.mks_ui_page = MKS_UI_Frame;
     mks_ui_page.wait_count = 1;
@@ -85,7 +86,7 @@ void mks_openSDFile(char* parameter) {
     SDState state = get_sd_state(true);
     if (state != SDState::Idle) {
         if (state == SDState::NotPresent) {
-            // webPrintln("No SD Card");
+            // webPrintln(mc_language.dis_no_sd_card);
             return;
         } 
         else 
@@ -263,7 +264,7 @@ void mks_run_frame(char *parameter) {
     frame_ctrl.out = true;
 
     if (sys.state != State::Idle && sys.state != State::Alarm) {    // 判断SD卡状态
-        mks_lv_label_updata(frame_page.label_text, "SD is busy...");
+        mks_lv_label_updata(frame_page.label_text, mc_language.dis_sd_busy);
         lv_refr_now(lv_refr_get_disp_refreshing());
         frame_ctrl.cancle_enable = true;
         return ;
@@ -314,7 +315,7 @@ void mks_run_frame(char *parameter) {
                                 frame_ctrl.x_max, 
                                 frame_ctrl.y_max);
     closeFile();
-    mks_lv_label_updata(frame_page.label_text, "Running...");
+    mks_lv_label_updata(frame_page.label_text, mc_language.dis_running);
     lv_refr_now(lv_refr_get_disp_refreshing()); 
 
     MKS_GRBL_CMD_SEND("M3 S5\n");

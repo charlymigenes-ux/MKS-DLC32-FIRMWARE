@@ -1,4 +1,5 @@
 #include "MKS_draw_carving.h"
+#include "MKS_draw_language.h"   // mc_language: textos del LCD
 #include "MKS_LVGL.h"
 #include "FS.h"
 #include "../SDCard.h"
@@ -303,19 +304,19 @@ void mks_draw_craving(void) {
 	next = lv_imgbtn_creat_mks(mks_global.mks_src_1, next, &png_next_pre, &Next, LV_ALIGN_IN_RIGHT_MID, caving_next_x, caving_next_y, event_handler_next);
 	Cback = lv_imgbtn_creat_mks(mks_global.mks_src_1, Cback, &png_back_pre, &back, LV_ALIGN_IN_LEFT_MID, 10, -15, event_handler_cback);
 
-	label_for_imgbtn_name(mks_global.mks_src_1, label_up, up, 0, 0, "Up");
-	label_for_imgbtn_name(mks_global.mks_src_1, label_next, next, 0, 0, "Next");
-	label_for_imgbtn_name(mks_global.mks_src_1, label_Cback, Cback, 0, 0, "Back");
+	label_for_imgbtn_name(mks_global.mks_src_1, label_up, up, 0, 0, mc_language.up);
+	label_for_imgbtn_name(mks_global.mks_src_1, label_next, next, 0, 0, mc_language.next);
+	label_for_imgbtn_name(mks_global.mks_src_1, label_Cback, Cback, 0, 0, mc_language.back);
 
-	// label_Cback = mks_lvgl_long_sroll_label_with_wight_set_center(mks_global.mks_src_1, label_Cback, caving_back_x,caving_back_y, "Back", 60);
-	// label_up = mks_lvgl_long_sroll_label_with_wight_set_center(mks_global.mks_src_1, label_up, caving_up_x+20, caving_up_y+70, "UP", 60);
-	// label_next = mks_lvgl_long_sroll_label_with_wight_set_center(mks_global.mks_src_1, label_next, caving_next_x, caving_next_y+70, "Next", 60);
+	// label_Cback = mks_lvgl_long_sroll_label_with_wight_set_center(mks_global.mks_src_1, label_Cback, caving_back_x,caving_back_y, mc_language.back, 60);
+	// label_up = mks_lvgl_long_sroll_label_with_wight_set_center(mks_global.mks_src_1, label_up, caving_up_x+20, caving_up_y+70, mc_language.up, 60);
+	// label_next = mks_lvgl_long_sroll_label_with_wight_set_center(mks_global.mks_src_1, label_next, caving_next_x, caving_next_y+70, mc_language.next, 60);
 
 	// if(mks_readSD_Status() == SDState::NotPresent)  // check sdcard is work
 	if(state == SDState::NotPresent)
 	{
 		mks_grbl.mks_sd_status = 0;	// no sd insert
-		label_for_screen(mks_global.mks_src, Label_NoFile, 0, 0, "No SD Card");
+		label_for_screen(mks_global.mks_src, Label_NoFile, 0, 0, mc_language.dis_no_sd_card);
 	}else {
 
 		
@@ -970,9 +971,9 @@ static void event_btn_frame(lv_obj_t* obj, lv_event_t event) {
 		lv_obj_del(caving_Popup);
 
 		if(file_size >= 1024*1024) {
-			mks_draw_common_popup("Warning!", 
-								"File size is too big",
-								"Do you want to connute?",
+			mks_draw_common_popup(mc_language.dis_warning, 
+								mc_language.dis_file_too_big,
+								mc_language.dis_continue_sure,
 								event_fram_size_yes,
 								event_fram_size_no);
 		}else {
@@ -1015,18 +1016,18 @@ void mks_draw_caving_popup(uint8_t text, char *srt) {
 	btn_popup_sure = mks_lv_btn_set(caving_Popup, btn_popup_sure, 100,40,10,130,event_btn_sure);
 	lv_btn_set_style(btn_popup_sure, LV_BTN_STYLE_REL, &btn_style);
     lv_btn_set_style(btn_popup_sure,LV_BTN_STYLE_PR,&btn_style);
-	mks_lvgl_long_sroll_label_with_wight_set_center(btn_popup_sure, Label_popup_sure, 50, 0, "Yes",50);
+	mks_lvgl_long_sroll_label_with_wight_set_center(btn_popup_sure, Label_popup_sure, 50, 0, mc_language.yes,50);
 
 
 	btn_popup_frame = mks_lv_btn_set(caving_Popup, btn_popup_frame, 100,40,125,130,event_btn_frame);
 	lv_btn_set_style(btn_popup_frame, LV_BTN_STYLE_REL, &btn_style);
     lv_btn_set_style(btn_popup_frame,LV_BTN_STYLE_PR,&btn_style);
-	mks_lvgl_long_sroll_label_with_wight_set_center(btn_popup_frame, Label_popup_sure, 60, 0, "Frame",50);
+	mks_lvgl_long_sroll_label_with_wight_set_center(btn_popup_frame, Label_popup_sure, 60, 0, mc_language.frame,50);
 	
 	btn_popup_cancle = mks_lv_btn_set(caving_Popup, btn_popup_cancle, 100,40,240,130,event_btn_cancle);
 	lv_btn_set_style(btn_popup_cancle, LV_BTN_STYLE_REL, &btn_style);
     lv_btn_set_style(btn_popup_cancle,LV_BTN_STYLE_PR,&btn_style);
-	mks_lvgl_long_sroll_label_with_wight_set_center(btn_popup_cancle, Label_popup_sure, 50, 0, "Cancel",50);
+	mks_lvgl_long_sroll_label_with_wight_set_center(btn_popup_cancle, Label_popup_sure, 50, 0, mc_language.cancel,50);
 
 	// memcpy(file_print_send, srt, MKS_FILE_NAME_LENGTH);
 	memset(file_print_send, 0, sizeof(file_print_send));
@@ -1039,9 +1040,9 @@ void mks_draw_caving_popup(uint8_t text, char *srt) {
 
 	if(file_name[0] == '/') file_name[0] = ' ';
 	// mks_lvgl_long_sroll_label_with_wight_set(caving_Popup, Label_popup_file_name, 100, 40, file_name, 255);
-	// mks_lvgl_long_sroll_label_with_wight_set(caving_Popup, Label_popup, 100, 60, "Is Caving this File?",255);
+	// mks_lvgl_long_sroll_label_with_wight_set(caving_Popup, Label_popup, 100, 60, mc_language.carve_file_sure,255);
 	label_for_screen(caving_Popup, Label_popup_file_name, 0, -20, file_name);
-	label_for_screen(caving_Popup, Label_popup, 0, 0, "Is Caving this File?");
+	label_for_screen(caving_Popup, Label_popup, 0, 0, mc_language.carve_file_sure);
 	
 }
 
@@ -1069,7 +1070,7 @@ void mks_draw_file_loadig(void) {
 	popup_style.text.color = LV_COLOR_BLACK;
 	popup_style.body.radius = 17;
 	lv_obj_set_style(caving_read_file_src1, &popup_style);
-	mks_lvgl_long_sroll_label_with_wight_set(caving_read_file_src1, Label_popup, 110, 80, "File is Loading",240);
+	mks_lvgl_long_sroll_label_with_wight_set(caving_read_file_src1, Label_popup, 110, 80, mc_language.dis_file_loading,240);
 }
 
 void mks_clear_craving(void) {

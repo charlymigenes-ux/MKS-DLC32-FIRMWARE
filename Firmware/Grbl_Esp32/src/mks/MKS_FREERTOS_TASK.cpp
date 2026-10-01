@@ -1,4 +1,5 @@
 #include "MKS_FREERTOS_TASK.h"
+#include "MKS_draw_language.h"   // mc_language_init: recarga de $40 en caliente
 
 #define DISP_TASK_STACK                 4096*2
 #define DISP_TASK_PRO                   2
@@ -14,6 +15,17 @@ TaskHandle_t frame_task_tcb = NULL;
 #define USE_DelayUntil
 
 static void mks_page_data_updata(void);
+
+#ifdef ENABLE_JOB_DIAG
+// Diagnóstico: maximo tiempo que la tarea LVGL (prioridad 2, por encima
+// del lazo de protocolo en prioridad 1) mantiene ocupado el core 1 sin ceder.
+// Si ese tiempo supera la duracion del buffer del planificador (~119 ms con
+// archivos de segmentos cortos), el lazo no puede alimentar el machine, el
+// planificador se vacia y el movimiento se para. Protocol.cpp lo incluye en
+// su linea "[diag] hueco ...".
+volatile int64_t diag_lvgl_max = 0;
+int64_t           diag_lvgl_t0 = 0;
+#endif  // ENABLE_JOB_DIAG
 
 IRAM_ATTR void lvgl_disp_task(void *parg) { 
 
@@ -37,6 +49,10 @@ IRAM_ATTR void lvgl_disp_task(void *parg) {
     mks_grbl.wifi_connect_enable = true;
 
     while(1) {
+
+#ifdef ENABLE_JOB_DIAG
+        diag_lvgl_t0 = (int64_t)xTaskGetTickCount();
+#endif  // ENABLE_JOB_DIAG
 
         if(logo_flag == true) {
             lv_task_handler();
@@ -65,6 +81,14 @@ IRAM_ATTR void lvgl_disp_task(void *parg) {
             mks_page_data_updata();
         }
 
+#ifdef ENABLE_JOB_DIAG
+        {
+            int64_t diag_d = (int64_t)xTaskGetTickCount() - diag_lvgl_t0;
+            if (diag_d > diag_lvgl_max) {
+                diag_lvgl_max = diag_d;
+            }
+        }
+#endif  // ENABLE_JOB_DIAG
 #if defined(USE_DelayUntil)
     vTaskDelayUntil(&xLastWakeTime, xDisplayFrequency); //使用相对延时，保证时间精准
 #else
@@ -76,7 +100,24 @@ IRAM_ATTR void lvgl_disp_task(void *parg) {
 uint8_t count_updata = 0;
 uint8_t fram_count = 0;
 static void mks_page_data_updata(void) { 
-    
+
+    // $40 se puede cambiar desde la pantalla (set_language) o a distancia, con
+    // la WebUI escribiendo "$40=n". Aqui se detecta el cambio y se recargan las
+    // cadenas del LCD; sin esto mc_language solo se actualizaba al pulsar los
+    // botones de la pagina de Idiomas. Se comprueba en cada ciclo (5 ms); el
+    // coste es un entero en RAM. OJO: los labels ya dibujados mantienen el texto
+    // anterior hasta que se repinte su pagina.
+    static int32_t last_language = -1;
+    int32_t cur_language = language_select->get();
+
+    if(cur_language != last_language) {
+        last_language = cur_language;
+        if((cur_language >= SimpleChinese) && (cur_language <= Espanol)) {
+            mks_grbl.language = (GRBL_Language)cur_language;
+        }
+        mc_language_init();
+    }
+
     if(mks_ui_page.mks_ui_page == MKS_UI_PAGE_LOADING) {
         /* Do not updata */
         return ;
@@ -181,13 +222,13 @@ static void mks_page_data_updata(void) {
         }
         else if(mks_updata.updata_flag == UD_UPDATA_FINSH) {
             // 更新完成弹窗
-            mks_draw_common_pupup_info("Info", "Update succeed", "Please restart!");
+            mks_draw_common_pupup_info(mc_language.dis_info, mc_language.dis_update_succeed, mc_language.dis_update_restart);
             mks_cfg_rename(CFG_FILE_PATG2);
             mks_updata.updata_flag = UD_NONE;
         }
         else if(mks_updata.updata_flag == UD_UPDATA_FAIL) {
             // 更新失败弹窗
-            mks_draw_common_pupup_info("Error", "Update Fail", "Please Check mkscfg.txt or sdcard");
+            mks_draw_common_pupup_info(mc_language.dis_error, mc_language.dis_update_fail, mc_language.dis_update_fail_help);
             mks_updata.updata_flag = UD_NONE;
         }
     }

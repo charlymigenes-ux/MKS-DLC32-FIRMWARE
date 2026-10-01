@@ -1,4 +1,5 @@
 #include "MKS_updata.h"
+#include "MKS_draw_language.h"   // mc_language: textos del LCD
 
 MKS_UPDATA_T mks_updata;
 UPDATA_PAGE_T updata_page;
@@ -80,7 +81,7 @@ void mks_cfg_rename(const char* path1) {
 
 void mks_draw_updata(void) {
     updata_page.bar_updata = mks_lv_bar_set(mks_global.mks_src, updata_page.bar_updata, 440, 50, 20, 140, 0);
-    updata_page.label_updata_title = label_for_screen(mks_global.mks_src, updata_page.label_updata_title, 0, -80, "Updata...");
+    updata_page.label_updata_title = label_for_screen(mks_global.mks_src, updata_page.label_updata_title, 0, -80, mc_language.update_title);
     updata_page.label_updata_persen = label_for_screen(updata_page.label_updata_title, updata_page.label_updata_persen, 0, -100, "%0");
     mks_ui_page.mks_ui_page = MKS_UI_UPDATA;
     mks_updata.updata_flag = UD_UPDATA_ING;

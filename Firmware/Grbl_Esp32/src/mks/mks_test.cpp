@@ -1,4 +1,5 @@
 #include "mks_test.h"
+#include "MKS_draw_language.h"   // mc_language: textos del LCD
 
 MKS_PAGE_TEST_T test_page;
 MKS_TEST_CTRL_T test_ctrl;
@@ -43,10 +44,10 @@ void mks_draw_test_ui(void) {
                                             TITLE_X_POS, 
                                             TITLE_X_POS, 
                                             LV_ALIGN_IN_TOP_LEFT, 
-                                            "Testing...");
+                                            mc_language.test_title);
 
     memset(dis_str, 0, sizeof(dis_str));
-    strcpy(dis_str, test_probe_str);
+    strcpy(dis_str, mc_language.probe_check);
     strcat(dis_str, test_ERR);
     test_page.label_probe = label_for_text(mks_global.mks_src, 
                                             test_page.label_probe, 
@@ -63,10 +64,10 @@ void mks_draw_test_ui(void) {
                                             TITLE_X_POS, 
                                             TITLE_Y_POS + TITLE_Y_OFFSET*2, 
                                             LV_ALIGN_IN_TOP_LEFT, 
-                                            "SD Check:OK");
+                                            mc_language.sd_check);
 
     memset(dis_str, 0, sizeof(dis_str));
-    strcpy(dis_str, test_x_limit_str);
+    strcpy(dis_str, mc_language.x_limit_check);
     strcat(dis_str, test_ERR);
     test_page.label_x_limit = label_for_text(mks_global.mks_src, 
                                             test_page.label_x_limit, 
@@ -77,7 +78,7 @@ void mks_draw_test_ui(void) {
                                             dis_str);
 
     memset(dis_str, 0, sizeof(dis_str));
-    strcpy(dis_str, test_y_limit_str);
+    strcpy(dis_str, mc_language.y_limit_check);
     strcat(dis_str, test_ERR);
     test_page.label_y_limit = label_for_text(mks_global.mks_src, 
                                             test_page.label_y_limit, 
@@ -88,7 +89,7 @@ void mks_draw_test_ui(void) {
                                             dis_str);
 
     memset(dis_str, 0, sizeof(dis_str));
-    strcpy(dis_str, test_z_limit_str);
+    strcpy(dis_str, mc_language.z_limit_check);
     strcat(dis_str, test_ERR);
     test_page.label_z_limit = label_for_text(mks_global.mks_src, 
                                             test_page.label_z_limit, 
@@ -99,7 +100,7 @@ void mks_draw_test_ui(void) {
                                             dis_str);
     
     memset(dis_str, 0, sizeof(dis_str));
-    strcpy(dis_str, test_CPU_T_str);
+    strcpy(dis_str, mc_language.cpu_temp);
     strcat(dis_str, String(temperatureRead(), 1).c_str());
     test_page.label_mcu_temp = label_for_text(mks_global.mks_src, 
                                             test_page.label_mcu_temp, 
@@ -110,7 +111,7 @@ void mks_draw_test_ui(void) {
                                             dis_str);
 
     memset(dis_str, 0, sizeof(dis_str));
-    strcpy(dis_str, test_I2C_str);
+    strcpy(dis_str, mc_language.i2c_check);
     strcat(dis_str, test_ERR);
     test_page.label_i2c = label_for_text(mks_global.mks_src, 
                                             test_page.label_i2c, 
@@ -136,7 +137,7 @@ void mks_draw_test_ui(void) {
                                         10, 
                                         event_handler_test);
 
-    test_page.label_back = label_for_btn_name(test_page.btn_back, test_page.label_back, 0, 0, "Exit");
+    test_page.label_back = label_for_btn_name(test_page.btn_back, test_page.label_back, 0, 0, mc_language.exit);
     mks_ui_page.mks_ui_page = MKS_UI_TEST;
 }
 
@@ -162,27 +163,27 @@ void draw_testing(void) {
     char dis_str[60];
     if(pin_check(PROBE_PIN) == TEST_PIN_PROBE_LEVEL) {
         memset(dis_str, 0, sizeof(dis_str));
-        strcpy(dis_str, test_probe_str);
+        strcpy(dis_str, mc_language.probe_check);
         strcat(dis_str, test_OK);  
         lv_label_set_text(test_page.label_probe, dis_str);
     }
 
     if(pin_check(X_LIMIT_PIN) == TEST_PIN_LEVEL) {
         memset(dis_str, 0, sizeof(dis_str));
-        strcpy(dis_str, test_x_limit_str);
+        strcpy(dis_str, mc_language.x_limit_check);
         strcat(dis_str, test_OK);  
         lv_label_set_text(test_page.label_x_limit, dis_str);
     }
 
     if(pin_check(Y_LIMIT_PIN) == TEST_PIN_LEVEL) {
         memset(dis_str, 0, sizeof(dis_str));
-        strcpy(dis_str, test_y_limit_str);
+        strcpy(dis_str, mc_language.y_limit_check);
         strcat(dis_str, test_OK);  
         lv_label_set_text(test_page.label_y_limit, dis_str);
     }
     if(pin_check(GPIO_NUM_34) == TEST_PIN_LEVEL) {
         memset(dis_str, 0, sizeof(dis_str));
-        strcpy(dis_str, test_z_limit_str);
+        strcpy(dis_str, mc_language.z_limit_check);
         strcat(dis_str, test_OK);  
         lv_label_set_text(test_page.label_z_limit, dis_str);
     }
@@ -197,7 +198,7 @@ void draw_testing(void) {
 
     if(test_i2c_bit == 0x11) {
         memset(dis_str, 0, sizeof(dis_str));
-        strcpy(dis_str, test_I2C_str);
+        strcpy(dis_str, mc_language.i2c_check);
         strcat(dis_str, test_OK);  
         lv_label_set_text(test_page.label_i2c, dis_str);
     }
@@ -205,12 +206,12 @@ void draw_testing(void) {
 
     if(temperatureRead() > 100) {
         memset(dis_str, 0, sizeof(dis_str));
-        strcpy(dis_str, test_CPU_T_str);
-        strcat(dis_str, test_WAR);  
+        strcpy(dis_str, mc_language.cpu_temp);
+        strcat(dis_str, mc_language.test_warning);  
         lv_label_set_text(test_page.label_mcu_temp, dis_str);
     }else{
         memset(dis_str, 0, sizeof(dis_str));
-        strcpy(dis_str, test_CPU_T_str);
+        strcpy(dis_str, mc_language.cpu_temp);
         strcat(dis_str, String(temperatureRead(), 1).c_str());  
         lv_label_set_text(test_page.label_mcu_temp, dis_str);
     }

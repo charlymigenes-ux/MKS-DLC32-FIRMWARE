@@ -27,10 +27,25 @@
 #include "mks/MKS_ctrl.h"
 #include "mks/MKS_SDCard.h"
 
+#ifdef ENABLE_JOB_DIAG
+// Diagnóstico de paradas: motivo del ultimo arranque del ESP32 y cuantas veces
+// ha vuelto a entrar run_once() (=> cuantas veces ha salido protocol_main_loop()
+// sin que el chip se reiniciara). Ver esp_reset_reason(): 1=poweron 3=sw
+// 4=panic 5=intwdt 6=taskwdt 7=wdt 9=brownout.
+uint8_t diag_boot_reason = 255;
+int64_t diag_boot_t0     = 0;
+int     diag_run_once    = 0;
+#endif  // ENABLE_JOB_DIAG
+
 void grbl_init() {
 
     disableCore0WDT();
     disableCore1WDT();
+
+#ifdef ENABLE_JOB_DIAG
+    diag_boot_reason = (uint8_t)esp_reset_reason();
+    diag_boot_t0     = esp_timer_get_time();
+#endif  // ENABLE_JOB_DIAG
 
     pinMode(LCD_EN, OUTPUT);
     
@@ -202,6 +217,15 @@ static void reset_variables() {
 }
 
 void run_once() {
+#ifdef ENABLE_JOB_DIAG
+    diag_run_once++;
+    if (diag_run_once > 1) {
+        // No es un reinicio: protocol_main_loop() ha vuelto a salir y volver a
+        // entrar. Imprimirlo aqui (con clientes ya conectados) lo veremos en la WebUI.
+        grbl_sendf(CLIENT_ALL, "[diag] run_once #%d: protocol_main_loop volvio a salir (uptime=%ldms)\r\n",
+                   diag_run_once, (long)((esp_timer_get_time() - diag_boot_t0) / 1000));
+    }
+#endif  // ENABLE_JOB_DIAG
     reset_variables();
     // Start Grbl main loop. Processes program inputs and executes them.
     // This can exit on a system abort condition, in which case run_once()

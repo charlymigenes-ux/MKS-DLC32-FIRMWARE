@@ -21,6 +21,7 @@
 #include "draw_ui.h"
 
 #include "language_en.h"
+#include "language_es.h"   // español ($40=3)
 #include "language_ch.h"
 // #include "language_de.h"
 
@@ -122,9 +123,9 @@ lv_obj_t* mks_lv_set_line(lv_obj_t* scr, lv_obj_t * line, lv_point_t *line_point
 // popup
 void mks_draw_cavre_popup(char *fn, lv_event_cb_t event_cb_yes, lv_event_cb_t event_cb_no);
 void draw_global_popup(const char *text);
-void mks_draw_common_popup(char *title, char *line1, char *line2, lv_event_cb_t event_cb_yes, lv_event_cb_t event_cancle);
-void mks_draw_common_pupup_info(char *title,char *line1, char *line2);
-void mks_draw_common_popup_info_com(char *title, char *line1, char *line2, lv_event_cb_t event_cb_yes);
+void mks_draw_common_popup(const char *title, const char *line1, const char *line2, lv_event_cb_t event_cb_yes, lv_event_cb_t event_cancle);
+void mks_draw_common_pupup_info(const char *title, const char *line1, const char *line2);
+void mks_draw_common_popup_info_com(const char *title, const char *line1, const char *line2, lv_event_cb_t event_cb_yes);
 void common_pupup_info_del(void);
 void common_popup_del(void);
 void global_popup_del(void);

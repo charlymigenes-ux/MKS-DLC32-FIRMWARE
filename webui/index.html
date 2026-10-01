@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MKS DLC32 - ESP32-WEB</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-brand">
+    <button class="sidebar-toggle" id="sidebar-toggle" type="button" title="Contraer panel" aria-label="Contraer panel" aria-expanded="true" aria-controls="sidebar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+    </button>
+    <span class="logo icon-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line></svg></span>
+    <div class="brand-text">
+      <div class="brand-name">MKS DLC32</div>
+    </div>
+  </div>
+  <div class="topbar-title">
+    <h1 id="board-hostname">ESP32-WEB</h1>
+    <p id="page-subtitle">Panel de control del accesorio</p>
+  </div>
+  <div class="topbar-status">
+    <span class="pill pill-ip" id="pill-ip">IP --</span>
+    <button class="theme-toggle" id="theme-toggle" title="Cambiar tema">
+      <span id="theme-toggle-icon"></span>
+    </button>
+  </div>
+</header>
+
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <ul class="nav-list">
+      <li><button class="nav-item active" data-view="control" title="Control">
+        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg></span> <span class="nav-label">Control</span>
+      </button></li>
+      <li><button class="nav-item" data-view="sdfile" title="Archivos SD">
+        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></span> <span class="nav-label">Archivos SD</span>
+      </button></li>
+      <li><button class="nav-item" data-view="settings" title="Parámetros">
+        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></span> <span class="nav-label">Parámetros</span>
+      </button></li>
+      <li><button class="nav-item" data-view="language" title="Idioma">
+        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg></span> <span class="nav-label">Idioma</span>
+      </button></li>
+      <li><button class="nav-item" data-view="about" title="Acerca de">
+        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></span> <span class="nav-label">Acerca de</span>
+      </button></li>
+    </ul>
+    <div class="sidebar-footer">
+      <span class="logo-sm icon-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line></svg></span>
+      <div class="sidebar-footer-text">
+        <div>MKS DLC32</div>
+        <small>Firmware abierto</small>
+      </div>
+    </div>
+  </nav>
+
+  <main class="content">
+
+    <!-- ============ VISTA: CONTROL ============ -->
+    <section id="view-control" class="view active">
+      <div class="grid-control">
+       <div class="control-left">
+
+        <div class="card">
+          <div class="card-header"><span class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg></span> ESTADO DE MÁQUINA <span class="state-dot" id="machine-state-dot"></span></div>
+          <div class="job-status is-idle" id="job-status">
+            <span class="job-status-text"><span class="job-status-dot"></span><span id="job-status-text">Inactivo</span></span>
+            <span class="job-status-file" id="job-status-file" hidden></span>
+          </div>
+          <div class="status-grid">
+            <div class="status-item"><label>X</label><span id="stat-x">0.000</span> <small>mm</small></div>
+            <div class="status-item"><label>Y</label><span id="stat-y">0.000</span> <small>mm</small></div>
+            <div class="status-item"><label>MX</label><span id="stat-mx">0.000</span> <small>mm</small></div>
+            <div class="status-item"><label>MY</label><span id="stat-my">0.000</span> <small>mm</small></div>
+            <div class="status-item"><label>F (Feed)</label><span id="stat-feed">0</span> <small>mm/min</small></div>
+            <div class="status-item"><label>S (Spindle/Light)</label><span id="stat-spindle">0</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg></span> AJUSTES DE MOVIMIENTO</div>
+          <div class="settings-row">
+            <div class="slider-block">
+              <div class="slider-label-v" id="jog-speed-max">3000</div>
+              <div class="vslider" id="jog-speed-vslider">
+                <input type="range" id="jog-speed" min="10" max="3000" value="1500" class="vslider-native">
+                <div class="vslider-track">
+                  <div class="vslider-fill" id="jog-speed-fill"></div>
+                  <div class="vslider-thumb" id="jog-speed-thumb"></div>
+                </div>
+              </div>
+              <div class="slider-label-v slider-min-v">10</div>
+              <div class="slider-title">Velocidad (mm/min)</div>
+              <div class="number-input">
+                <input type="number" id="jog-speed-num" min="10" max="20000" value="1500">
+                <span>mm/min</span>
+              </div>
+            </div>
+            <div class="slider-block">
+              <div class="slider-label-v" id="jog-dist-max">100</div>
+              <div class="vslider" id="jog-dist-vslider">
+                <input type="range" id="jog-dist" min="0.1" max="100" step="0.1" value="50" class="vslider-native">
+                <div class="vslider-track">
+                  <div class="vslider-fill" id="jog-dist-fill"></div>
+                  <div class="vslider-thumb" id="jog-dist-thumb"></div>
+                </div>
+              </div>
+              <div class="slider-label-v slider-min-v">0.1</div>
+              <div class="slider-title">Distancia (mm)</div>
+              <div class="number-input">
+                <input type="number" id="jog-dist-num" min="0.1" max="1000" step="0.1" value="50">
+                <span>mm</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg></span> JOG / CONTROL MANUAL</div>
+          <div class="jogdial-wrap">
+            <svg class="jogdial" viewBox="0 0 200 200">
+              <path class="jog-wedge" data-jog="Y+" d="M32.83,32.83 A95,95 0 0,1 167.17,32.83 L129.7,70.3 A42,42 0 0,0 70.3,70.3 Z"></path>
+              <path class="jog-wedge" data-jog="X+" d="M167.17,32.83 A95,95 0 0,1 167.17,167.17 L129.7,129.7 A42,42 0 0,0 129.7,70.3 Z"></path>
+              <path class="jog-wedge" data-jog="Y-" d="M167.17,167.17 A95,95 0 0,1 32.83,167.17 L70.3,129.7 A42,42 0 0,0 129.7,129.7 Z"></path>
+              <path class="jog-wedge" data-jog="X-" d="M32.83,167.17 A95,95 0 0,1 32.83,32.83 L70.3,70.3 A42,42 0 0,0 70.3,129.7 Z"></path>
+              <polygon class="jog-arrow" points="100,15 92,30 108,30" data-jog="Y+"></polygon>
+              <polygon class="jog-arrow" points="185,100 170,92 170,108" data-jog="X+"></polygon>
+              <polygon class="jog-arrow" points="100,185 92,170 108,170" data-jog="Y-"></polygon>
+              <polygon class="jog-arrow" points="15,100 30,92 30,108" data-jog="X-"></polygon>
+              <circle class="jog-center" id="jog-stop" cx="100" cy="100" r="38"></circle>
+              <g class="jog-center-icon" transform="translate(82,82) scale(1.5)" fill="currentColor" pointer-events="none">
+                <rect x="6" y="6" width="12" height="12" rx="2"></rect>
+              </g>
+            </svg>
+            <div class="jog-z-controls">
+              <button class="jog-z-btn" data-jog="Z+" title="Z arriba">&#9650;<span>Z+</span></button>
+              <button class="jog-z-btn" data-jog="Z-" title="Z abajo">&#9660;<span>Z-</span></button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="card-icon"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg></span> ACCIONES RÁPIDAS</div>
+          <div class="quick-actions-grid">
+            <button class="btn btn-outline" id="btn-home"><span class="btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg></span> Origen</button>
+            <button class="btn btn-outline" id="btn-position"><span class="btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg></span> Posición</button>
+          </div>
+          <div class="quick-actions-label">LÁSER / SPINDLE</div>
+          <div class="laser-power-row">
+            <button class="btn btn-outline btn-power" data-power="0">OFF</button>
+            <button class="btn btn-outline btn-power" data-power="5">5%</button>
+            <button class="btn btn-outline btn-power" data-power="25">25%</button>
+            <button class="btn btn-outline btn-power" data-power="50">50%</button>
+            <button class="btn btn-outline btn-power" data-power="100">100%</button>
+          </div>
+          <div class="quick-actions-label">ACCIONES SECUNDARIAS</div>
+          <div class="quick-actions-grid">
+            <button class="btn btn-outline" id="btn-zero"><span>&#8982;</span> Establecer cero (X,Y)</button>
+            <button class="btn btn-outline" id="btn-goorigin"><span>&#8681;</span> Ir a origen (Z)</button>
+          </div>
+          <div class="quick-actions-grid">
+            <button class="btn btn-outline btn-stop" id="btn-reset-controller"><span class="btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg></span> Reiniciar controlador</button>
+          </div>
+        </div>
+
+       </div>
+
+        <div class="card card-console">
+          <div class="card-header">
+            <span class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg></span> CONSOLA EN VIVO
+            <label class="switch-label"><input type="checkbox" id="console-autoscroll" checked> Autoscroll</label>
+            <label class="switch-label"><input type="checkbox" id="console-verbose"> Modo verboso</label>
+            <button class="btn btn-ghost btn-sm" id="console-clear"><span class="btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></span> Limpiar</button>
+            <div class="text-size-control">
+              <button class="btn btn-ghost btn-sm" id="text-size-dec" title="Reducir texto">A-</button>
+              <span id="text-size-label">100%</span>
+              <button class="btn btn-ghost btn-sm" id="text-size-inc" title="Agrandar texto">A+</button>
+            </div>
+          </div>
+          <div class="console-output" id="console-output"></div>
+          <div class="console-input-row">
+            <input type="text" id="console-input" placeholder="Escribe un comando...">
+            <button class="btn btn-primary" id="console-send"><span class="btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg></span> Enviar</button>
+          </div>
+          <div class="console-macros" id="console-macros">
+            <div class="console-macro" data-slot="1">
+              <button class="btn btn-outline console-macro-btn" id="console-macro-1-btn">Macro 1</button>
+              <button class="console-macro-edit" id="console-macro-1-edit" title="Configurar">&#9998;</button>
+            </div>
+            <div class="console-macro" data-slot="2">
+              <button class="btn btn-outline console-macro-btn" id="console-macro-2-btn">Macro 2</button>
+              <button class="console-macro-edit" id="console-macro-2-edit" title="Configurar">&#9998;</button>
+            </div>
+            <div class="console-macro" data-slot="3">
+              <button class="btn btn-outline console-macro-btn" id="console-macro-3-btn">Macro 3</button>
+              <button class="console-macro-edit" id="console-macro-3-edit" title="Configurar">&#9998;</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============ VISTA: SD FILE ============ -->
+    <section id="view-sdfile" class="view">
+      <div class="grid-sdfile">
+
+        <div class="card card-sdlist">
+          <div class="card-header">
+            <span class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></span> ARCHIVOS SD
+            <div class="sd-search">
+              <input type="text" id="sd-search" placeholder="Buscar archivo...">
+            </div>
+            <button class="btn btn-outline btn-sm" id="sd-refresh"><span class="btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg></span> Actualizar</button>
+            <button class="btn btn-primary btn-sm" id="sd-upload-btn"><span class="btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg></span> Subir archivo</button>
+            <input type="file" id="sd-upload-input" hidden multiple>
+          </div>
+          <div class="sd-upload-progress" id="sd-upload-progress" hidden>
+            <div class="sd-upload-progress-label" id="sd-upload-progress-label"></div>
+            <div class="sd-upload-progress-track"><div class="sd-upload-progress-fill" id="sd-upload-progress-fill"></div></div>
+          </div>
+          <div class="sd-filters">
+            <div class="filter-block">
+              <label>Ordenar por</label>
+              <select id="sd-sort"><option value="name-asc">Nombre (A-Z)</option><option value="name-desc">Nombre (Z-A)</option><option value="size-desc">Tamaño (mayor)</option><option value="size-asc">Tamaño (menor)</option></select>
+            </div>
+            <div class="filter-block">
+              <label>Mostrar</label>
+              <select id="sd-page-size"><option value="50">50</option><option value="100">100</option><option value="999999">Todos</option></select>
+            </div>
+          </div>
+          <table class="sd-table">
+            <thead><tr><th></th><th>Archivo</th><th>Tamaño</th><th>Estado</th></tr></thead>
+            <tbody id="sd-table-body"></tbody>
+          </table>
+          <div class="sd-footer">
+            <span id="sd-space-label">SD -- | Usado -- | Libre --</span>
+            <div class="sd-space-bar"><div class="sd-space-bar-fill" id="sd-space-fill"></div></div>
+            <span id="sd-space-pct">0%</span>
+          </div>
+        </div>
+
+        <div class="card card-sddetails">
+          <div class="card-header"><span class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></span> DETALLES DEL ARCHIVO</div>
+          <div id="sd-details-empty" class="sd-details-empty">Selecciona un archivo de la lista.</div>
+          <div id="sd-details-body" class="sd-details-body" hidden>
+            <div class="sd-details-title"><span id="sd-detail-name"></span></div>
+            <div class="sd-details-grid">
+              <div><label>Tamaño</label><span id="sd-detail-size"></span></div>
+              <div><label>Modificado</label><span id="sd-detail-modified"></span></div>
+            </div>
+
+            <div class="sd-preview-header">
+              VISTA PREVIA DEL TRABAJO
+              <button class="btn btn-ghost btn-sm" id="sd-preview-load-btn">Cargar vista previa</button>
+            </div>
+            <div id="sd-preview-body" hidden>
+              <div class="sd-preview-grid">
+                <div class="sd-preview-canvas-wrap">
+                  <svg id="sd-preview-svg" viewBox="0 0 200 200" preserveAspectRatio="xMidYMid meet"></svg>
+                </div>
+                <div class="sd-preview-stats">
+                  <div><label>Dimensiones</label><span id="sd-preview-dims">--</span></div>
+                  <div><label>Recorrido estimado</label><span id="sd-preview-travel">--</span></div>
+                  <div><label>Puntos totales</label><span id="sd-preview-points">--</span></div>
+                </div>
+              </div>
+            </div>
+            <div id="sd-preview-loading" hidden>Leyendo archivo...</div>
+
+            <div class="sd-actions">
+              <button class="btn btn-primary" id="sd-run-btn">
+                <span class="btn-icon" id="sd-run-icon"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg></span>
+                <span id="sd-run-label">Iniciar trabajo</span>
+              </button>
+              <button class="btn btn-outline btn-stop" id="sd-stop-btn"><span class="btn-icon"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="1"></rect></svg></span> Detener</button>
+            </div>
+            <div class="sd-actions">
+              <button class="btn btn-outline" id="sd-frame-btn"><span class="btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect></svg></span> Encuadrar</button>
+            </div>
+            <div class="sd-actions">
+              <button class="btn btn-outline" id="sd-download-btn"><span class="btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></span> Descargar</button>
+              <button class="btn btn-outline" id="sd-rename-btn"><span class="btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"></path></svg></span> Renombrar</button>
+              <button class="btn btn-outline" id="sd-delete-btn"><span class="btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></span> Eliminar</button>
+            </div>
+          </div>
+
+          <div class="sd-activity-header">
+            ACTIVIDAD RECIENTE
+            <button class="btn btn-ghost btn-sm" id="sd-activity-toggle">Ver todo</button>
+          </div>
+          <div id="sd-activity-list" class="sd-activity-list"></div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============ VISTA: SETTINGS ============ -->
+    <section id="view-settings" class="view">
+      <div class="settings-toolbar card">
+        <div class="settings-toolbar-title"><span class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg></span> CONFIGURACIÓN DEL CONTROLADOR</div>
+        <div class="settings-toolbar-actions">
+          <button class="btn btn-primary" id="settings-save-btn" disabled>&#10003; Guardar cambios</button>
+          <button class="btn btn-outline" id="settings-restore-btn">&#8635; Restaurar respaldo</button>
+          <button class="btn btn-outline" id="settings-export-btn">&#8681; Exportar configuración</button>
+          <button class="btn btn-outline" id="settings-import-btn">&#8682; Importar configuración</button>
+          <input type="file" id="settings-import-input" hidden accept=".txt">
+          <button class="btn btn-outline" id="settings-defaults-btn">&#8634; Valores por defecto</button>
+        </div>
+        <div class="settings-search-row">
+          <input type="text" id="settings-search" placeholder="Buscar parámetro...">
+          <select id="settings-category-filter"><option value="">Todas las categorías</option></select>
+        </div>
+      </div>
+
+      <div class="settings-body">
+        <div class="card settings-catlist" id="settings-catlist"></div>
+
+        <div class="card settings-table-card">
+          <div class="card-header">PARÁMETROS</div>
+          <div class="settings-table-wrap">
+            <table class="settings-table">
+              <thead><tr><th>Código</th><th>Valor</th><th>Unidad</th><th>Parámetro</th><th>Descripción</th></tr></thead>
+              <tbody id="settings-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="settings-side">
+          <div class="card">
+            <div class="card-header">RESUMEN DE CAMBIOS <span class="sd-badge" id="settings-pending-count">0</span></div>
+            <div id="settings-pending-list" class="settings-pending-list"></div>
+            <div class="settings-pending-hint" id="settings-pending-hint" hidden>Los cambios no se han aplicado aún. Presiona "Guardar cambios" para enviarlos al controlador.</div>
+          </div>
+          <div class="card">
+            <div class="card-header">ESTADO DE VALIDACIÓN</div>
+            <div class="settings-validation-row"><span>Última confirmación del controlador</span><span class="sd-badge" id="settings-validation-syntax">Sin verificar</span></div>
+            <div class="settings-validation-row" id="settings-validation-errors-row" hidden><span>Detalle</span><span id="settings-validation-detail"></span></div>
+          </div>
+          <div class="card settings-tip">
+            <div class="card-header">APLICAR CON SEGURIDAD</div>
+            <p>Cada "Guardar cambios" respalda automáticamente los valores anteriores. Si algo sale mal, usa "Restaurar respaldo".</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ VISTA: ABOUT ============ -->
+    <section id="view-about" class="view">
+      <div class="about-body">
+        <div class="card about-card">
+          <div class="card-header"><span class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></span> ACERCA DE</div>
+          <div class="about-hero">
+            <span class="logo icon-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line></svg></span>
+            <div>
+              <div class="about-title">MKS DLC32 Firmware</div>
+              <p class="about-desc">Firmware Grbl_ESP32 para la controladora MKS DLC32, con interfaz web integrada y pantalla táctil. Pensado para láser y CNC de uso general.</p>
+            </div>
+          </div>
+          <div class="settings-validation-row"><span>Firmware</span><span class="sd-badge" id="about-fw">--</span></div>
+          <div class="settings-validation-row"><span>Destino</span><span id="about-target">--</span></div>
+          <div class="settings-validation-row"><span>Hardware</span><span id="about-hw">--</span></div>
+          <div class="settings-validation-row"><span>Nombre de host</span><span id="about-host">--</span></div>
+          <div class="settings-validation-row"><span>Dirección IP</span><span id="about-ip">--</span></div>
+          <div class="settings-validation-row"><span>Versión de la WebUI</span><span id="about-webui">--</span></div>
+        </div>
+
+        <div class="card about-card">
+          <div class="card-header"><span class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg></span> CRÉDITOS Y LICENCIA</div>
+          <ul class="about-links">
+            <li><a href="https://github.com/charlymigenes-ux/MKS-DLC32-FIRMWARE" target="_blank" rel="noopener">Repositorio de esta versión</a><span>Código fuente, descargas y registro de cambios.</span></li>
+            <li><a href="https://github.com/makerbase-mks/MKS-DLC32-FIRMWARE" target="_blank" rel="noopener">MKS DLC32 (Makerbase)</a><span>Firmware original en el que se basa esta versión.</span></li>
+            <li><a href="https://github.com/bdring/Grbl_Esp32" target="_blank" rel="noopener">Grbl_ESP32</a><span>Núcleo de control de movimiento para ESP32.</span></li>
+            <li><a href="https://github.com/gnea/grbl" target="_blank" rel="noopener">Grbl</a><span>Intérprete de G-code y planificador de movimiento originales.</span></li>
+            <li><a href="https://lvgl.io" target="_blank" rel="noopener">LVGL</a><span>Biblioteca gráfica de la pantalla táctil.</span></li>
+          </ul>
+          <p class="about-license">Este programa es software libre: puedes redistribuirlo y modificarlo bajo los términos de la <b>GNU General Public License v3</b>. Se distribuye sin ninguna garantía.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ VISTA: LANGUAGE ============ -->
+    <section id="view-language" class="view">
+      <div class="lang-toolbar card">
+        <div class="settings-toolbar-title"><span class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg></span> IDIOMAS</div>
+        <p class="lang-hint">Aquí se cambian dos cosas: el idioma de <b>esta interfaz web</b> (se guarda en tu navegador) y el de la <b>pantalla LCD del equipo</b> (parámetro <code>$40</code> del controlador). Ninguna de las dos necesita botón de guardar.</p>
+      </div>
+
+      <div class="lang-body">
+        <div class="card">
+          <div class="card-header">IDIOMA DE ESTA WEBUI</div>
+          <div class="lang-options">
+            <button type="button" class="lang-option" data-uilang="es">
+              <span class="lang-native">Español</span>
+              <span class="lang-name">Interfaz en español</span>
+              <span class="lang-code">ES</span>
+            </button>
+            <button type="button" class="lang-option" data-uilang="en">
+              <span class="lang-native">English</span>
+              <span class="lang-name">Interfaz en inglés</span>
+              <span class="lang-code">EN</span>
+            </button>
+          </div>
+          <div class="settings-validation-row"><span>Idioma de la interfaz</span><span class="sd-badge" id="uilang-current">Español</span></div>
+          <div class="settings-validation-row"><span>Alcance</span><span id="uilang-msg">Menús, tablas, avisos y mensajes de esta web. No toca la consola ni la pantalla LCD.</span></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">IDIOMA DE LA PANTALLA (LCD)</div>
+          <div class="lang-options">
+            <button type="button" class="lang-option" data-lang="0">
+              <span class="lang-native">中文</span>
+              <span class="lang-name">Chino</span>
+              <span class="lang-code">$40=0</span>
+            </button>
+            <button type="button" class="lang-option" data-lang="1">
+              <span class="lang-native">English</span>
+              <span class="lang-name">Inglés</span>
+              <span class="lang-code">$40=1</span>
+            </button>
+            <button type="button" class="lang-option" data-lang="2">
+              <span class="lang-native">Deutsch</span>
+              <span class="lang-name">Alemán</span>
+              <span class="lang-code">$40=2</span>
+            </button>
+            <button type="button" class="lang-option" data-lang="3">
+              <span class="lang-native">Español</span>
+              <span class="lang-name">Español</span>
+              <span class="lang-code">$40=3</span>
+            </button>
+          </div>
+          <div class="settings-validation-row"><span>Idioma actual</span><span class="sd-badge" id="lang-current">Leyendo…</span></div>
+          <div class="settings-validation-row"><span>Última operación</span><span id="lang-msg">—</span></div>
+        </div>
+      </div>
+
+      <div class="card settings-tip lang-notes">
+        <div class="card-header">NOTAS</div>
+        <p>• El cambio de la pantalla es inmediato: el controlador recarga los textos del LCD en menos de un segundo. Si la página abierta no cambia de texto, entra y sale de esa página.</p>
+        <p>• 中文 y Deutsch muestran los textos en inglés: en el firmware solo existen <code>language_en.h</code> (inglés) y <code>language_es.h</code> (español).</p>
+        <p>• El botón 中文 de la pantalla puede salir con un recuadro: la fuente del LCD <code>dlc32Font</code> no incluye glifos chinos (sí tiene tildes, ñ, ¿ y ¡).</p>
+        <p>• El idioma de la pantalla se guarda en NVS: sobrevive a los reinicios. El de esta web se guarda en el navegador (localStorage) y no afecta a nadie más.</p>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer class="statusbar">
+  <span class="status-left"><span class="dot" id="conn-status-dot"></span> <span id="conn-status-text">Conectando…</span></span>
+  <span id="uptime-label">Encendido --</span>
+  <span id="last-update-label">Última actualización: --</span>
+  <div class="text-size-control">
+    <button class="btn btn-ghost btn-sm" id="text-size-dec-2" title="Reducir texto">A-</button>
+    <span id="text-size-label-2">100%</span>
+    <button class="btn btn-ghost btn-sm" id="text-size-inc-2" title="Agrandar texto">A+</button>
+  </div>
+  <span class="status-right">
+    <span id="footer-fw-version" class="footer-fw-plain">FW --</span>
+    <a href="https://github.com/charlymigenes-ux/MKS-DLC32-FIRMWARE" target="_blank" rel="noopener" class="footer-link">MKS DLC32</a>
+  </span>
+</footer>
+
+<script src="js/i18n.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

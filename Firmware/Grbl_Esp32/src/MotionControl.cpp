@@ -78,6 +78,13 @@ bool mc_line(float* target, plan_line_data_t* pl_data) {
     // parser and planner are separate from the system machine positions, this is doable.
     // If the buffer is full: good! That means we are well ahead of the robot.
     // Remain in this loop until there is room in the buffer.
+#ifdef ENABLE_JOB_DIAG
+    // [diag] giro: si esta espera de fondo pasa de 2 s lo decimos YA (sale por el
+    // cliente Web/serie via clientCheckTask, que es otra tarea), para verlo justo
+    // antes de una posible parada o reinicio del sistema.
+    int64_t giro0   = esp_timer_get_time();
+    bool    giro_av = false;
+#endif  // ENABLE_JOB_DIAG
     do {
         protocol_execute_realtime();  // Check for any run-time commands
         if (sys.abort) {
@@ -86,10 +93,25 @@ bool mc_line(float* target, plan_line_data_t* pl_data) {
         }
         if (plan_check_full_buffer()) {
             protocol_auto_cycle_start();  // Auto-cycle start when buffer is full.
+#ifdef ENABLE_JOB_DIAG
+            if (!giro_av && (esp_timer_get_time() - giro0) > 2000000) {
+                giro_av = true;
+                grbl_sendf(CLIENT_ALL,
+                           "[diag] giro >2s en mc_line state=%d uptime=%ldms\r\n",
+                           (int)sys.state,
+                           (long)((esp_timer_get_time() - diag_boot_t0) / 1000));
+            }
+#endif  // ENABLE_JOB_DIAG
         } else {
             break;
         }
     } while (1);
+#ifdef ENABLE_JOB_DIAG
+    if (giro_av) {
+        grbl_sendf(CLIENT_ALL, "[diag] giro terminado tras %ldms\r\n",
+                   (long)((esp_timer_get_time() - giro0) / 1000));
+    }
+#endif  // ENABLE_JOB_DIAG
     // Plan and queue motion into planner buffer
     // uint8_t plan_status; // Not used in normal operation.
     if (sys_pl_data_inflight == pl_data) {

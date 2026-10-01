@@ -1,4 +1,5 @@
 #include "MKS_draw_move.h"
+#include "MKS_draw_language.h"   // mc_language: textos del LCD
 
 MKS_MOVE_PAGE move_page;
 MKS_MOVE_CTRL_T ui_move_ctrl;
@@ -60,6 +61,7 @@ static uint8_t get_event(lv_obj_t* obj) {
 	else if (obj == move_page.knife)			return ID_M_KNIFE;
 	else if (obj == move_page.cooling)			return ID_M_COOLING;
 	else if (obj == move_page.btn_spindle)		return ID_M_CNC_SET;
+	return 255;  // sin coincidencia: id que ningun case reconoce (antes: basura)
 }
 
 static void event_henadle_pupup_com(lv_obj_t* obj, lv_event_t event) { 
@@ -93,8 +95,11 @@ static void set_cooling(lv_obj_t* obj, lv_event_t event) {
 }
 
 void move_ctrl(char axis, uint8_t dir) {
-	float step;
-	uint32_t speed;
+	// Si move_dis/move_speed no casaran con ningun enumerado, step y speed
+	// quedaban sin asignar y set_move() recibia basura (jog desde el LCD con
+	// distancia o velocidad enorme). Ahora: 0 mm no mueve, 500 mm/min seguro.
+	float step = 0.0f;
+	uint32_t speed = 500;
 
 	if(dir == 0) {
 		if(mks_grbl.move_dis == M_0_1_MM) 			step = -0.1;
@@ -116,7 +121,7 @@ void move_ctrl(char axis, uint8_t dir) {
 void mc_unlock(void) {
 	MKS_GRBL_CMD_SEND("$X\n");
 	set_click_status(false);
-	mks_draw_common_popup_info_com("Info", "Unlock success!", "", event_henadle_pupup_com);
+	mks_draw_common_popup_info_com(mc_language.dis_info, mc_language.dis_unlock_success, "", event_henadle_pupup_com);
 }
 
 void set_move_speed(uint8_t speed_level) {
@@ -127,10 +132,10 @@ void set_move_speed(uint8_t speed_level) {
 }
 
 void set_move_step(uint8_t step_level) {
-	if(step_level == 0)	mks_grbl.move_speed = LOW_SPEED;
-	else if(step_level == 1)	mks_grbl.move_speed = MID_SPEED;
-	else if(step_level == 2)	mks_grbl.move_speed = HIGHT_SPEED;
-	else mks_grbl.move_speed = MID_SPEED;
+	if(step_level == 0)	mks_grbl.move_dis = M_0_1_MM;
+	else if(step_level == 1)	mks_grbl.move_dis = M_1_MM;
+	else if(step_level == 2)	mks_grbl.move_dis = M_10_MM;
+	else mks_grbl.move_dis = M_1_MM;  // antes escribia move_speed (copia-pega)
 }
 
 static void event_handler_len(lv_obj_t* obj, lv_event_t event) {
@@ -161,7 +166,7 @@ void set_home(void) {
 
 	MKS_GRBL_CMD_SEND("$J=G90X0Y0F2000\n");
 	set_click_status(false);
-	mks_draw_common_pupup_info("Info", "Homing...", " ");
+	mks_draw_common_pupup_info(mc_language.dis_info, mc_language.dis_homing, " ");
 	ui_move_ctrl.soft_homing_status = HOMING_START;
 }
 
@@ -178,7 +183,7 @@ void set_xy_home(void) {
 
 	MKS_GRBL_CMD_SEND("$J=G90X0Y0F2000\n");
 	set_click_status(false);
-	mks_draw_common_pupup_info("Info", "Homing...", " ");
+	mks_draw_common_pupup_info(mc_language.dis_info, mc_language.dis_homing, " ");
 	ui_move_ctrl.soft_homing_status = HOMING_START;
 }
 
@@ -195,7 +200,7 @@ void set_z_home(void) {
 
 	MKS_GRBL_CMD_SEND("$J=G90Z0F1000\n");
 	set_click_status(false);\
-	mks_draw_common_pupup_info("Info", "Homing...", " ");
+	mks_draw_common_pupup_info(mc_language.dis_info, mc_language.dis_homing, " ");
 	ui_move_ctrl.soft_homing_status = HOMING_START;
 }
 
@@ -205,9 +210,9 @@ static void set_xy_pos(lv_obj_t* obj, lv_event_t event) {
 	set_click_status(false);
 	if(sys.state == State::Idle && mks_get_motor_status() ) {
 		MKS_GRBL_CMD_SEND("G92X0Y0\n");
-		mks_draw_common_popup_info_com("Info", "Positioning success", " ", event_henadle_pupup_com);
+		mks_draw_common_popup_info_com(mc_language.dis_info, mc_language.dis_pos_succeed, " ", event_henadle_pupup_com);
 	}else {
-		mks_draw_common_popup_info_com("Warning", "Please wait machine stop!", " ", event_henadle_pupup_com);
+		mks_draw_common_popup_info_com(mc_language.dis_warning, mc_language.dis_wait_mc_stop, " ", event_henadle_pupup_com);
 	}
 }
 
@@ -216,9 +221,9 @@ static void set_z_pos(lv_obj_t* obj, lv_event_t event) {
 	set_click_status(false);
 	if(sys.state == State::Idle && mks_get_motor_status() ) {
 		MKS_GRBL_CMD_SEND("G92Z0\n");
-		mks_draw_common_popup_info_com("Info", "Positioning success", " ", event_henadle_pupup_com);
+		mks_draw_common_popup_info_com(mc_language.dis_info, mc_language.dis_pos_succeed, " ", event_henadle_pupup_com);
 	}else {
-		mks_draw_common_popup_info_com("Warning", "Please wait machine stop!", " ", event_henadle_pupup_com);
+		mks_draw_common_popup_info_com(mc_language.dis_warning, mc_language.dis_wait_mc_stop, " ", event_henadle_pupup_com);
 	}
 }
 
@@ -230,9 +235,9 @@ static void set_xyz_pos(lv_obj_t* obj, lv_event_t event) {
 
 		if(sys.state == State::Idle && mks_get_motor_status() ) {
 			MKS_GRBL_CMD_SEND("G92X0Y0Z0\n");
-			mks_draw_common_popup_info_com("Info", "Positioning success", " ", event_henadle_pupup_com);
+			mks_draw_common_popup_info_com(mc_language.dis_info, mc_language.dis_pos_succeed, " ", event_henadle_pupup_com);
 		}else {
-			mks_draw_common_popup_info_com("Warning", "Please wait machine stop!", " ", event_henadle_pupup_com);
+			mks_draw_common_popup_info_com(mc_language.dis_warning, mc_language.dis_wait_mc_stop, " ", event_henadle_pupup_com);
 		}
 	}
 }
@@ -241,12 +246,12 @@ static void set_knife() {
 
 	if(probe_invert->get()) {
 		MKS_GRBL_CMD_SEND("G21 G91 G38.2 Z-50 F80\n");
-		mks_draw_common_pupup_info("Info", "Setting probe...", " ");
+		mks_draw_common_pupup_info(mc_language.dis_info, mc_language.dis_probe_set, " ");
 		probe_run.status = PROBE_STAR;
 
 	}else {
 		set_click_status(true);
-		mks_draw_common_popup_info_com("Info", "Setting error!", "Please set $6=1!", event_henadle_pupup_com);
+		mks_draw_common_popup_info_com(mc_language.dis_info, mc_language.dis_setting_error, mc_language.dis_set_6_1, event_henadle_pupup_com);
 	}
 }
 
@@ -265,10 +270,10 @@ static void set_hhome(void) {
 	if(hard_limits->get() && homing_enable->get()) {
 		MKS_GRBL_CMD_SEND("$H\n");
 		ui_move_ctrl.hard_homing_status = HOMING_START;
-		mks_draw_common_pupup_info("Info", "Homing...", " ");
+		mks_draw_common_pupup_info(mc_language.dis_info, mc_language.dis_homing, " ");
 	}
 	else {
-		mks_draw_common_popup_info_com("Warning", "No Enable Hard Homing...", " ", event_henadle_pupup_com);
+		mks_draw_common_popup_info_com(mc_language.dis_warning, mc_language.dis_no_hard_homing, " ", event_henadle_pupup_com);
 	}
 }
 
@@ -322,13 +327,13 @@ void set_step_len(void) {
 void set_speed(void) {
 	if(mks_grbl.move_speed == LOW_SPEED) {
 		mks_grbl.move_speed = MID_SPEED;
-		mks_lv_label_updata(move_page.label_speed, "Mid Speed");
+		mks_lv_label_updata(move_page.label_speed, mc_language.speed_mid);
 	}else if(mks_grbl.move_speed == MID_SPEED) {
 		mks_grbl.move_speed = HIGHT_SPEED;
-		mks_lv_label_updata(move_page.label_speed, "High Speed");
+		mks_lv_label_updata(move_page.label_speed, mc_language.speed_high);
 	}else if(mks_grbl.move_speed == HIGHT_SPEED) {
 		mks_grbl.move_speed = LOW_SPEED;
-		mks_lv_label_updata(move_page.label_speed, "Low Speed");
+		mks_lv_label_updata(move_page.label_speed, mc_language.speed_low);
 	}
 }
 
@@ -451,10 +456,10 @@ static void disp_imgbtn_1(void) {
 	move_page.knife = lv_imgbtn_creat_mks(mks_global.mks_src_1, move_page.knife, &png_knife_pre, &png_knife, LV_ALIGN_IN_TOP_LEFT, 310, 5, event_handler);
 	move_page.next = lv_imgbtn_creat_mks(mks_global.mks_src_1, move_page.next, &png_l_next_pre, &png_l_next, LV_ALIGN_IN_TOP_LEFT, 380, 5, disp_down_set);
 
-	move_page.label_xy_clear = label_for_imgbtn_name(mks_global.mks_src_1, move_page.label_xy_clear, move_page.xy_clear, 0, 0, "XY Clear");
-	move_page.label_z_clear = label_for_imgbtn_name(mks_global.mks_src_1, move_page.label_z_clear, move_page.z_clear, 0, 0, "Z Clear");
-	move_page.label_knife = label_for_imgbtn_name(mks_global.mks_src_1, move_page.label_knife, move_page.knife, 0, 0, "Knife");
-	move_page.label_next = label_for_imgbtn_name(mks_global.mks_src_1, move_page.label_next, move_page.next, 0, 0, "Next");
+	move_page.label_xy_clear = label_for_imgbtn_name(mks_global.mks_src_1, move_page.label_xy_clear, move_page.xy_clear, 0, 0, mc_language.xy_clear);
+	move_page.label_z_clear = label_for_imgbtn_name(mks_global.mks_src_1, move_page.label_z_clear, move_page.z_clear, 0, 0, mc_language.z_clear);
+	move_page.label_knife = label_for_imgbtn_name(mks_global.mks_src_1, move_page.label_knife, move_page.knife, 0, 0, mc_language.knife);
+	move_page.label_next = label_for_imgbtn_name(mks_global.mks_src_1, move_page.label_next, move_page.next, 0, 0, mc_language.next);
 }
 
 static void disp_imgbtn_2(void) {
@@ -462,9 +467,9 @@ static void disp_imgbtn_2(void) {
 	move_page.cooling = lv_imgbtn_creat_mks(mks_global.mks_src_1, move_page.cooling, &png_cooling_pre, &png_cooling, LV_ALIGN_IN_TOP_LEFT, 240, 5, set_cooling);
 	move_page.position = lv_imgbtn_creat_mks(mks_global.mks_src_1, move_page.position, &png_position_pre, &png_position, LV_ALIGN_IN_TOP_LEFT, 310, 5, set_xyz_pos);
 
-	move_page.label_cooling = label_for_imgbtn_name(mks_global.mks_src_1, move_page.label_cooling, move_page.cooling, 0, 0, "Cooling");
-	move_page.label_position = label_for_imgbtn_name(mks_global.mks_src_1, move_page.label_position, move_page.position, 0, 0, "Position");
-	move_page.label_up = label_for_imgbtn_name(mks_global.mks_src_1, move_page.label_up, move_page.up, 0, 0, "Up");
+	move_page.label_cooling = label_for_imgbtn_name(mks_global.mks_src_1, move_page.label_cooling, move_page.cooling, 0, 0, mc_language.cooling);
+	move_page.label_position = label_for_imgbtn_name(mks_global.mks_src_1, move_page.label_position, move_page.position, 0, 0, mc_language.position);
+	move_page.label_up = label_for_imgbtn_name(mks_global.mks_src_1, move_page.label_up, move_page.up, 0, 0, mc_language.up);
 }
 
 static void disp_imgbtn_2_del(void) {
@@ -538,7 +543,7 @@ static void disp_btn(void) {
 
 static void disp_label(void) {
 
-	label_for_imgbtn_name(mks_global.mks_src_1, move_page.Label_back, move_page.Back, 0, 0, "Back");
+	label_for_imgbtn_name(mks_global.mks_src_1, move_page.Label_back, move_page.Back, 0, 0, mc_language.back);
 
 	move_page.label_xpos = label_for_text(mks_global.mks_src_1, move_page.label_xpos, NULL, 93, 5, LV_ALIGN_IN_TOP_LEFT,  	"X:0");
 	move_page.label_ypos = label_for_text(mks_global.mks_src_1, move_page.label_ypos, NULL, 93, 36, LV_ALIGN_IN_TOP_LEFT,	"Y:0");
@@ -553,14 +558,14 @@ static void disp_label(void) {
 	}
 	
 	if(mks_grbl.move_speed == LOW_SPEED) {
-		move_page.label_speed = mks_lvgl_long_sroll_label_with_wight_set_center(move_page.btn_speed, move_page.label_speed, 0, 0, "Low Speed", 100); //l:500, m:1000, h:2000
+		move_page.label_speed = mks_lvgl_long_sroll_label_with_wight_set_center(move_page.btn_speed, move_page.label_speed, 0, 0, mc_language.speed_low, 100); //l:500, m:1000, h:2000
 	}else if(mks_grbl.move_speed == MID_SPEED) {
-		move_page.label_speed = mks_lvgl_long_sroll_label_with_wight_set_center(move_page.btn_speed, move_page.label_speed, 0, 0, "Mid Speed", 100);
+		move_page.label_speed = mks_lvgl_long_sroll_label_with_wight_set_center(move_page.btn_speed, move_page.label_speed, 0, 0, mc_language.speed_mid, 100);
 	}else if(mks_grbl.move_speed == HIGHT_SPEED) {
-		move_page.label_speed = mks_lvgl_long_sroll_label_with_wight_set_center(move_page.btn_speed, move_page.label_speed, 0, 0, "High Speed", 100);
+		move_page.label_speed = mks_lvgl_long_sroll_label_with_wight_set_center(move_page.btn_speed, move_page.label_speed, 0, 0, mc_language.speed_high, 100);
 	}	
 	
-	move_page.label_spindle = mks_lvgl_long_sroll_label_with_wight_set_center(move_page.btn_spindle, move_page.label_spindle, 0, 0, "Spindle",100);
+	move_page.label_spindle = mks_lvgl_long_sroll_label_with_wight_set_center(move_page.btn_spindle, move_page.label_spindle, 0, 0, mc_language.spindle,100);
 }
 
 void set_click_status(bool status) {
@@ -616,13 +621,13 @@ void hard_home_check(void) {
 		case HOMING_SUCCEED:
 			ui_move_ctrl.hard_homing_status = HOMING_NONE;
 			common_pupup_info_del();
-			mks_draw_common_popup_info_com("Info", "Homing succeed!", " ", event_henadle_pupup_com);
+			mks_draw_common_popup_info_com(mc_language.dis_info, mc_language.dis_homing_succeed, " ", event_henadle_pupup_com);
 		break;
 
 		case HOMING_FAIL:
 			ui_move_ctrl.hard_homing_status = HOMING_NONE;
 			common_pupup_info_del();
-			mks_draw_common_popup_info_com("Info", "Homing fail", "please unlock!", event_henadle_pupup_com);
+			mks_draw_common_popup_info_com(mc_language.dis_info, mc_language.dis_homing_fail, mc_language.dis_unlock, event_henadle_pupup_com);
 		break;
 	}
 }
@@ -652,14 +657,14 @@ void soft_home_check(void) {
 		case HOMING_SUCCEED:
 			ui_move_ctrl.soft_homing_status = HOMING_NONE;
 			common_pupup_info_del();
-			mks_draw_common_popup_info_com("Info", "Homing succeed!", " ", event_henadle_pupup_com);
+			mks_draw_common_popup_info_com(mc_language.dis_info, mc_language.dis_homing_succeed, " ", event_henadle_pupup_com);
 		break;
 
 		case HOMING_FAIL:
 			// lv_obj_del(move_popup_scr);
 			ui_move_ctrl.soft_homing_status = HOMING_NONE;
 			common_pupup_info_del();
-			mks_draw_common_popup_info_com("Info", "Homing fail", " ", event_henadle_pupup_com);
+			mks_draw_common_popup_info_com(mc_language.dis_info, mc_language.dis_homing_fail, " ", event_henadle_pupup_com);
 		break;
 	}
 }
@@ -702,16 +707,18 @@ void probe_check() {
 			MKS_GRBL_CMD_SEND("G92Z10\n");
 			MKS_GRBL_CMD_SEND("G0Z10F10\n");
 			common_pupup_info_del();
-			mks_draw_common_popup_info_com("Info", "Probe succeed!", " ", event_henadle_pupup_com);
+			mks_draw_common_popup_info_com(mc_language.dis_info, mc_language.dis_probe_succeed, " ", event_henadle_pupup_com);
 			probe_run.status = PROBE_NO;
 			probe_run.flag = 0;
 		break;
 		
     	case PROBE_SECODN_FAIL:
 			common_pupup_info_del();
-			mks_draw_common_popup_info_com("Info", "Probe fail!", " ", event_henadle_pupup_com);
+			mks_draw_common_popup_info_com(mc_language.dis_info, mc_language.dis_probe_fail, " ", event_henadle_pupup_com);
 			probe_run.status = PROBE_NO;
 			probe_run.flag = 0;
+		break;
+		case PROBE_FINISH:  // estado del enum que nunca se asigna
 		break;
 	}
 }

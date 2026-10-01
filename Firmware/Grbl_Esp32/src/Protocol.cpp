@@ -36,6 +36,79 @@ static uint8_t line_flags           = 0;
 static uint8_t char_counter         = 0;
 static uint8_t comment_char_counter = 0;
 
+#ifdef ENABLE_JOB_DIAG
+// Diagnóstico de pausas durante un trabajo de la SD.
+//
+// Si el planificador se queda sin bloques en mitad de un archivo, Stepper.cpp
+// hace st_go_idle() + cycle_stop y el estado salta de Cycle a Idle: eso es una
+// pausa visible en el recorrido (y con M4 el laser baja a cero, asi que se ve
+// ademas como perdida de potencia). Aqui se mide cuanto dura cada pausa y en
+// que fase del lazo se fue el tiempo:
+//   lazo = tiempo entre dos vueltas del protocolo -> CPU robada (LVGL/clientCheck)
+//   leer = readFileLine()                         -> tarjeta SD / FATFS
+//   ejec = execute_line() (parseo + planificador) -> gc_execute_line / plan_buffer_line
+//   info = report_status_message()                -> TX serie/WebSocket bloqueante
+// Se imprime al reanudar de cada pausa y al terminar el archivo, siempre por
+// CLIENT_ALL, para que salga en la consola de la WebUI. Sin pausas no se
+// imprime nada (el coste en caliente es un par de enteros).
+//
+// diag_lvgl_max / diag_cli_max: lo que mantiene ocupado el core 1, sin ceder, la
+// tarea LVGL (prioridad 2) y clientCheckTask (prioridad 3), ambas POR ENCIMA
+// del lazo de protocolo (prioridad 1). Si alguno supera la duracion del buffer
+// del planificador, el lazo no llega a rellenar la cola y el movimiento para.
+extern volatile int64_t diag_lvgl_max;
+extern volatile int64_t diag_cli_max;
+static struct {
+    int64_t t_lazo;       // momento en que termino la vuelta anterior
+    int64_t lazo_max;     // maximo hueco sin que el lazo corra (CPU robada)
+    int64_t leer_max;     // maxima duracion de readFileLine()
+    int64_t ejec_max;     // maxima duracion de execute_line()
+    int64_t info_max;     // maxima duracion de report_status_message()
+    int64_t rx_max;       // maxima duracion del bloque de recepcion de clientes
+    int64_t rt_max;       // maxima duracion de auto_cycle_start + realtime
+    int64_t prev_sd;      // secciones de la vuelta anterior (para el breadcrumb)
+    int64_t prev_rx;
+    int64_t prev_rt;
+    int64_t pausa_t0;     // inicio de la pausa en curso (0 = sin pausa)
+    int64_t pausa_max;    // pausa mas larga
+    int64_t t_job;        // instante de inicio del trabajo actual (0 = sin trabajo)
+    int32_t pausas;       // nº de pausas detectadas
+    int32_t huecos;       // nº de huecos > 200 ms durante el trabajo
+    int32_t lineas;       // lineas de g-code leidas del archivo
+    uint8_t estado_prev;  // estado en la vuelta anterior
+    // --- planificador (v6): ¿llega vacio al motor? ---
+    int64_t t_enc;        // instante de la ultima linea encolada (fin de execute_line)
+    uint32_t plan_n;      // muestras de ocupacion (una por linea encolada)
+    uint32_t plan_h[5];   // 0 | 1-3 | 4-7 | 8-14 | 15 (lleno)
+    uint8_t plan_min;     // minima ocupacion vista en el trabajo
+    uint8_t plan_ult;     // ocupacion tras la ultima linea encolada
+    uint8_t p_plan;       // ocupacion justo antes de que empezara la pausa en curso
+    int64_t p_sin_enc;    // ms sin encolar nada antes de que el motor parase
+} diag = {};
+
+// Reinicia las estadisticas del planificador (inicio/fin de trabajo).
+static void diag_plan_reset() {
+    diag.t_enc = 0;
+    diag.plan_n = 0;
+    for (int i = 0; i < 5; i++) diag.plan_h[i] = 0;
+    diag.plan_min = 255;
+    diag.plan_ult = 0;
+    diag.p_plan = 0;
+    diag.p_sin_enc = 0;
+}
+
+// Muestrea la ocupacion del planificador (bloques pendientes, 0..BLOCK_BUFFER_SIZE-1).
+static void diag_plan_sample(int64_t t) {
+    uint8_t n = plan_get_block_buffer_count();
+    diag.plan_n++;
+    diag.plan_h[n == 0 ? 0 : n <= 3 ? 1 : n <= 7 ? 2 : n < (BLOCK_BUFFER_SIZE - 1) ? 3 : 4]++;
+    if (n < diag.plan_min) diag.plan_min = n;
+    diag.plan_ult = n;
+    diag.t_enc    = t;
+}
+
+#endif  // ENABLE_JOB_DIAG
+
 typedef struct {
     char buffer[LINE_BUFFER_SIZE];
     int  len;
@@ -153,13 +226,119 @@ void protocol_main_loop() {
     int c;
     bool is_need_next = false;
     for (;;) {
+#ifdef ENABLE_JOB_DIAG
+        // Diagnóstico v2.
+        //   hueco  -> tiempo en el que el lazo NO corre => CPU robada por otra
+        //             tarea (LVGL, clientCheckTask...). Se mide desde el FINAL
+        //             de la vuelta anterior, asi que NO incluye el trabajo propio.
+        //   sd/rx/rt -> si el lazo si corre pero tarda, el culpable esta aqui.
+        //   Cycle->Idle con la SD ocupada = el planificador se quedo sin bloques
+        //             (Stepper.cpp: st_go_idle + cycle_stop) = pausa visible.
+        int64_t t_ahora = esp_timer_get_time();
+        int64_t t_sd0   = t_ahora;
+        if (diag.t_job && diag.t_lazo) {
+            int64_t hueco = t_ahora - diag.t_lazo;
+            if (hueco > diag.lazo_max) diag.lazo_max = hueco;
+            if (hueco > 200000 && diag.huecos < 10) {
+                diag.huecos++;
+                grbl_sendf(CLIENT_ALL,
+                           "[diag] hueco %ld ms | ultima vuelta sd=%ld rx=%ld rt=%ld | t=%ld ms"
+                           " | lvgl=%ldms cli=%ldms\r\n",
+                           (long)(hueco / 1000),
+                           (long)(diag.prev_sd / 1000),
+                           (long)(diag.prev_rx / 1000),
+                           (long)(diag.prev_rt / 1000),
+                           (long)((t_ahora - diag.t_job) / 1000),
+                           // diag_lvgl_max / diag_cli_max se cuentan en ticks de
+                           // 1 ms (configTICK_RATE_HZ=1000), ya son milisegundos
+                           (long)diag_lvgl_max,
+                           (long)diag_cli_max);
+            }
+        }
+        if ((uint8_t)sys.state != diag.estado_prev) {
+            if (diag.estado_prev == (uint8_t)State::Cycle && sys.state == State::Idle &&
+                get_sd_state(false) == SDState::BusyPrinting && diag.pausa_t0 == 0) {
+                // Todavia no se imprime: puede ser el fin normal del archivo.
+                // Si vuelve a Cycle, ahi si era una pausa de verdad.
+                diag.pausa_t0 = t_ahora;
+                diag.p_plan   = diag.plan_ult;
+                diag.p_sin_enc = diag.t_enc ? (t_ahora - diag.t_enc) / 1000 : -1;
+            } else if (diag.pausa_t0 && sys.state == State::Cycle) {
+                int64_t d_pausa = t_ahora - diag.pausa_t0;
+                if (d_pausa > diag.pausa_max) diag.pausa_max = d_pausa;
+                diag.pausas++;
+                diag.pausa_t0 = 0;
+                grbl_sendf(CLIENT_ALL,
+                           "[diag] pausa #%ld: %ld ms | plan=%d sin_encolar=%ldms | hueco=%ldms leer=%ldms ejec=%ldms rx=%ldms rt=%ldms\r\n",
+                           (long)diag.pausas,
+                           (long)(d_pausa / 1000),
+                           (int)diag.p_plan,
+                           (long)diag.p_sin_enc,
+                           (long)(diag.lazo_max / 1000),
+                           (long)(diag.leer_max / 1000),
+                           (long)(diag.ejec_max / 1000),
+                           (long)(diag.rx_max / 1000),
+                           (long)(diag.rt_max / 1000));
+            }
+            diag.estado_prev = (uint8_t)sys.state;
+        }
+        // Arranque / fin de trabajo: las estadisticas se reinician al empezar
+        // un archivo, para que los huecos de arranque de sistema no las manchen.
+        if (sys.state == State::Cycle && get_sd_state(false) == SDState::BusyPrinting) {
+            if (diag.t_job == 0) {
+                diag.t_job   = t_ahora;
+                diag.t_lazo  = 0;
+                diag.lineas  = 0;
+                diag.pausas  = 0;
+                diag.huecos  = 0;
+                diag.pausa_t0  = 0;
+                diag.pausa_max = 0;
+                diag.lazo_max  = 0;
+                diag.leer_max = diag.ejec_max = diag.info_max = 0;
+                diag.rx_max = diag.rt_max = 0;
+                diag_plan_reset();
+                diag_lvgl_max = 0;  // se cuentan SOLO lo que dure este trabajo
+                diag_cli_max  = 0;
+                grbl_sendf(CLIENT_ALL, "[diag] inicio de trabajo\r\n");
+            }
+        } else if (diag.t_job && get_sd_state(false) != SDState::BusyPrinting) {
+            diag.t_job = 0;  // el archivo ha terminado o se ha parado
+        }
+#endif  // ENABLE_JOB_DIAG
 #if 1
 #ifdef ENABLE_SD_CARD
         if (SD_ready_next) {
             char fileLine[255];
+#ifdef ENABLE_JOB_DIAG
+            int64_t t_leer0 = esp_timer_get_time();
+            bool hay_linea = readFileLine(fileLine, 255);
+            int64_t t_leer1 = esp_timer_get_time();
+            if (t_leer1 - t_leer0 > diag.leer_max) diag.leer_max = t_leer1 - t_leer0;
+                if (hay_linea) {
+                    SD_ready_next = false;
+                    Error res_diag = execute_line(fileLine, SD_client, SD_auth_level);
+                    int64_t t_ejec1 = esp_timer_get_time();
+                    if (t_ejec1 - t_leer1 > diag.ejec_max) diag.ejec_max = t_ejec1 - t_leer1;
+                    diag.lineas++;
+                    diag_plan_sample(t_ejec1);
+                    report_status_message(res_diag, SD_client);
+                    // Diagnóstico: si una linea del archivo da error, decir
+                    // cual es (recortada a 80 chars) para ver si viene corrupta
+                    // de la SD o si el fallo es de interpretacion.
+                    if (res_diag != Error::Ok) {
+                        char corta[81];
+                        memcpy(corta, fileLine, 80);
+                        corta[80] = '\0';
+                        grbl_sendf(CLIENT_ALL, "[diag] linea SD error %d: |%s|\r\n",
+                                   (int)res_diag, corta);
+                    }
+                    int64_t t_info1 = esp_timer_get_time();
+                    if (t_info1 - t_ejec1 > diag.info_max) diag.info_max = t_info1 - t_ejec1;
+#else
                 if (readFileLine(fileLine, 255)) {
                     SD_ready_next = false;
                     report_status_message(execute_line(fileLine, SD_client, SD_auth_level), SD_client);
+#endif  // ENABLE_JOB_DIAG
                 } 
                 else {
                     if(mks_grbl.carve_times != 0) mks_grbl.carve_times--;
@@ -183,10 +362,59 @@ void protocol_main_loop() {
                         sys_rt_r_override                    = RapidOverride::Default;
                         sys_rt_s_override                    = SpindleSpeedOverride::Default;
 
+#ifdef ENABLE_JOB_DIAG
+                        // Diagnóstico: resumen al terminar el archivo. Es la
+                        // linea que dice que se quedo sin tiempo el lazo de protocolo
+                        // (CPU), la lectura SD, el parseo/planificado o la TX serie.
+                        grbl_sendf(CLIENT_ALL,
+                                   "[diag] fin: lineas=%ld pausas=%ld (max %ld ms)%s huecos=%ld | "
+                                   "hueco=%ldms leer=%ldms ejec=%ldms rx=%ldms rt=%ldms"
+                                   " | lvgl=%ldms cli=%ldms\r\n",
+                                   (long)diag.lineas,
+                                   (long)diag.pausas,
+                                   (long)(diag.pausa_max / 1000),
+                                   diag.pausa_t0 ? " +1 sin reanudar" : "",
+                                   (long)diag.huecos,
+                                   (long)(diag.lazo_max / 1000),
+                                   (long)(diag.leer_max / 1000),
+                                   (long)(diag.ejec_max / 1000),
+                                   (long)(diag.rx_max / 1000),
+                                   (long)(diag.rt_max / 1000),
+                                   // ya estan en milisegundos (ticks de 1 ms)
+                                   (long)diag_lvgl_max,
+                                   (long)diag_cli_max);
+                        {
+                            uint32_t m = diag.plan_n ? diag.plan_n : 1;
+                            int64_t  dur_ms = diag.t_job ? (esp_timer_get_time() - diag.t_job) / 1000 : 0;
+                            grbl_sendf(CLIENT_ALL,
+                                       "[diag] plan: muestras=%lu min=%d | %%ocupacion 0:%lu 1-3:%lu 4-7:%lu 8-14:%lu lleno:%lu | lineas/s=%ld\r\n",
+                                       (unsigned long)diag.plan_n,
+                                       diag.plan_min == 255 ? -1 : (int)diag.plan_min,
+                                       (unsigned long)(100UL * diag.plan_h[0] / m),
+                                       (unsigned long)(100UL * diag.plan_h[1] / m),
+                                       (unsigned long)(100UL * diag.plan_h[2] / m),
+                                       (unsigned long)(100UL * diag.plan_h[3] / m),
+                                       (unsigned long)(100UL * diag.plan_h[4] / m),
+                                       dur_ms > 0 ? (long)(1000LL * diag.lineas / dur_ms) : 0L);
+                        }
+                        diag_plan_reset();
+                        diag.lineas   = 0;
+                        diag.pausas   = 0;
+                        diag.huecos   = 0;
+                        diag.pausa_t0 = 0;
+                        diag.t_job    = 0;
+                        diag.pausa_max = diag.lazo_max = 0;
+                        diag.leer_max = diag.ejec_max = diag.info_max = 0;
+                        diag.rx_max = diag.rt_max = 0;
+#endif  // ENABLE_JOB_DIAG
+
                         closeFile();  // close file and clear SD ready/running flags
                     }
                 }
         }
+#ifdef ENABLE_JOB_DIAG
+        diag.prev_sd = esp_timer_get_time() - t_sd0;  // fin del bloque SD
+#endif  // ENABLE_JOB_DIAG
 #endif
 #else
 #ifdef ENABLE_SD_CARD
@@ -229,6 +457,9 @@ void protocol_main_loop() {
         // filtering is the same with serial and file input.
         uint8_t client = CLIENT_SERIAL;
         char*   line;
+#ifdef ENABLE_JOB_DIAG
+        int64_t t_rx0 = esp_timer_get_time();
+#endif  // ENABLE_JOB_DIAG
         for (client = 0; client < CLIENT_COUNT; client++) {
             while ((c = client_read(client)) != -1) {
                 Error res = add_char_to_line(c, client);
@@ -257,6 +488,9 @@ void protocol_main_loop() {
                 }
             }  // while serial read
         }      // for clients
+#ifdef ENABLE_JOB_DIAG
+        int64_t t_rx1 = esp_timer_get_time();
+#endif  // ENABLE_JOB_DIAG
         // If there are no more characters in the serial read buffer to be processed and executed,
         // this indicates that g-code streaming has either filled the planner buffer or has
         // completed. In either case, auto-cycle start, if enabled, any queued moves.
@@ -281,6 +515,18 @@ void protocol_main_loop() {
             mks_wifi_connect(wifi_send_username, wifi_send_password);   // 扫描wifi是否需要被发送指令连接
             #endif
         }
+#ifdef ENABLE_JOB_DIAG
+        // Fin de vuelta: lo que quede hasta la siguiente es "hueco" puro,
+        // es decir, tiempo en el que el lazo no ha podido correr (CPU robada).
+        int64_t t_fin = esp_timer_get_time();
+        diag.prev_rx = t_rx1 - t_rx0;
+        diag.prev_rt = t_fin - t_rx1;
+        if (diag.t_job) {
+            if (diag.prev_rx > diag.rx_max) diag.rx_max = diag.prev_rx;
+            if (diag.prev_rt > diag.rt_max) diag.rt_max = diag.prev_rt;
+        }
+        diag.t_lazo = t_fin;
+#endif  // ENABLE_JOB_DIAG
     }
     return; /* Never reached */
 }

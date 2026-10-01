@@ -23,7 +23,7 @@
 // Grbl versioning system
 const char* const GRBL_VERSION       = "1.1";
 // const char* const GRBL_VERSION       = "1.3a";
-const char* const GRBL_VERSION_BUILD = "2022042101";
+const char* const GRBL_VERSION_BUILD = "20261001";
 
 //#include <sdkconfig.h>
 #include <Arduino.h>
@@ -94,6 +94,12 @@ const char* const GRBL_VERSION_BUILD = "2022042101";
 void grbl_init();
 void run_once();
 void _mc_task_init(void);
+#ifdef ENABLE_JOB_DIAG
+// Diagnóstico de paradas (Grbl.cpp)
+extern uint8_t diag_boot_reason;
+extern int64_t diag_boot_t0;
+extern int     diag_run_once;
+#endif  // ENABLE_JOB_DIAG
 
 void machine_init();                      // weak definition in Grbl.cpp
 void display_init();                      // weak definition in Grbl.cpp

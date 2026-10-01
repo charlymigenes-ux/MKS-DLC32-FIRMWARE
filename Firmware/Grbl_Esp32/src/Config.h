@@ -455,6 +455,11 @@ const int DWELL_TIME_STEP = 50;  // Integer (1-255) (milliseconds)
 // new incoming motions as they are executed.
 // #define BLOCK_BUFFER_SIZE 16 // Uncomment to override default in planner.h.
 
+// Diagnostico de trabajos de la SD: pausas, ocupacion del planificador, motivo del
+// ultimo arranque y quien manda Ctrl-X, impresos como mensajes "[diag] ..." en la
+// consola. Desactivado por defecto; descomentar para depurar tirones o paradas.
+// #define ENABLE_JOB_DIAG
+
 // Governs the size of the intermediary step segment buffer between the step execution algorithm
 // and the planner blocks. Each segment is set of steps executed at a constant velocity over a
 // fixed time defined by ACCELERATION_TICKS_PER_SECOND. They are computed such that the planner

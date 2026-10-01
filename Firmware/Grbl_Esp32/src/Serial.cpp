@@ -170,11 +170,24 @@ static uint8_t getClientChar(uint8_t* data) {
 
 // this task runs and checks for data on all interfaces
 // REaltime stuff is acted upon, then characters are added to the appropriate buffer
+#ifdef ENABLE_JOB_DIAG
+// Diagnóstico: maximo tiempo que clientCheckTask (prioridad 3, por encima
+// del lazo de protocolo en prioridad 1) mantiene ocupado el core 1 sin ceder.
+// Se imprime desde Protocol.cpp en la linea "[diag] hueco ...".
+volatile int64_t diag_cli_max = 0;
+#endif  // ENABLE_JOB_DIAG
+
 void clientCheckTask(void* pvParameters) {
     uint8_t            data = 0;
     uint8_t            client;  // who sent the data
     static UBaseType_t uxHighWaterMark = 0;
+#ifdef ENABLE_JOB_DIAG
+    int64_t            diag_cli_t0 = 0;
+#endif  // ENABLE_JOB_DIAG
     while (true) {  // run continuously
+#ifdef ENABLE_JOB_DIAG
+        diag_cli_t0 = (int64_t)xTaskGetTickCount();
+#endif  // ENABLE_JOB_DIAG
         while ((client = getClientChar(&data)) != CLIENT_ALL) {
             // Pick off realtime command characters directly from the serial stream. These characters are
             // not passed into the main buffer, but these set system state flag bits for realtime execution.
@@ -210,6 +223,14 @@ void clientCheckTask(void* pvParameters) {
 #if defined(ENABLE_WIFI) && defined(ENABLE_HTTP) && defined(ENABLE_SERIAL2SOCKET_IN)
         WebUI::Serial2Socket.handle_flush();
 #endif
+#ifdef ENABLE_JOB_DIAG
+        {
+            int64_t diag_d = (int64_t)xTaskGetTickCount() - diag_cli_t0;
+            if (diag_d > diag_cli_max) {
+                diag_cli_max = diag_d;
+            }
+        }
+#endif  // ENABLE_JOB_DIAG
         vTaskDelay(1 / portTICK_RATE_MS);  // Yield to other tasks
 
         static UBaseType_t uxHighWaterMark = 0;
@@ -249,6 +270,22 @@ void execute_realtime_command(Cmd command, uint8_t client) {
     switch (command) {
         case Cmd::Reset:
             grbl_msg_sendf(CLIENT_ALL, MsgLevel::Debug, "Cmd::Reset");
+#ifdef ENABLE_JOB_DIAG
+            // Diagnóstico: decir QUIEN manda Ctrl-X y cuando. Sin esto, un
+            // mc_reset() en mitad de un trabajo aparece en la WebUI como un
+            // "ALARM:3" de origen desconocido. client: 0=serial 1=bt 2=webui
+            // 3=telnet 4=input (LCD, via MKS_GRBL_CMD_SEND) 5=lcd.
+            {
+                static const char* nom_cliente[] = {"serial", "bt", "webui", "telnet", "input(LCD)", "lcd"};
+                const char*        nom           = (client < 6) ? nom_cliente[client] : "?";
+                grbl_sendf(CLIENT_ALL,
+                           "[diag] RESET 0x18 cliente=%u (%s) state=%d uptime=%ldms\r\n",
+                           (unsigned)client,
+                           nom,
+                           (int)sys.state,
+                           (long)((esp_timer_get_time() - diag_boot_t0) / 1000));
+            }
+#endif  // ENABLE_JOB_DIAG
             mc_reset();  // Call motion control reset routine.
             break;
         case Cmd::StatusReport:
@@ -271,7 +308,7 @@ void execute_realtime_command(Cmd command, uint8_t client) {
         case Cmd::DebugReport:
 #ifdef DEBUG
             sys_rt_exec_debug = true;
-#endif.
+#endif
             break;
         case Cmd::SpindleOvrStop:
             sys_rt_exec_accessory_override.bit.spindleOvrStop = 1;
