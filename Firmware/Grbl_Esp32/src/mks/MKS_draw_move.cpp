@@ -7,6 +7,7 @@ PROBE_RUN_T probe_run;
 
 static void disp_imgbtn(void);
 
+lv_obj_t* pos_strip = NULL;  // franja con las coordenadas X / Y / Z (la usa tambien la pantalla de archivo, MKS_draw_inFile.cpp)
 static void disp_imgbtn_1(void);
 static void disp_imgbtn_1_del(void);
 static void disp_btn(void);
@@ -171,8 +172,21 @@ void set_home(void) {
 }
 
 
+static void set_hhome(void);
+static uint32_t hard_homing_t0 = 0;  // instante en que se mando $H (espera a que arranque)
+
 void set_xy_home(void) {
 
+	// Con homing habilitado ($22=1) y finales de carrera ($21=1) este boton hace el ciclo de
+	// homing real ($H), igual que "Origen" en la WebUI. Antes mandaba un salto a X0 Y0 desde
+	// donde la maquina CREIA estar: tras perder la luz o parar a medio corte la posicion se
+	// pierde, arranca en 0,0 y el salto no se movia ("ya esta en home").
+	if(hard_limits->get() && homing_enable->get()) {
+		set_hhome();
+		return;
+	}
+
+	// Sin homing: salto a la coordenada 0,0 (comportamiento original).
 	// 保证主轴不会打开
 	MKS_GRBL_CMD_SEND("M5\n");
 	mks_grbl.cnc_pwr = GRBL_CNC_OFF;
@@ -269,6 +283,7 @@ static void set_hhome(void) {
 
 	if(hard_limits->get() && homing_enable->get()) {
 		MKS_GRBL_CMD_SEND("$H\n");
+		hard_homing_t0 = millis();
 		ui_move_ctrl.hard_homing_status = HOMING_START;
 		mks_draw_common_pupup_info(mc_language.dis_info, mc_language.dis_homing, " ");
 	}
@@ -282,7 +297,17 @@ static void set_cnc_power(bool status, uint8_t persen) {
 	char buf[96];
 
 	if(status) {
-		sprintf(buf, "M3 S%d\n", persen*100);
+		// S en unidades de $30 (potencia o rpm maximas). Antes era persen*100, pensado para un
+		// husillo de 10000 rpm: con $30=1000, "50 %" mandaba S5000 y se recortaba al 100 %.
+		uint32_t s = (uint32_t)(rpm_max->get() * persen / 100.0f + 0.5f);
+		if(laser_mode->get()) {
+			// En modo laser ($32=1) un M3 suelto NO enciende nada mientras el modo de movimiento
+			// sea G0: Grbl pasa la potencia a 0 (GCParserLaserDisable). Con G1 en la misma linea
+			// dispara en el sitio hasta M5.
+			sprintf(buf, "G1 F1000 M3 S%u\n", (unsigned)s);
+		} else {
+			sprintf(buf, "M3 S%u\n", (unsigned)s);
+		}
 		MKS_GRBL_CMD_SEND(buf);
 	}
 	else {
@@ -291,24 +316,136 @@ static void set_cnc_power(bool status, uint8_t persen) {
 	}
 }
 
-static void set_cnc_ctrl(void) {
+// ---- Popup de potencia del laser: 0 % (apagar), 5, 30 y 70 % -------------------------
+// El boton Laser ya no enciende de golpe: pide primero la potencia, para que nunca dispare al
+// 100 %. Al elegir una potencia se enciende (G1 F1000 M3 S...) y 0 % la apaga (M5).
+static const uint8_t laser_presets[4] = { 0, 5, 30, 70 };
+static lv_obj_t*     laser_pop_bg = NULL;
+static lv_obj_t*     laser_pop_btn[4];
+static lv_obj_t*     laser_pop_back;
+static lv_style_t    laser_pop_bg_style, laser_pop_card_style, laser_pop_btn_style, laser_pop_btn_pr_style, laser_pop_off_style;
+static uint8_t       laser_on_pct = 0;     // potencia con la que esta encendido (0 = apagado)
+static char          laser_btn_txt[32];
 
-	if(sys_rt_s_override == 0) {
-		mks_grbl.cnc_pwr = GRBL_CNC_OFF;
+static void laser_label_update(void) {
+	if(move_page.label_spindle == NULL) return;
+	if(laser_on_pct > 0) {
+		snprintf(laser_btn_txt, sizeof(laser_btn_txt), "%s %u%%", mc_language.spindle, (unsigned)laser_on_pct);
+		lv_label_set_text(move_page.label_spindle, laser_btn_txt);
+	} else {
+		lv_label_set_text(move_page.label_spindle, mc_language.spindle);
 	}
+}
 
-	if(mks_grbl.cnc_pwr == GRBL_CNC_OFF) {
-		set_cnc_power(true, 50);
-		mks_grbl.cnc_pwr = GRBL_CNC_50;
-		lv_btn_set_style(move_page.btn_spindle, LV_BTN_STYLE_REL, &move_page.btn_color_press);
-		lv_btn_set_style(move_page.btn_spindle, LV_BTN_STYLE_PR,&move_page.btn_color_press);
+static void laser_popup_close(void) {
+	if(laser_pop_bg != NULL) {
+		lv_obj_del(laser_pop_bg);
+		laser_pop_bg = NULL;
 	}
-	else {
+}
+
+static void laser_apply(uint8_t pct) {
+	if(pct == 0) {
 		set_cnc_power(false, 0);
 		mks_grbl.cnc_pwr = GRBL_CNC_OFF;
+		laser_on_pct = 0;
 		lv_btn_set_style(move_page.btn_spindle, LV_BTN_STYLE_REL, &move_page.btn_color);
-		lv_btn_set_style(move_page.btn_spindle, LV_BTN_STYLE_PR,&move_page.btn_color);
+		lv_btn_set_style(move_page.btn_spindle, LV_BTN_STYLE_PR, &move_page.btn_color);
+	} else {
+		set_cnc_power(true, pct);
+		mks_grbl.cnc_pwr = GRBL_CNC_50;   // "encendido" (el valor exacto esta en laser_on_pct)
+		laser_on_pct = pct;
+		lv_btn_set_style(move_page.btn_spindle, LV_BTN_STYLE_REL, &move_page.btn_color_press);
+		lv_btn_set_style(move_page.btn_spindle, LV_BTN_STYLE_PR, &move_page.btn_color_press);
 	}
+	laser_label_update();
+}
+
+static void laser_pop_event(lv_obj_t* obj, lv_event_t event) {
+	if(event != LV_EVENT_RELEASED) return;
+	for(int i = 0; i < 4; i++) {
+		if(obj == laser_pop_btn[i]) {
+			laser_apply(laser_presets[i]);
+			laser_popup_close();
+			return;
+		}
+	}
+	if(obj == laser_pop_back) laser_popup_close();
+}
+
+static void laser_popup_open(void) {
+	if(laser_pop_bg != NULL) return;
+
+	lv_style_copy(&laser_pop_bg_style, &lv_style_plain_color);
+	laser_pop_bg_style.body.main_color = LV_COLOR_BLACK;
+	laser_pop_bg_style.body.grad_color = LV_COLOR_BLACK;
+	laser_pop_bg_style.body.opa        = LV_OPA_60;
+	laser_pop_bg_style.body.radius     = 0;
+
+	lv_style_copy(&laser_pop_card_style, &lv_style_plain_color);
+	laser_pop_card_style.body.main_color   = LV_COLOR_MAKE(0x1F, 0x23, 0x33);
+	laser_pop_card_style.body.grad_color   = LV_COLOR_MAKE(0x1F, 0x23, 0x33);
+	laser_pop_card_style.body.radius       = 14;
+	laser_pop_card_style.body.border.width = 2;
+	laser_pop_card_style.body.border.color = LV_COLOR_MAKE(0x3F, 0x46, 0x66);
+	laser_pop_card_style.text.color        = LV_COLOR_WHITE;
+	laser_pop_card_style.text.font         = &dlc32FontLatin;
+
+	lv_style_copy(&laser_pop_btn_style, &laser_pop_card_style);
+	laser_pop_btn_style.body.main_color   = LV_COLOR_MAKE(0x2A, 0x30, 0x50);
+	laser_pop_btn_style.body.grad_color   = LV_COLOR_MAKE(0x2A, 0x30, 0x50);
+	laser_pop_btn_style.body.radius       = 10;
+	laser_pop_btn_style.body.border.width = 0;
+	lv_style_copy(&laser_pop_btn_pr_style, &laser_pop_btn_style);
+	laser_pop_btn_pr_style.body.main_color = LV_COLOR_MAKE(0x2D, 0xE0, 0xA7);
+	laser_pop_btn_pr_style.body.grad_color = LV_COLOR_MAKE(0x2D, 0xE0, 0xA7);
+	laser_pop_btn_pr_style.text.color      = LV_COLOR_MAKE(0x1F, 0x23, 0x33);
+	lv_style_copy(&laser_pop_off_style, &laser_pop_btn_style);   // 0 % = apagar
+	laser_pop_off_style.body.main_color = LV_COLOR_MAKE(0xB0, 0x40, 0x40);
+	laser_pop_off_style.body.grad_color = LV_COLOR_MAKE(0xB0, 0x40, 0x40);
+
+	// capa que tapa toda la pantalla: mientras el popup esta abierto no se toca nada de debajo
+	laser_pop_bg = lv_obj_create(mks_global.mks_src, NULL);
+	lv_obj_set_size(laser_pop_bg, 480, 320);
+	lv_obj_set_pos(laser_pop_bg, 0, 0);
+	lv_obj_set_style(laser_pop_bg, &laser_pop_bg_style);
+
+	lv_obj_t* card = lv_obj_create(laser_pop_bg, NULL);
+	lv_obj_set_size(card, 400, 176);
+	lv_obj_set_pos(card, 40, 72);
+	lv_obj_set_style(card, &laser_pop_card_style);
+
+	lv_obj_t* title = lv_label_create(card, NULL);
+	lv_label_set_text(title, mc_language.spindle_speed);
+	lv_obj_align(title, card, LV_ALIGN_IN_TOP_MID, 0, 12);
+
+	// cuatro botones de 80x56 con 12 px entre ellos, centrados en los 400 px de la tarjeta
+	for(int i = 0; i < 4; i++) {
+		lv_obj_t* b = lv_btn_create(card, NULL);
+		lv_obj_set_size(b, 80, 56);
+		lv_obj_set_pos(b, 22 + i * 92, 48);
+		lv_btn_set_style(b, LV_BTN_STYLE_REL, laser_presets[i] == 0 ? &laser_pop_off_style : &laser_pop_btn_style);
+		lv_btn_set_style(b, LV_BTN_STYLE_PR, &laser_pop_btn_pr_style);
+		lv_obj_set_event_cb(b, laser_pop_event);
+		lv_obj_t* l = lv_label_create(b, NULL);
+		static char pct_txt[4][8];
+		snprintf(pct_txt[i], sizeof(pct_txt[i]), "%u%%", (unsigned)laser_presets[i]);
+		lv_label_set_text(l, pct_txt[i]);
+		laser_pop_btn[i] = b;
+	}
+
+	laser_pop_back = lv_btn_create(card, NULL);
+	lv_obj_set_size(laser_pop_back, 140, 40);
+	lv_obj_set_pos(laser_pop_back, 130, 122);
+	lv_btn_set_style(laser_pop_back, LV_BTN_STYLE_REL, &laser_pop_btn_style);
+	lv_btn_set_style(laser_pop_back, LV_BTN_STYLE_PR, &laser_pop_btn_pr_style);
+	lv_obj_set_event_cb(laser_pop_back, laser_pop_event);
+	lv_obj_t* bl = lv_label_create(laser_pop_back, NULL);
+	lv_label_set_text(bl, mc_language.back);
+}
+
+static void set_cnc_ctrl(void) {
+	laser_popup_open();
 }
 
 void set_step_len(void) {
@@ -338,6 +475,11 @@ void set_speed(void) {
 }
 
 void set_move_back(void) {
+		if(mks_grbl.cnc_pwr != GRBL_CNC_OFF) {   // no dejar el laser encendido al salir
+			MKS_GRBL_CMD_SEND("M5\n");
+			mks_grbl.cnc_pwr = GRBL_CNC_OFF;
+			laser_on_pct = 0;
+		}
         mks_lv_clean_ui();
 		mks_ui_page.mks_ui_page = MKS_UI_PAGE_LOADING;
         mks_ui_page.wait_count = DEFAULT_UI_COUNT;
@@ -376,21 +518,29 @@ static void event_handler(lv_obj_t* obj, lv_event_t event) {
 }
 
 void mks_draw_move(void) {
+
+	laser_pop_bg = NULL;
  
 	mks_global.mks_src_1 = lv_obj_create(mks_global.mks_src, NULL);
-	lv_obj_set_size(mks_global.mks_src_1, 460, 90);
-    lv_obj_set_pos(mks_global.mks_src_1, 10, 10);
+	lv_obj_set_size(mks_global.mks_src_1, 460, 78);
+    lv_obj_set_pos(mks_global.mks_src_1, 10, 4);
+
+	// franja de coordenadas: X, Y y Z en una sola linea a todo el ancho
+	pos_strip = lv_obj_create(mks_global.mks_src, NULL);
+	lv_obj_set_size(pos_strip, 460, 24);
+	lv_obj_set_pos(pos_strip, 10, 86);
 
 	mks_global.mks_src_2 = lv_obj_create(mks_global.mks_src, NULL);
 	lv_obj_set_size(mks_global.mks_src_2, 320, 200);
-    lv_obj_set_pos(mks_global.mks_src_2, 10, 110);
+    lv_obj_set_pos(mks_global.mks_src_2, 10, 114);
 
 	mks_global.mks_src_3 = lv_obj_create(mks_global.mks_src, NULL);
 	lv_obj_set_size(mks_global.mks_src_3, 130, 200);
-    lv_obj_set_pos(mks_global.mks_src_3, 340, 110);
+    lv_obj_set_pos(mks_global.mks_src_3, 340, 114);
 
 	/* 背景层样式 */
 	lv_obj_set_style(mks_global.mks_src_1, &mks_global.mks_src_1_style);
+	lv_obj_set_style(pos_strip, &mks_global.mks_src_1_style);
 	lv_obj_set_style(mks_global.mks_src_2, &mks_global.mks_src_2_style);
 	lv_obj_set_style(mks_global.mks_src_3, &mks_global.mks_src_3_style);
 
@@ -404,7 +554,7 @@ void mks_draw_move(void) {
 
 static void disp_imgbtn(void) {
 
-	move_page.Back = lv_imgbtn_creat_mks(mks_global.mks_src_1, move_page.Back, &png_back_pre, &back, LV_ALIGN_IN_TOP_LEFT, 10, 5 , event_handler);
+	move_page.Back = lv_imgbtn_creat_mks(mks_global.mks_src_1, move_page.Back, &png_back_pre, &back, LV_ALIGN_IN_TOP_LEFT, 21, 5 , event_handler);
 
 	disp_imgbtn_1();
 
@@ -451,10 +601,10 @@ static void disp_down_set(lv_obj_t* obj, lv_event_t event) {
 
 static void disp_imgbtn_1(void) {
 
-	move_page.xy_clear = lv_imgbtn_creat_mks(mks_global.mks_src_1, move_page.xy_clear, &png_xyclear_pre, &png_xyclear, LV_ALIGN_IN_TOP_LEFT, 170, 5, set_xy_pos);
-	move_page.z_clear = lv_imgbtn_creat_mks(mks_global.mks_src_1, move_page.z_clear, &png_zclear_pre, &png_zclear, LV_ALIGN_IN_TOP_LEFT, 240, 5, set_z_pos);
-	move_page.knife = lv_imgbtn_creat_mks(mks_global.mks_src_1, move_page.knife, &png_knife_pre, &png_knife, LV_ALIGN_IN_TOP_LEFT, 310, 5, event_handler);
-	move_page.next = lv_imgbtn_creat_mks(mks_global.mks_src_1, move_page.next, &png_l_next_pre, &png_l_next, LV_ALIGN_IN_TOP_LEFT, 380, 5, disp_down_set);
+	move_page.xy_clear = lv_imgbtn_creat_mks(mks_global.mks_src_1, move_page.xy_clear, &png_xyclear_pre, &png_xyclear, LV_ALIGN_IN_TOP_LEFT, 113, 5, set_xy_pos);
+	move_page.z_clear = lv_imgbtn_creat_mks(mks_global.mks_src_1, move_page.z_clear, &png_zclear_pre, &png_zclear, LV_ALIGN_IN_TOP_LEFT, 205, 5, set_z_pos);
+	move_page.knife = lv_imgbtn_creat_mks(mks_global.mks_src_1, move_page.knife, &png_knife_pre, &png_knife, LV_ALIGN_IN_TOP_LEFT, 297, 5, event_handler);
+	move_page.next = lv_imgbtn_creat_mks(mks_global.mks_src_1, move_page.next, &png_l_next_pre, &png_l_next, LV_ALIGN_IN_TOP_LEFT, 389, 5, disp_down_set);
 
 	move_page.label_xy_clear = label_for_imgbtn_name(mks_global.mks_src_1, move_page.label_xy_clear, move_page.xy_clear, 0, 0, mc_language.xy_clear);
 	move_page.label_z_clear = label_for_imgbtn_name(mks_global.mks_src_1, move_page.label_z_clear, move_page.z_clear, 0, 0, mc_language.z_clear);
@@ -463,9 +613,9 @@ static void disp_imgbtn_1(void) {
 }
 
 static void disp_imgbtn_2(void) {
-	move_page.up = lv_imgbtn_creat_mks(mks_global.mks_src_1, move_page.up, &png_l_up_pre, &png_l_up, LV_ALIGN_IN_TOP_LEFT, 170, 5, disp_up_set);
-	move_page.cooling = lv_imgbtn_creat_mks(mks_global.mks_src_1, move_page.cooling, &png_cooling_pre, &png_cooling, LV_ALIGN_IN_TOP_LEFT, 240, 5, set_cooling);
-	move_page.position = lv_imgbtn_creat_mks(mks_global.mks_src_1, move_page.position, &png_position_pre, &png_position, LV_ALIGN_IN_TOP_LEFT, 310, 5, set_xyz_pos);
+	move_page.up = lv_imgbtn_creat_mks(mks_global.mks_src_1, move_page.up, &png_l_up_pre, &png_l_up, LV_ALIGN_IN_TOP_LEFT, 113, 5, disp_up_set);
+	move_page.cooling = lv_imgbtn_creat_mks(mks_global.mks_src_1, move_page.cooling, &png_cooling_pre, &png_cooling, LV_ALIGN_IN_TOP_LEFT, 205, 5, set_cooling);
+	move_page.position = lv_imgbtn_creat_mks(mks_global.mks_src_1, move_page.position, &png_position_pre, &png_position, LV_ALIGN_IN_TOP_LEFT, 297, 5, set_xyz_pos);
 
 	move_page.label_cooling = label_for_imgbtn_name(mks_global.mks_src_1, move_page.label_cooling, move_page.cooling, 0, 0, mc_language.cooling);
 	move_page.label_position = label_for_imgbtn_name(mks_global.mks_src_1, move_page.label_position, move_page.position, 0, 0, mc_language.position);
@@ -501,6 +651,11 @@ void move_pos_update(void) {
 		lv_label_set_static_text(move_page.label_xpos, xpos_str);
 		lv_label_set_static_text(move_page.label_ypos, ypos_str);
 		lv_label_set_static_text(move_page.label_zpos, zpos_str);
+		if(pos_strip != NULL) {
+			lv_obj_align(move_page.label_xpos, pos_strip, LV_ALIGN_CENTER, -153, 0);
+			lv_obj_align(move_page.label_ypos, pos_strip, LV_ALIGN_CENTER, 0, 0);
+			lv_obj_align(move_page.label_zpos, pos_strip, LV_ALIGN_CENTER, 153, 0);
+		}
 	}
 }
 
@@ -545,9 +700,9 @@ static void disp_label(void) {
 
 	label_for_imgbtn_name(mks_global.mks_src_1, move_page.Label_back, move_page.Back, 0, 0, mc_language.back);
 
-	move_page.label_xpos = label_for_text(mks_global.mks_src_1, move_page.label_xpos, NULL, 93, 5, LV_ALIGN_IN_TOP_LEFT,  	"X:0");
-	move_page.label_ypos = label_for_text(mks_global.mks_src_1, move_page.label_ypos, NULL, 93, 36, LV_ALIGN_IN_TOP_LEFT,	"Y:0");
-	move_page.label_zpos = label_for_text(mks_global.mks_src_1, move_page.label_zpos, NULL, 93, 66, LV_ALIGN_IN_TOP_LEFT,  	"Z:0");
+	move_page.label_xpos = label_for_text(pos_strip, move_page.label_xpos, pos_strip, -153, 0, LV_ALIGN_CENTER, "X:0");
+	move_page.label_ypos = label_for_text(pos_strip, move_page.label_ypos, pos_strip, 0, 0, LV_ALIGN_CENTER, "Y:0");
+	move_page.label_zpos = label_for_text(pos_strip, move_page.label_zpos, pos_strip, 153, 0, LV_ALIGN_CENTER, "Z:0");
 
 	if(mks_grbl.move_dis == M_0_1_MM) {
 		move_page.label_len = mks_lvgl_long_sroll_label_with_wight_set_center(move_page.btn_len, move_page.label_len, 0, 0, "0.1mm", 50);
@@ -566,6 +721,7 @@ static void disp_label(void) {
 	}	
 	
 	move_page.label_spindle = mks_lvgl_long_sroll_label_with_wight_set_center(move_page.btn_spindle, move_page.label_spindle, 0, 0, mc_language.spindle,100);
+	if(mks_grbl.cnc_pwr != GRBL_CNC_OFF && laser_on_pct > 0) laser_label_update();
 }
 
 void set_click_status(bool status) {
@@ -605,10 +761,12 @@ void hard_home_check(void) {
 		break;
 
 		case HOMING_START:
-			if(sys.state == State::Homing) 		ui_move_ctrl.hard_homing_status = HOMING_RUNNING;
-			else if(sys.state == State::Idle)	ui_move_ctrl.hard_homing_status = HOMING_SUCCEED;
-			else if(sys.state == State::Alarm)	ui_move_ctrl.hard_homing_status = HOMING_FAIL;
-			else								ui_move_ctrl.hard_homing_status = HOMING_FAIL;
+			// $H viaja por el buffer serie: un instante despues de mandarlo la maquina sigue en
+			// su estado anterior (Idle o Alarm). Hay que dejar que arranque antes de decidir; si
+			// pasa el margen sin haber entrado en Homing, $H no se ejecuto: fallo.
+			if(sys.state == State::Homing) 				ui_move_ctrl.hard_homing_status = HOMING_RUNNING;
+			else if(millis() - hard_homing_t0 < 700) 	{ /* esperando a que arranque */ }
+			else										ui_move_ctrl.hard_homing_status = HOMING_FAIL;
 		break;
 
 		case HOMING_RUNNING:

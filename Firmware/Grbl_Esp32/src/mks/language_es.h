@@ -3,10 +3,10 @@
 
 /* Traducción al español del LCD (MKS DLC32).
  *
- * Nota de fuente: el LCD usaba lv_font_roboto_16, que SOLO trae ASCII
- * (range 32..126 en lv_font_roboto_16.c). Para que tildes, ñ, ¿ y ¡ se
- * vean hace falta la fuente con Latin-1 generada con lv_font_conv
- * (ver lv_conf.h: LV_FONT_DEFAULT -> lv_font_roboto_16_latin).
+ * Nota de fuente: las fuentes originales del LCD (lv_font_roboto_16 y dlc32Font)
+ * solo traen ASCII y unos caracteres chinos. Las tildes, la ñ, ¿ y ¡ salen de
+ * lv_pic/font_latin.c (roboto16Latin y dlc32FontLatin), que añaden el rango
+ * Latin-1 y delegan todo lo demás en la fuente original.
  */
 
 /* 公共 / común */
@@ -116,6 +116,24 @@
 #define SPINDLE_SPEED_FMT_ES    "Vel. del husillo: %d%%"
 #define FEED_RATE_FMT_ES        "Avance: %d%%"
 #define RAPID_FMT_ES            "Vel. rápida: %d%%"
+#define GAUGE_FEED_ES            "Avance"
+#define GAUGE_SPINDLE_ES         "Husillo"
+#define GAUGE_RAPID_ES           "Rápido"
+#define JOB_ELAPSED_ES           "Tiempo"
+#define JOB_LEFT_ES              "Restante"
+#define JOB_FEED_REAL_ES         "Avance"
+#define JOB_POWER_REAL_ES        "Potencia"
+#define RESUME_ES                "Reanudar"
+#define TOOL_BOARD_ES            "Placa"
+// Rotulos con el modo laser activo ($32=1): potencia y velocidad en vez de husillo y avance
+#define SPINDLE_LASER_ES               "Láser"
+#define SPINDLE_SPEED_LASER_ES         "Potencia del láser:"
+#define SPINDLE_SPEED_FMT_LASER_ES     "Potencia: %d%%"
+#define GAUGE_SPINDLE_LASER_ES         "Potencia"
+#define FEED_RATE_LASER_ES             "Velocidad:"
+#define FEED_RATE_FMT_LASER_ES         "Velocidad: %d%%"
+#define GAUGE_FEED_LASER_ES            "Velocidad"
+#define JOB_FEED_REAL_LASER_ES         "Velocidad"
 
 /* Pagina de pruebas (test) */
 #define TESTING_ES              "Probando..."

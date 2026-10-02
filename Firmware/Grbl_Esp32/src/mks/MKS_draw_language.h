@@ -137,6 +137,15 @@ typedef struct {
     const char *spindle_speed_fmt;
     const char *feed_rate_fmt;
     const char *rapid_fmt;
+    const char *gauge_feed;       // rotulos bajo los indicadores de la pantalla de trabajo
+    const char *gauge_spindle;
+    const char *gauge_rapid;
+    const char *job_elapsed;      // datos del trabajo
+    const char *job_left;
+    const char *job_feed_real;
+    const char *job_power_real;
+    const char *resume;           // boton Pausar/Reanudar de la pantalla de trabajo
+    const char *tool_board;       // fila "Placa" de la pantalla de Herramientas
 
     /* Pagina de pruebas (test) */
     const char *test_title;
@@ -154,6 +163,7 @@ extern mc_lg_muilt_t mc_language;
 // Rellena mc_language con las cadenas del LCD. OJO: antes solo se llamaba desde
 // set_language() (al cambiar el idioma desde la pantalla), nunca al arrancar.
 void mc_language_init(void);
+const lv_font_t* mc_font(void);   // fuente de texto segun el idioma: con chino, la que trae los glifos chinos
 
 
 void draw_language(void);

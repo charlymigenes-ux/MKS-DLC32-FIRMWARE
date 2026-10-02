@@ -4,7 +4,9 @@
 #include "MKS_draw_lvgl.h"
 
 
-LV_FONT_DECLARE(dlc32Font);	
+LV_FONT_DECLARE(dlc32Font);
+LV_FONT_DECLARE(dlc32FontLatin);
+LV_FONT_DECLARE(roboto16Latin);	
 
 
 LV_IMG_DECLARE(mks_logo);

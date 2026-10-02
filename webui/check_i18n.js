@@ -19,6 +19,8 @@ var path = require("path");
 var dir = __dirname;
 var i18nSrc = fs.readFileSync(path.join(dir, "js", "i18n.js"), "utf8");
 eval(i18nSrc); // define I18N_EN e i18nLookup
+var I18N_ZH_SRC = fs.readFileSync(path.join(dir, "js", "i18n_zh.js"), "utf8");
+var I18N_ZH_DICT = (new Function(I18N_ZH_SRC + "; return I18N_ZH;"))();
 
 /* Cosas que son tecnicas o estan ya en ingles y no se tocan. */
 var SKIP = new Set([
@@ -120,6 +122,16 @@ function findDuplicates() {
   return dups;
 }
 
+var zhMissing = Object.keys(I18N_EN).filter(function (k) { return I18N_ZH_DICT[k] === undefined; });
+var zhExtra = Object.keys(I18N_ZH_DICT).filter(function (k) { return I18N_EN[k] === undefined; });
+if (zhMissing.length || zhExtra.length) {
+  console.log("CHINO: faltan " + zhMissing.length + ", sobran " + zhExtra.length);
+  zhMissing.forEach(function (k) { console.log("  falta: " + k); });
+  zhExtra.forEach(function (k) { console.log("  sobra: " + k); });
+} else {
+  console.log("chino: " + Object.keys(I18N_ZH_DICT).length + " claves, cobertura completa");
+}
+
 var missing = extractHtml(path.join(dir, "index.html"))
   .concat(extractJs(path.join(dir, "js", "app.js")));
 
@@ -137,4 +149,4 @@ if (missing.length) {
 } else {
   console.log("sin cubrir: 0");
 }
-process.exit(missing.length || dups.length ? 1 : 0);
+process.exit(missing.length || dups.length || zhMissing.length || zhExtra.length ? 1 : 0);

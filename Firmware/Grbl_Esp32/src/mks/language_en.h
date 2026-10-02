@@ -1,5 +1,5 @@
-#ifndef __language_ch_h
-#define __language_ch_h
+#ifndef __language_en_h
+#define __language_en_h
 
 /* 公共 */
 #define BACK_EN                 "Back"
@@ -108,6 +108,24 @@
 #define SPINDLE_SPEED_FMT_EN    "Spindle speed: %d%%"
 #define FEED_RATE_FMT_EN        "Feed rate: %d%%"
 #define RAPID_FMT_EN            "Rapid speed: %d%%"
+#define GAUGE_FEED_EN            "Feed"
+#define GAUGE_SPINDLE_EN         "Spindle"
+#define GAUGE_RAPID_EN           "Rapid"
+#define JOB_ELAPSED_EN           "Elapsed"
+#define JOB_LEFT_EN              "Left"
+#define JOB_FEED_REAL_EN         "Feed"
+#define JOB_POWER_REAL_EN        "Power"
+#define RESUME_EN                "Resume"
+#define TOOL_BOARD_EN            "Board"
+// Rotulos con el modo laser activo ($32=1): potencia y velocidad en vez de husillo y avance
+#define SPINDLE_LASER_EN               "Laser"
+#define SPINDLE_SPEED_LASER_EN         "Laser power:"
+#define SPINDLE_SPEED_FMT_LASER_EN     "Power: %d%%"
+#define GAUGE_SPINDLE_LASER_EN         "Power"
+#define FEED_RATE_LASER_EN             "Speed:"
+#define FEED_RATE_FMT_LASER_EN         "Speed: %d%%"
+#define GAUGE_FEED_LASER_EN            "Speed"
+#define JOB_FEED_REAL_LASER_EN         "Speed"
 
 /* Pagina de pruebas (test) */
 #define TESTING_EN              "Testing..."

@@ -103,6 +103,24 @@ void listDir(fs::FS& fs, const char* dirname, uint8_t levels, uint8_t client) {
 }
 
 char mks_filename_check_str[255];
+// Cuenta los archivos validos (los mismos que muestra mks_listDir) para saber cuantas paginas hay.
+uint16_t mks_countDir(fs::FS& fs, const char* dirname, uint8_t levels) {
+    uint16_t n = 0;
+    File root = fs.open(dirname);
+    if(!root || !root.isDirectory()) return 0;
+    File file = root.openNextFile();
+    while(file) {
+        if(file.isDirectory()) {
+            if(levels) n += mks_countDir(fs, file.name(), levels - 1);
+        } else {
+            strcpy(mks_filename_check_str, file.name());
+            if(filename_check(mks_filename_check_str, strlen(mks_filename_check_str)) == true) n++;
+        }
+        file = root.openNextFile();
+    }
+    return n;
+}
+
 void mks_listDir(fs::FS& fs, const char* dirname, uint8_t levels) { 
 
     File root = fs.open(dirname);    //建立文件根目录并打开文件系统

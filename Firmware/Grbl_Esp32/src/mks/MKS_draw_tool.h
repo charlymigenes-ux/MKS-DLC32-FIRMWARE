@@ -33,6 +33,9 @@ typedef struct {
 
 
 // void lv_draw_tool(void);
+// Estados del panel Wifi dentro de la pantalla de configuracion
+enum { TOOL_WIFI_SUMMARY, TOOL_WIFI_SCANNING, TOOL_WIFI_LIST, TOOL_WIFI_CONNECTING, TOOL_WIFI_DISCONNECTING };
+void mks_tool_wifi(int state);   // redibuja la configuracion en la pestana Wifi con ese estado
 void mks_draw_tool(void);
 void mks_clear_tool(void);
 void light_img_change(uint8_t status);

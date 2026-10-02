@@ -56,6 +56,7 @@ void     sd_get_current_filename(char* name);
 // mks fix
 void sd_set_current_line_number(uint32_t num);
 void mks_listDir(fs::FS& fs, const char* dirname, uint8_t levels); 
+uint16_t mks_countDir(fs::FS& fs, const char* dirname, uint8_t levels);
 bool sd_serch_x_y(char *str);
 bool sd_file_check(const char* path);
 boolean readFileBuff(uint8_t *buf, uint32_t size);

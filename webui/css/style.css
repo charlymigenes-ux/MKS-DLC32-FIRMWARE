@@ -13,6 +13,9 @@ html{font-size:16px;}
   --surface-2:#f3f4f6;
   --divider:#f1f2f4;
   --input-bg:#ffffff;
+  --scroll-thumb:#c4c9d2;
+  --scroll-track:#eef0f3;
+  --orange:#ea580c;
 }
 body.dark{
   --green:#22c55e;
@@ -26,7 +29,20 @@ body.dark{
   --surface-2:#242830;
   --divider:#2a2f38;
   --input-bg:#20242c;
+  --scroll-thumb:#4a5160;
+  --scroll-track:#1a1d23;
+  --orange:#fb923c;
+  color-scheme:dark;
 }
+/* barras de desplazamiento: siguen el tema activo (estandar + WebKit antiguo) */
+*{scrollbar-color:var(--scroll-thumb) var(--scroll-track);scrollbar-width:thin;}
+*::-webkit-scrollbar{width:10px;height:10px;}
+*::-webkit-scrollbar-track{background:var(--scroll-track);}
+*::-webkit-scrollbar-thumb{background:var(--scroll-thumb);border-radius:6px;border:2px solid var(--scroll-track);}
+*::-webkit-scrollbar-thumb:hover{background:var(--green);}
+*::-webkit-scrollbar-corner{background:var(--scroll-track);}
+#console-clear,#console-clear:hover{color:var(--orange);}
+#console-clear:hover{background:var(--surface-2);}
 body.dark .text-size-control span{color:var(--green-dark);}
 *{box-sizing:border-box;}
 body{
@@ -79,7 +95,7 @@ button,input,select{font-family:inherit;font-size:inherit;}
 /* Layout */
 .layout{display:flex;min-height:calc(100vh - 130px);}
 .sidebar{
-  width:220px;flex-shrink:0;overflow:hidden;transition:width .2s ease,padding .2s ease;
+  width:220px;flex-shrink:0;overflow-x:hidden;overflow-y:auto;transition:width .2s ease,padding .2s ease;
   background:var(--card-bg);
   border-right:1px solid var(--border);
   display:flex;flex-direction:column;justify-content:space-between;
@@ -402,3 +418,47 @@ body.sidebar-collapsed .sidebar-footer{justify-content:center;padding:12px 0;}
 .about-links span{color:var(--text-muted);font-size:0.9rem;}
 .about-license{margin:0;color:var(--text-muted);font-size:0.9rem;line-height:1.5;}
 @media (max-width:1000px){.about-body{grid-template-columns:1fr;}}
+
+/* ---------- Barras fijas: la superior y la de estado no se desplazan; solo el contenido ---------- */
+html,body{height:100%;}
+body{display:flex;flex-direction:column;height:100vh;overflow:hidden;}
+.topbar,.statusbar{flex:none;}
+.layout{flex:1 1 auto;min-height:0;}
+.content{min-width:0;overflow:auto;}
+
+/* ---------- Columna derecha de Control: consola y controles del laser ---------- */
+.grid-control{min-width:0;}
+.control-right{flex:1 1 35%;min-width:0;display:flex;flex-direction:column;gap:16px;}
+.control-right .card-console{flex:1 1 auto;min-width:0;}
+.console-input-row input{min-width:0;}
+.console-macros{flex-wrap:wrap;}
+
+.ovr-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.ovr-block{background:var(--surface-2);border-radius:10px;padding:12px;min-width:0;}
+.ovr-title{font-size:0.975rem;color:var(--text-muted);}
+.ovr-value{font-size:1.9rem;font-weight:700;margin:2px 0 8px;}
+.ovr-bar{height:8px;border-radius:4px;background:var(--border);overflow:hidden;}
+.ovr-bar-fill{height:100%;width:0;border-radius:4px;transition:width .15s;}
+.ovr-feed{background:var(--green);}
+.ovr-spindle{background:#2bb5ff;}
+.ovr-buttons{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+.ovr-buttons .btn{flex:1 1 0;min-width:44px;}
+.ovr-hint{margin:12px 0 0;font-size:0.894rem;color:var(--text-muted);}
+@media (max-width:1000px){.control-right{flex:1 1 auto;}.ovr-grid{grid-template-columns:1fr;}}
+
+/* ---------- Modo de la maquina: laser / CNC ---------- */
+.mode-switch{display:flex;gap:8px;}
+.mode-switch .btn{flex:1;}
+.mode-switch .btn.active{background:var(--green);border-color:var(--green);color:#fff;}
+.mode-hint{margin:6px 0 10px;font-size:0.894rem;color:var(--text-muted);}
+.lang-notes{margin-top:14px;}
+
+/* Acerca de: actualizar WebUI e instrucciones */
+.about-actions{display:flex;gap:10px;margin-top:12px;}
+.about-actions .btn{flex:1;}
+.about-msg{margin:10px 0 0;font-size:0.95rem;color:var(--text-muted);min-height:1.4em;}
+.about-msg.is-error{color:var(--danger);}
+.about-msg.is-ok{color:var(--green-dark);}
+.about-steps-title{margin:14px 0 6px;font-weight:700;color:var(--green-dark);}
+.about-steps{margin:0;padding-left:20px;color:var(--text-muted);font-size:0.95rem;line-height:1.55;}
+.about-steps li{margin-bottom:6px;}

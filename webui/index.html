@@ -76,8 +76,8 @@
             <div class="status-item"><label>Y</label><span id="stat-y">0.000</span> <small>mm</small></div>
             <div class="status-item"><label>MX</label><span id="stat-mx">0.000</span> <small>mm</small></div>
             <div class="status-item"><label>MY</label><span id="stat-my">0.000</span> <small>mm</small></div>
-            <div class="status-item"><label>F (Feed)</label><span id="stat-feed">0</span> <small>mm/min</small></div>
-            <div class="status-item"><label>S (Spindle/Light)</label><span id="stat-spindle">0</span></div>
+            <div class="status-item"><label data-laser="F (Velocidad)" data-cnc="F (Avance)">F (Velocidad)</label><span id="stat-feed">0</span> <small>mm/min</small></div>
+            <div class="status-item"><label data-laser="S (Potencia)" data-cnc="S (Husillo)">S (Potencia)</label><span id="stat-spindle">0</span></div>
           </div>
         </div>
 
@@ -149,7 +149,13 @@
             <button class="btn btn-outline" id="btn-home"><span class="btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg></span> Origen</button>
             <button class="btn btn-outline" id="btn-position"><span class="btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg></span> Posición</button>
           </div>
-          <div class="quick-actions-label">LÁSER / SPINDLE</div>
+          <div class="quick-actions-label">MODO DE LA MÁQUINA</div>
+          <div class="mode-switch" id="mode-switch">
+            <button class="btn btn-outline active" data-mode="1">Láser</button>
+            <button class="btn btn-outline" data-mode="0">CNC</button>
+          </div>
+          <p class="mode-hint">Cambia el parámetro $32 y los rótulos de la pantalla y de esta web. Solo con la máquina parada.</p>
+          <div class="quick-actions-label" data-laser="LÁSER" data-cnc="HUSILLO">LÁSER</div>
           <div class="laser-power-row">
             <button class="btn btn-outline btn-power" data-power="0">OFF</button>
             <button class="btn btn-outline btn-power" data-power="5">5%</button>
@@ -157,6 +163,7 @@
             <button class="btn btn-outline btn-power" data-power="50">50%</button>
             <button class="btn btn-outline btn-power" data-power="100">100%</button>
           </div>
+          <p class="mode-hint">Enciende el láser fijo en el punto actual hasta pulsar OFF. Usa gafas de protección y no lo dejes sobre el material.</p>
           <div class="quick-actions-label">ACCIONES SECUNDARIAS</div>
           <div class="quick-actions-grid">
             <button class="btn btn-outline" id="btn-zero"><span>&#8982;</span> Establecer cero (X,Y)</button>
@@ -169,6 +176,7 @@
 
        </div>
 
+        <div class="control-right">
         <div class="card card-console">
           <div class="card-header">
             <span class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg></span> CONSOLA EN VIVO
@@ -200,6 +208,38 @@
               <button class="console-macro-edit" id="console-macro-3-edit" title="Configurar">&#9998;</button>
             </div>
           </div>
+        </div>
+
+        <div class="card card-overrides">
+          <div class="card-header"><span class="card-icon"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg></span> <span data-laser="VELOCIDAD Y POTENCIA DEL LÁSER" data-cnc="AVANCE Y VELOCIDAD DEL HUSILLO">VELOCIDAD Y POTENCIA DEL LÁSER</span></div>
+          <div class="ovr-grid">
+            <div class="ovr-block" data-ovr="feed">
+              <div class="ovr-title" data-laser="Velocidad" data-cnc="Avance">Velocidad</div>
+              <div class="ovr-value"><span id="ovr-feed-val">100</span>%</div>
+              <div class="ovr-bar"><div class="ovr-bar-fill ovr-feed" id="ovr-feed-fill"></div></div>
+              <div class="ovr-buttons">
+                <button class="btn btn-outline btn-sm" data-ovr-cmd="feed:-10">-10</button>
+                <button class="btn btn-outline btn-sm" data-ovr-cmd="feed:-1">-1</button>
+                <button class="btn btn-outline btn-sm" data-ovr-cmd="feed:100">100%</button>
+                <button class="btn btn-outline btn-sm" data-ovr-cmd="feed:+1">+1</button>
+                <button class="btn btn-outline btn-sm" data-ovr-cmd="feed:+10">+10</button>
+              </div>
+            </div>
+            <div class="ovr-block" data-ovr="spindle">
+              <div class="ovr-title" data-laser="Potencia" data-cnc="Husillo">Potencia</div>
+              <div class="ovr-value"><span id="ovr-spindle-val">100</span>%</div>
+              <div class="ovr-bar"><div class="ovr-bar-fill ovr-spindle" id="ovr-spindle-fill"></div></div>
+              <div class="ovr-buttons">
+                <button class="btn btn-outline btn-sm" data-ovr-cmd="spindle:-10">-10</button>
+                <button class="btn btn-outline btn-sm" data-ovr-cmd="spindle:-1">-1</button>
+                <button class="btn btn-outline btn-sm" data-ovr-cmd="spindle:100">100%</button>
+                <button class="btn btn-outline btn-sm" data-ovr-cmd="spindle:+1">+1</button>
+                <button class="btn btn-outline btn-sm" data-ovr-cmd="spindle:+10">+10</button>
+              </div>
+            </div>
+          </div>
+          <p class="ovr-hint">Se aplican en vivo durante el trabajo, de 10 % a 200 %. El 100 % es el valor programado en el archivo.</p>
+        </div>
         </div>
 
       </div>
@@ -367,6 +407,36 @@
           <div class="settings-validation-row"><span>Nombre de host</span><span id="about-host">--</span></div>
           <div class="settings-validation-row"><span>Dirección IP</span><span id="about-ip">--</span></div>
           <div class="settings-validation-row"><span>Versión de la WebUI</span><span id="about-webui">--</span></div>
+          <div class="settings-validation-row"><span>Probado en</span><span>MKS LTS V1.1 · TTS 55 PRO 5W</span></div>
+        </div>
+
+        <div class="card about-card">
+          <div class="card-header">ACTUALIZAR WEBUI</div>
+          <p class="about-desc">Sube un archivo index.html.gz (o index.html) para reemplazar esta interfaz en la memoria interna de la placa.</p>
+          <div class="about-actions">
+            <button type="button" class="btn btn-primary" id="webui-update-btn">Actualizar WebUI</button>
+            <input type="file" id="webui-update-input" accept=".gz,.html" hidden>
+          </div>
+          <div class="sd-upload-progress" id="webui-update-progress" hidden>
+            <div class="sd-upload-progress-track"><div class="sd-upload-progress-fill" id="webui-update-fill"></div></div>
+          </div>
+          <p class="about-msg" id="webui-update-msg"></p>
+        </div>
+
+        <div class="card about-card">
+          <div class="card-header">INSTRUCCIONES</div>
+          <div class="about-steps-title">WebUI</div>
+          <ol class="about-steps">
+            <li>Para cambiar esta interfaz, genera el archivo index.html.gz con «python3 webui/build.py» (o descarga el de la última versión del repositorio).</li>
+            <li>Pulsa «Actualizar WebUI», elige el archivo y espera a que la página se recargue sola. No lo hagas con un trabajo en marcha.</li>
+            <li>Si la interfaz deja de abrir, entra en http://IP-de-la-placa/?index=yes: aparece una página de emergencia para volver a subir el archivo.</li>
+          </ol>
+          <div class="about-steps-title">Imagen de inicio</div>
+          <ol class="about-steps">
+            <li>La imagen que se ve al encender (PNG de 480×320 píxeles) va dentro del firmware: no se cambia desde la web.</li>
+            <li>Conviértela con «python3 tools/png2lvgl.py logo.png». Esto reemplaza lv_pic/mks_logo.c.</li>
+            <li>Después compila y flashea el firmware: «pio run -e mks_dlc32_8mb -t upload».</li>
+          </ol>
         </div>
 
         <div class="card about-card">
@@ -403,6 +473,11 @@
               <span class="lang-native">English</span>
               <span class="lang-name">Interfaz en inglés</span>
               <span class="lang-code">EN</span>
+            </button>
+            <button type="button" class="lang-option" data-uilang="zh">
+              <span class="lang-native">中文</span>
+              <span class="lang-name">Interfaz en chino</span>
+              <span class="lang-code">ZH</span>
             </button>
           </div>
           <div class="settings-validation-row"><span>Idioma de la interfaz</span><span class="sd-badge" id="uilang-current">Español</span></div>
@@ -441,8 +516,8 @@
       <div class="card settings-tip lang-notes">
         <div class="card-header">NOTAS</div>
         <p>• El cambio de la pantalla es inmediato: el controlador recarga los textos del LCD en menos de un segundo. Si la página abierta no cambia de texto, entra y sale de esa página.</p>
-        <p>• 中文 y Deutsch muestran los textos en inglés: en el firmware solo existen <code>language_en.h</code> (inglés) y <code>language_es.h</code> (español).</p>
-        <p>• El botón 中文 de la pantalla puede salir con un recuadro: la fuente del LCD <code>dlc32Font</code> no incluye glifos chinos (sí tiene tildes, ñ, ¿ y ¡).</p>
+        <p>• Deutsch muestra los textos en inglés: el firmware solo trae textos en inglés, español y chino.</p>
+        <p>• El chino (中文) usa solo los 131 caracteres chinos que trae la fuente de la pantalla: algunos textos usan sinónimos o se quedan en inglés. Las tildes, la ñ, ¿ y ¡ se ven con una fuente Latin-1 (Roboto).</p>
         <p>• El idioma de la pantalla se guarda en NVS: sobrevive a los reinicios. El de esta web se guarda en el navegador (localStorage) y no afecta a nadie más.</p>
       </div>
     </section>
@@ -465,7 +540,8 @@
   </span>
 </footer>
 
-<script src="js/i18n.js"></script>
+<script src="js/i18n_zh.js"></script>
+  <script src="js/i18n.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

@@ -70,6 +70,7 @@ static void disp_imgbtn_2(void);
 static void disp_imgbtn_2_del(void);
 static void disp_label(void);
 static void disp_btn(void);
+static void inf_event(lv_obj_t* obj, lv_event_t event);
 static uint8_t get_id(lv_obj_t* obj) {
 
     if      (obj == move_page.y_n)  			return ID_INF_UP;
@@ -273,41 +274,194 @@ static void event_handler(lv_obj_t* obj, lv_event_t event) {
 	}
 }
 
+// =========================================================================================
+// Pantalla tras elegir el archivo: posicionar el cabezal y empezar el trabajo.
+// 480x320: barra y=5 (Atras + nombre y tamano del archivo), franja de coordenadas y=38,
+// cruceta XY (3x3 de 68x52) + columna Z + columna de ajustes a y=68, y abajo el boton
+// grande de iniciar a y=244.
+// =========================================================================================
+extern lv_obj_t* pos_strip;   // MKS_draw_move.cpp: franja X / Y / Z que reajusta move_pos_update()
+
+#define INF_COL_CARD   LV_COLOR_MAKE(0x1F, 0x23, 0x33)
+#define INF_COL_SIDE   LV_COLOR_MAKE(0x18, 0x1B, 0x28)
+#define INF_COL_TRACK  LV_COLOR_MAKE(0x3F, 0x46, 0x66)
+#define INF_COL_EMER   LV_COLOR_MAKE(0x2D, 0xE0, 0xA7)
+#define INF_COL_MUTED  LV_COLOR_MAKE(0x9A, 0xA3, 0xC0)
+
+enum { IB_UP, IB_DOWN, IB_LEFT, IB_RIGHT, IB_XY0, IB_ZUP, IB_ZDOWN, IB_Z0, IB_STEP, IB_SPEED, IB_PROBE,
+       IB_AIR, IB_XYZ0, IB_START, IB_BACK, IB_COUNT };
+
+static lv_style_t inf_btn_style, inf_btn_pr_style, inf_start_style, inf_strip_style;
+static lv_style_t inf_text_style, inf_dark_style, inf_muted_style, inf_sym_style, inf_symhome_style;
+static lv_obj_t*  inf_btn[IB_COUNT];
+static char       inf_name_txt[64], inf_size_txt[16];
+
+static const char* inf_T(const char* es, const char* en, const char* ch) {
+	return mks_grbl.language == SimpleChinese ? ch : (mks_grbl.language == Espanol ? es : en);
+}
+
+static void inf_name_fit(char* out, size_t n, const char* name, int max_cp) {   // UTF-8 sin partir caracteres
+	size_t o = 0;
+	int cp = 0;
+	for(size_t i = 0; name[i] != '\0' && o + 1 < n; i++) {
+		if(((uint8_t)name[i] & 0xC0) != 0x80) {
+			if(cp == max_cp) {
+				if(o + 4 < n) { out[o++] = '.'; out[o++] = '.'; out[o++] = '.'; }
+				break;
+			}
+			cp++;
+		}
+		out[o++] = name[i];
+	}
+	out[o] = '\0';
+}
+
+static void inf_styles_init(void) {
+	lv_style_copy(&inf_btn_style, &lv_style_plain_color);
+	inf_btn_style.body.main_color   = INF_COL_CARD;
+	inf_btn_style.body.grad_color   = INF_COL_CARD;
+	inf_btn_style.body.radius       = 10;
+	inf_btn_style.body.border.width = 0;
+	lv_style_copy(&inf_btn_pr_style, &inf_btn_style);
+	inf_btn_pr_style.body.main_color = INF_COL_EMER;
+	inf_btn_pr_style.body.grad_color = INF_COL_EMER;
+	lv_style_copy(&inf_start_style, &inf_btn_style);          // boton grande de iniciar
+	inf_start_style.body.main_color = INF_COL_EMER;
+	inf_start_style.body.grad_color = INF_COL_EMER;
+	lv_style_copy(&inf_strip_style, &inf_btn_style);          // franja de coordenadas
+	inf_strip_style.body.main_color = INF_COL_SIDE;
+	inf_strip_style.body.grad_color = INF_COL_SIDE;
+
+	lv_style_copy(&inf_text_style, &lv_style_plain);
+	inf_text_style.text.font  = mc_font();
+	inf_text_style.text.color = LV_COLOR_WHITE;
+	lv_style_copy(&inf_dark_style, &inf_text_style);
+	inf_dark_style.text.color = LV_COLOR_MAKE(0x08, 0x0C, 0x18);
+	lv_style_copy(&inf_muted_style, &inf_text_style);
+	inf_muted_style.text.color = INF_COL_MUTED;
+	lv_style_copy(&inf_sym_style, &inf_text_style);            // flechas: simbolos de Roboto
+	inf_sym_style.text.font = &lv_font_roboto_22;
+	lv_style_copy(&inf_symhome_style, &inf_sym_style);
+	inf_symhome_style.text.color = INF_COL_EMER;
+}
+
+static lv_obj_t* inf_mkbtn(int id, lv_coord_t x, lv_coord_t y, lv_coord_t w, lv_coord_t h, const char* text,
+						   const lv_style_t* label_style, const lv_style_t* rel_style) {
+	lv_obj_t* b = lv_btn_create(mks_global.mks_src, NULL);
+	lv_obj_set_size(b, w, h);
+	lv_obj_set_pos(b, x, y);
+	lv_btn_set_style(b, LV_BTN_STYLE_REL, (lv_style_t*)rel_style);
+	lv_btn_set_style(b, LV_BTN_STYLE_PR, &inf_btn_pr_style);
+	lv_obj_set_event_cb(b, inf_event);
+	lv_obj_t* l = lv_label_create(b, NULL);
+	lv_label_set_style(l, LV_LABEL_STYLE_MAIN, (lv_style_t*)label_style);
+	lv_label_set_text(l, text);
+	inf_btn[id] = b;
+	return b;
+}
+
+static void inf_event(lv_obj_t* obj, lv_event_t event) {
+	if(event != LV_EVENT_RELEASED) return;
+	for(int i = 0; i < IB_COUNT; i++) {
+		if(obj != inf_btn[i]) continue;
+		switch(i) {
+			case IB_UP:    move_ctrl('Y', 1); break;
+			case IB_DOWN:  move_ctrl('Y', 0); break;
+			case IB_LEFT:  move_ctrl('X', 0); break;
+			case IB_RIGHT: move_ctrl('X', 1); break;
+			case IB_ZUP:   move_ctrl('Z', 1); break;
+			case IB_ZDOWN: move_ctrl('Z', 0); break;
+			case IB_XY0:   set_xy_pos(obj, event); break;
+			case IB_Z0:    set_z_pos(obj, event); break;
+			case IB_XYZ0:  set_xyz_pos(obj, event); break;
+			case IB_STEP:  event_handler_len_set(); break;
+			case IB_SPEED: event_handler_speed(); break;
+			case IB_PROBE: set_knife(); break;
+			case IB_AIR:   set_cooling(obj, event); break;
+			case IB_START: event_handler_sure(); break;
+			case IB_BACK:
+				// atras: a la lista de archivos (antes iba al menu principal)
+				mks_ui_page.mks_ui_page = MKS_UI_PAGE_LOADING;
+				lv_obj_clean(mks_global.mks_src);
+				mks_draw_craving();
+				break;
+		}
+		return;
+	}
+}
+
 void mks_draw_inFile(char *fn) {
 
-	/* 背景层 */
-	mks_global.mks_src_1 = lv_obj_create(mks_global.mks_src, NULL);
-	lv_obj_set_size(mks_global.mks_src_1, 460, 90);
-    lv_obj_set_pos(mks_global.mks_src_1, 10, 10);
+	inf_styles_init();
+	for(int i = 0; i < IB_COUNT; i++) inf_btn[i] = NULL;
 
-	mks_global.mks_src_2 = lv_obj_create(mks_global.mks_src, NULL);
-	lv_obj_set_size(mks_global.mks_src_2, 320, 200);
-    lv_obj_set_pos(mks_global.mks_src_2, 10, 110);
-
-	mks_global.mks_src_3 = lv_obj_create(mks_global.mks_src, NULL);
-	lv_obj_set_size(mks_global.mks_src_3, 130, 200);
-    lv_obj_set_pos(mks_global.mks_src_3, 340, 110);
-
-	lv_obj_set_style(mks_global.mks_src_1, &mks_global.mks_src_1_style);
-	lv_obj_set_style(mks_global.mks_src_2, &mks_global.mks_src_2_style);
-	lv_obj_set_style(mks_global.mks_src_3, &mks_global.mks_src_3_style);
-
-	disp_imgbtn();
-	disp_btn();
-
-	//	记录文件名
+	//	record the file name / size (the carving popup and the frame screen use them)
 	memset(frame_ctrl.file_name, 0, sizeof(frame_ctrl.file_name));
 	memcpy(frame_ctrl.file_name, fn, 128);
+	frame_ctrl.file_size = mks_file_list.file_size[mks_file_list.file_choose];
 
-	//	记录文件大小
-	frame_ctrl.file_size = mks_file_list.file_size[mks_file_list.file_choose]; 
+	// barra superior: Atras, nombre del archivo y su tamano
+	lv_obj_t* back = inf_mkbtn(IB_BACK, 8, 5, 84, 28, mc_language.back, &inf_text_style, &inf_btn_style);
+	move_page.Back = back;   // los avisos (popups) la habilitan o deshabilitan con set_click_status()
 
-	// 显示label
-	// if(fn[0] == '/') fn[0] = ' ';
-	// label_for_infile_name(mks_global.mks_src_1, infile_page.label_file_name, -120, 0, fn);
-	
-	disp_label();
-	
+	const char* shown = (fn[0] == '/' || fn[0] == ' ') ? fn + 1 : fn;
+	inf_name_fit(inf_name_txt, sizeof(inf_name_txt), shown, 28);
+	lv_obj_t* name = lv_label_create(mks_global.mks_src, NULL);
+	lv_label_set_style(name, LV_LABEL_STYLE_MAIN, &inf_text_style);
+	lv_label_set_text(name, inf_name_txt);
+	lv_obj_set_pos(name, 102, 9);
+
+	uint32_t bytes = frame_ctrl.file_size;
+	if(bytes < 1024)         snprintf(inf_size_txt, sizeof(inf_size_txt), "%u B", (unsigned)bytes);
+	else if(bytes < 1048576) snprintf(inf_size_txt, sizeof(inf_size_txt), "%.1f KB", bytes / 1024.0f);
+	else                     snprintf(inf_size_txt, sizeof(inf_size_txt), "%.2f MB", bytes / 1048576.0f);
+	lv_obj_t* size = lv_label_create(mks_global.mks_src, NULL);
+	lv_label_set_style(size, LV_LABEL_STYLE_MAIN, &inf_muted_style);
+	lv_label_set_text(size, inf_size_txt);
+	lv_obj_align(size, NULL, LV_ALIGN_IN_TOP_RIGHT, -14, 9);
+
+	// franja de coordenadas (X, Y y Z a todo el ancho; move_pos_update() las actualiza)
+	pos_strip = lv_obj_create(mks_global.mks_src, NULL);
+	lv_obj_set_size(pos_strip, 460, 24);
+	lv_obj_set_pos(pos_strip, 10, 38);
+	lv_obj_set_style(pos_strip, &inf_strip_style);
+	move_page.label_xpos = label_for_text(pos_strip, move_page.label_xpos, pos_strip, -153, 0, LV_ALIGN_CENTER, "X:0");
+	move_page.label_ypos = label_for_text(pos_strip, move_page.label_ypos, pos_strip, 0, 0, LV_ALIGN_CENTER, "Y:0");
+	move_page.label_zpos = label_for_text(pos_strip, move_page.label_zpos, pos_strip, 153, 0, LV_ALIGN_CENTER, "Z:0");
+
+	// cruceta XY: la tecla del centro pone el cero de X e Y en la posicion actual
+	inf_mkbtn(IB_UP,    82,  68, 68, 52, LV_SYMBOL_UP,    &inf_sym_style, &inf_btn_style);
+	inf_mkbtn(IB_LEFT,   8, 126, 68, 52, LV_SYMBOL_LEFT,  &inf_sym_style, &inf_btn_style);
+	inf_mkbtn(IB_XY0,   82, 126, 68, 52, "XY=0",          &inf_text_style, &inf_btn_style);
+	inf_mkbtn(IB_RIGHT, 156, 126, 68, 52, LV_SYMBOL_RIGHT, &inf_sym_style, &inf_btn_style);
+	inf_mkbtn(IB_DOWN,  82, 184, 68, 52, LV_SYMBOL_DOWN,  &inf_sym_style, &inf_btn_style);
+
+	// columna Z: subir, cero de Z y bajar
+	inf_mkbtn(IB_ZUP,   234,  68, 68, 52, LV_SYMBOL_UP,   &inf_sym_style, &inf_btn_style);
+	inf_mkbtn(IB_Z0,    234, 126, 68, 52, "Z=0",          &inf_text_style, &inf_btn_style);
+	inf_mkbtn(IB_ZDOWN, 234, 184, 68, 52, LV_SYMBOL_DOWN, &inf_sym_style, &inf_btn_style);
+
+	// ajustes: paso, velocidad y sonda de Z
+	lv_obj_t* step = inf_mkbtn(IB_STEP,  312,  68, 160, 52, "", &inf_text_style, &inf_btn_style);
+	lv_obj_t* spd  = inf_mkbtn(IB_SPEED, 312, 126, 160, 52, "", &inf_text_style, &inf_btn_style);
+	inf_mkbtn(IB_PROBE, 312, 184, 160, 52, inf_T("Sonda Z", "Z probe", "Z\xe6\xa3\x80\xe6\xb5\x8b"), &inf_text_style, &inf_btn_style);   // Z检测
+
+	// los manejadores del paso y la velocidad actualizan estas etiquetas
+	move_page.label_len = lv_obj_get_child(step, NULL);
+	move_page.label_speed = lv_obj_get_child(spd, NULL);
+	if(mks_grbl.move_dis == M_0_1_MM)      lv_label_set_text(move_page.label_len, "0.1mm");
+	else if(mks_grbl.move_dis == M_1_MM)   lv_label_set_text(move_page.label_len, "1mm");
+	else                                   lv_label_set_text(move_page.label_len, "10mm");
+	if(mks_grbl.move_speed == LOW_SPEED)        lv_label_set_text(move_page.label_speed, mc_language.speed_low);
+	else if(mks_grbl.move_speed == MID_SPEED)   lv_label_set_text(move_page.label_speed, mc_language.speed_mid);
+	else                                        lv_label_set_text(move_page.label_speed, mc_language.speed_high);
+
+	// fila inferior: aire, cero de los tres ejes y el boton grande de iniciar
+	inf_mkbtn(IB_AIR,   8, 244, 100, 68, inf_T("Aire", "Air", "M8"), &inf_text_style, &inf_btn_style);
+	inf_mkbtn(IB_XYZ0, 114, 244, 100, 68, "XYZ=0", &inf_text_style, &inf_btn_style);
+	lv_obj_t* go = inf_mkbtn(IB_START, 220, 244, 252, 68, mc_language.start, &inf_dark_style, &inf_start_style);
+	lv_btn_set_style(go, LV_BTN_STYLE_PR, &inf_btn_pr_style);
+
 	mks_ui_page.mks_ui_page = MKS_UI_inFile;
 }
 

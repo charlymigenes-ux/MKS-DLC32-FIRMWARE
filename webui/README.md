@@ -8,8 +8,9 @@ Se sirve desde SPIFFS del ESP32; el firmware la entrega comprimida.
 - `index.html` — estructura de las cuatro vistas: Control, Archivos SD,
   Parámetros e Idioma (idioma de la interfaz y del LCD).
 - `css/style.css` — hoja de estilos única.
-- `js/i18n.js` — diccionario español → inglés y su buscador (`i18nLookup`).
+- `js/i18n.js` — diccionario español → inglés y su buscador (`i18nLookup`); `js/i18n_zh.js` — español → chino (`I18N_ZH`).
 - `js/app.js` — toda la lógica (sin bundler, sin framework, JS plano).
+- `../tools/png2lvgl.py` — convierte un PNG 480×320 en la imagen de inicio (`lv_pic/mks_logo.c`).
 - `check_i18n.js` — verificador de cobertura del diccionario (ver abajo).
 
 Esta carpeta es la fuente única de la WebUI. Edita aquí, no en el HTML

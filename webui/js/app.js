@@ -22,7 +22,7 @@
   var UI_LANG = "es";
   try {
     var savedLang = localStorage.getItem("dlc32.lang");
-    if (savedLang === "en" || savedLang === "es") UI_LANG = savedLang;
+    if (savedLang === "en" || savedLang === "es" || savedLang === "zh") UI_LANG = savedLang;
   } catch (e) {}
 
   var I18N_ATTRS = ["placeholder", "title", "alt", "aria-label"];
@@ -33,7 +33,7 @@
   var i18nDict = typeof i18nLookup === "function" ? i18nLookup : function (t) { return t; };
 
   function tr(text) {
-    if (UI_LANG !== "en" || typeof text !== "string") return text;
+    if (UI_LANG === "es" || typeof text !== "string") return text;
     return i18nDict(text);
   }
 
@@ -41,7 +41,7 @@
     var cur = node.nodeValue;
     if (typeof cur !== "string") return;
 
-    if (UI_LANG !== "en") {
+    if (UI_LANG === "es") {
       // Volver al español: el original se guardo al traducir.
       if (node._i18nEn !== undefined && cur === node._i18nEn) node.nodeValue = node._i18nEs;
       node._i18nEn = undefined;
@@ -72,7 +72,7 @@
     if (cur === null || cur === undefined) return;
     var st = el._i18nAttr || (el._i18nAttr = {});
 
-    if (UI_LANG !== "en") {
+    if (UI_LANG === "es") {
       if (st[name] && cur === st[name].en) el.setAttribute(name, st[name].es);
       delete st[name];
       return;
@@ -129,7 +129,10 @@
   }
 
   function i18nSetLang(lang) {
-    if (lang !== "en" && lang !== "es") return;
+    if (lang !== "en" && lang !== "es" && lang !== "zh") return;
+    // Se vuelve primero al español (restaura los originales) y luego se aplica el idioma nuevo.
+    if (UI_LANG !== "es") { UI_LANG = "es"; i18nApplyAll(); }
+    if (typeof i18nUse === "function") i18nUse(lang);
     UI_LANG = lang;
     try { localStorage.setItem("dlc32.lang", lang); } catch (e) {}
     i18nApplyAll();
@@ -137,7 +140,7 @@
       b.classList.toggle("active", b.dataset.uilang === lang);
     });
     var badge = document.getElementById("uilang-current");
-    if (badge) badge.textContent = lang === "en" ? "English" : "Español";
+    if (badge) badge.textContent = lang === "en" ? "English" : (lang === "zh" ? "中文" : "Español");
   }
 
   // confirm()/alert() no pasan por el DOM: se traducen en el momento de llamar.
@@ -186,6 +189,74 @@
       if (view === "about") renderAbout();
     });
   });
+
+  // ---------- Modo de la maquina: laser ($32=1) o CNC ($32=0) ----------
+  // Los elementos con data-laser / data-cnc cambian de rotulo segun el modo (texto en espanol;
+  // la capa i18n lo traduce). Se lee $32 al conectar y siempre que llega una linea "$32=n".
+  var machineLaser = true;  // hasta leer $32
+  function applyMachineMode() {
+    document.querySelectorAll("[data-laser]").forEach(function (el) {
+      el.textContent = machineLaser ? el.dataset.laser : el.dataset.cnc;
+    });
+    document.querySelectorAll("#mode-switch [data-mode]").forEach(function (b) {
+      b.classList.toggle("active", (b.dataset.mode === "1") === machineLaser);
+    });
+  }
+  function setMachineMode(laser) {
+    if (machineLaser === laser) return;
+    machineLaser = laser;
+    applyMachineMode();
+  }
+  document.querySelectorAll("#mode-switch [data-mode]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var laser = b.dataset.mode === "1";
+      if (laser === machineLaser) return;
+      if (isRunningState(machineState) || isPausedState(machineState)) {
+        alert(tr("Detén el trabajo antes de cambiar el modo de la máquina."));
+        return;
+      }
+      var msg = laser
+        ? "¿Cambiar a modo LÁSER ($32=1)? Activa el M4 de potencia dinámica y rotula la interfaz como Potencia y Velocidad."
+        : "¿Cambiar a modo CNC ($32=0)? Desactiva el modo láser del controlador y rotula la interfaz como Husillo y Avance.";
+      if (!confirm(tr(msg))) return;
+      sendCommand("$32=" + (laser ? "1" : "0"));
+      setTimeout(function () { sendCommand("$32", true); }, 400);  // confirma el valor real
+    });
+  });
+
+  // ---------- Velocidad y potencia del laser (overrides GRBL en tiempo real) ----------
+  // Cada boton manda un caracter de tiempo real (0x90..0x9D) por el mismo canal que el resto
+  // de comandos; el valor mostrado se corrige con el campo Ov: del informe de estado.
+  var OVR_MIN = 10;
+  var OVR_MAX = 200;
+  var OVR = {
+    feed:    { val: 100, cmds: { "-10": "\u0092", "-1": "\u0094", "+1": "\u0093", "+10": "\u0091", "100": "\u0090" } },
+    spindle: { val: 100, cmds: { "-10": "\u009B", "-1": "\u009D", "+1": "\u009C", "+10": "\u009A", "100": "\u0099" } }
+  };
+  function ovrRender(k) {
+    var v = OVR[k].val;
+    els["ovr-" + k + "-val"].textContent = v;
+    els["ovr-" + k + "-fill"].style.width = Math.max(0, Math.min(100, (v - OVR_MIN) * 100 / (OVR_MAX - OVR_MIN))) + "%";
+  }
+  function ovrSet(k, v) {
+    if (isNaN(v)) return;
+    v = Math.max(OVR_MIN, Math.min(OVR_MAX, v));
+    if (OVR[k].val !== v) {
+      OVR[k].val = v;
+      ovrRender(k);
+    }
+  }
+  document.querySelectorAll("[data-ovr-cmd]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var p = btn.dataset.ovrCmd.split(":");
+      var k = p[0];
+      var d = p[1];
+      sendCommand(OVR[k].cmds[d], true);
+      ovrSet(k, d === "100" ? 100 : OVR[k].val + parseInt(d, 10));  // optimista; la placa lo confirma
+    });
+  });
+  ovrRender("feed");
+  ovrRender("spindle");
 
   // ---------- Panel lateral contraíble ----------
   // El estado se recuerda en localStorage; sin preferencia guardada arranca
@@ -241,6 +312,7 @@
     }
     ws.onopen = function () {
       setConnected(true);
+      setTimeout(function () { sendCommand("$32", true); }, 600);  // modo laser / CNC
     };
     ws.onclose = function () {
       setConnected(false);
@@ -275,12 +347,46 @@
     els["conn-status-text"].textContent = ok ? "Conexión establecida" : "Sin conexión";
   }
 
+  // Los informes de estado (<Run|MPos:...|SD:34.5,/archivo.gc>) llegan cada 2 s y llenaban
+  // la consola. En modo no verboso se muestran sin el nombre del archivo y solo cuando cambia
+  // el estado, cada 5 % de avance de la SD, o como maximo cada 30 s. El modo verboso los
+  // muestra todos, tal cual llegan.
+  var statusLog = { state: "", bucket: -1, t: 0 };
+  function stripSdName(line) {
+    return line.replace(/(\|SD:[0-9.]+),[^|>]*/, "$1");
+  }
+  function shouldLogStatus(line) {
+    if (els["console-verbose"].checked) return true;
+    var state = line.slice(1, -1).split("|")[0] || "";
+    var m = /\|SD:([0-9.]+)/.exec(line);
+    var bucket = m ? Math.floor(parseFloat(m[1]) / 5) : -1;
+    var now = Date.now();
+    if (state !== statusLog.state || bucket !== statusLog.bucket || now - statusLog.t >= 30000) {
+      statusLog.state = state;
+      statusLog.bucket = bucket;
+      statusLog.t = now;
+      return true;
+    }
+    return false;
+  }
+
   function handleLine(line) {
     if (!line) return;
-    appendConsole(line);
-    if (line[0] === "<" && line[line.length - 1] === ">") {
+    var isStatus = line[0] === "<" && line[line.length - 1] === ">";
+    if (!isStatus) {
+      appendConsole(line);
+    } else if (shouldLogStatus(line)) {
+      appendConsole(els["console-verbose"].checked ? line : stripSdName(line));
+    }
+    if (isStatus) {
       parseStatusReport(line);
     }
+    var m32 = /^\$32=([01])\b/.exec(line.trim());
+    if (m32) setMachineMode(m32[1] === "1");
+    // Idioma de la pantalla: cualquier respuesta "$40=n" lo actualiza, aunque el recolector de
+    // loadLanguage() ya se haya cerrado (otro "ok" podia terminarlo antes de tiempo)
+    var m40 = /^\$40=([0-3])\b/.exec(line.trim());
+    if (m40) renderLanguage(m40[1]);
     if (settingsCollector) {
       var trimmed = line.trim();
       var m = /^\$(\d+)=(.+)$/.exec(trimmed);
@@ -399,6 +505,11 @@
       if (key === "MPos") mpos = val.split(",");
       if (key === "WPos") wpos = val.split(",");
       if (key === "WCO") wco = val.split(",");
+      if (key === "Ov") {
+        var ov = val.split(",");  // avance, rapido, husillo (%)
+        ovrSet("feed", parseInt(ov[0], 10));
+        ovrSet("spindle", parseInt(ov[2], 10));
+      }
       if (key === "FS") {
         var fs = val.split(",");
         els["stat-feed"].textContent = fs[0] || "0";
@@ -487,9 +598,9 @@
   applyDarkMode();
 
   // ---------- Envío de comandos GRBL ----------
-  function sendCommand(cmd) {
+  function sendCommand(cmd, quiet) {
     if (!cmd || !cmd.trim()) return;
-    appendConsole("[#]" + (cmd === "\u0018" ? "Ctrl-X (reset)" : cmd));
+    if (!quiet) appendConsole("[#]" + (cmd === "\u0018" ? "Ctrl-X (reset)" : cmd));
     var url = "/command?commandText=" + encodeURIComponent(cmd);
     fetch(url)
       .then(function (r) {
@@ -617,7 +728,9 @@
         sendCommand("M5");
       } else {
         var sValue = Math.round((pct / 100) * 1000);
-        sendCommand("M3 S" + sValue);
+        // En modo laser ($32=1) un M3 suelto no enciende nada mientras el modo de movimiento
+        // sea G0 (Grbl pasa la potencia a 0). Con G1 en la misma linea dispara en el sitio.
+        sendCommand(machineLaser ? "G1 F1000 M3 S" + sValue : "M3 S" + sValue);
       }
     });
   });
@@ -1242,6 +1355,7 @@
 
   // Lee $40 con el mismo mecanismo que $$: settingsCollector acumula las
   // lineas "clave=valor" hasta que llega "ok".
+  var languageRetried = false;
   function loadLanguage(onDone) {
     var badge = document.getElementById("lang-current");
     if (badge) badge.textContent = "Leyendo…";
@@ -1254,6 +1368,12 @@
           var p = parseInt(buf["40"], 10);
           v = isNaN(p) ? null : String(p);
         }
+        if (v === null && !languageRetried) {   // sin respuesta: un reintento antes de decir "Desconocido"
+          languageRetried = true;
+          setTimeout(function () { loadLanguage(onDone); }, 300);
+          return;
+        }
+        languageRetried = false;
         renderLanguage(v);
         if (onDone) onDone(v);
       }
@@ -1314,6 +1434,84 @@
       i18nSetLang(btn.dataset.uilang);
     });
   });
+
+  // ---------- Actualizar WebUI: sube index.html.gz a la memoria interna (SPIFFS) ----------
+  (function () {
+    var btn = document.getElementById("webui-update-btn");
+    var input = document.getElementById("webui-update-input");
+    var msg = document.getElementById("webui-update-msg");
+    var prog = document.getElementById("webui-update-progress");
+    var fill = document.getElementById("webui-update-fill");
+    if (!btn || !input) return;
+
+    function say(text, cls) {
+      msg.textContent = text;
+      msg.className = "about-msg" + (cls ? " " + cls : "");
+    }
+
+    function gzipBlob(file) {
+      if (typeof CompressionStream === "undefined") return Promise.reject(new Error("nocomp"));
+      var stream = file.stream().pipeThrough(new CompressionStream("gzip"));
+      return new Response(stream).blob();
+    }
+
+    function send(blob) {
+      return new Promise(function (resolve, reject) {
+        var name = "index.html.gz";
+        var fd = new FormData();
+        fd.append("path", "/");
+        fd.append(name + "S", blob.size);
+        fd.append("myfile[]", blob, name);
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", "/files");
+        xhr.upload.addEventListener("progress", function (e) {
+          if (e.lengthComputable) fill.style.width = Math.round((e.loaded / e.total) * 100) + "%";
+        });
+        xhr.onload = function () {
+          if (xhr.status >= 200 && xhr.status < 300) resolve();
+          else reject(new Error("HTTP " + xhr.status));
+        };
+        xhr.onerror = function () { reject(new Error("Error de red")); };
+        xhr.send(fd);
+      });
+    }
+
+    btn.addEventListener("click", function () {
+      if (jobWasBusy) { say("Detén el trabajo antes de actualizar la WebUI.", "is-error"); return; }
+      input.value = "";
+      input.click();
+    });
+
+    input.addEventListener("change", function () {
+      var file = input.files && input.files[0];
+      if (!file) return;
+      var lower = file.name.toLowerCase();
+      var isGz = /\.gz$/.test(lower);
+      if (!isGz && !/\.html?$/.test(lower)) { say("Elige un archivo .gz o .html.", "is-error"); return; }
+      if (!confirm("¿Reemplazar la WebUI de la placa por el archivo seleccionado? Si el archivo está dañado tendrás que usar la página de emergencia (?index=yes).")) return;
+
+      var prepare = isGz
+        ? file.slice(0, 2).arrayBuffer().then(function (b) {
+            var h = new Uint8Array(b);
+            if (h[0] !== 0x1f || h[1] !== 0x8b) throw new Error("nogz");
+            return file;
+          })
+        : gzipBlob(file);
+
+      say("Subiendo WebUI…");
+      fill.style.width = "0%";
+      prog.hidden = false;
+      prepare.then(send).then(function () {
+        say("WebUI actualizada. Recargando…", "is-ok");
+        setTimeout(function () { location.reload(); }, 1500);
+      }).catch(function (err) {
+        prog.hidden = true;
+        if (err && err.message === "nogz") say("El archivo no es un .gz válido.", "is-error");
+        else if (err && err.message === "nocomp") say("Tu navegador no puede comprimir el .html: sube un index.html.gz.", "is-error");
+        else say("No se pudo actualizar la WebUI", "is-error");
+      });
+    });
+  })();
 
   var pendingCmdResult = null;
   function sendCommandWithResult(cmd, callback) {
@@ -1435,6 +1633,6 @@
   connectWs();
   loadBoardInfo();
   setInterval(function () {
-    if (ws && ws.readyState === WebSocket.OPEN) sendCommand("?");
+    if (ws && ws.readyState === WebSocket.OPEN) sendCommand("?", true);  // sondeo: sin eco en la consola
   }, 2000);
 })();

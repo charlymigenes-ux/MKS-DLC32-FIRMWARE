@@ -34,12 +34,12 @@
 
 #define MACHINE_NAME                "MKS DLC32"
 #ifdef USE_BOARD_V2_0
-    #define BOARD_NAME              "Board:MKS DLC32 CNC V2.0"
+    #define BOARD_NAME              "Board:MKS DLC32 V2.0"
 #else 
-    #define BOARD_NAME              "Board:MKS DLC32 CNC V1.0"
+    #define BOARD_NAME              "Board:MKS LTS V1.1"
 #endif
 
-#define FW_NAME                     "V2.1(8M.H35.20220421)"
+#define FW_NAME                     "V1.0(DLC32.8M.20261001)"
 
 
 #ifdef N_AXIS

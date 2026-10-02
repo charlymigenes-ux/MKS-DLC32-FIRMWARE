@@ -10,10 +10,166 @@ LANGUAGE_PAGE_T language_page;
 //
 // Corregido (bug original): aqui ponia "=" (asignacion) y no "==", asi que
 // esta funcion cargaba SIEMPRE ingles y ademas pisaba mks_grbl.language.
-// Chino y aleman no tienen fichero propio en este arbol (solo language_en.h
-// y ahora language_es.h), asi que comparten las cadenas EN: si no, los
-// punteros quedarian NULL y las etiquetas se quedarian con el "Text" por
-// defecto de LVGL.
+// El aleman no tiene fichero propio: comparte las cadenas EN (si no, los punteros
+// quedarian NULL y las etiquetas se quedarian con el "Text" por defecto de LVGL).
+// El chino (language_ch.h) se aplica encima del ingles al final de mc_language_init().
+// Chino simplificado: se aplica sobre el ingles (los textos que la fuente no puede escribir se
+// quedan en ingles). Los textos salen de language_ch.h.
+static void mc_language_apply_chinese(void) {
+	mc_language.spindle = SPINDLE_LASER_CH;
+	mc_language.spindle_speed = SPINDLE_SPEED_LASER_CH;
+	mc_language.spindle_speed_fmt = SPINDLE_SPEED_FMT_LASER_CH;
+	mc_language.gauge_spindle = GAUGE_SPINDLE_LASER_CH;
+	mc_language.feed_rate = FEED_RATE_LASER_CH;
+	mc_language.feed_rate_fmt = FEED_RATE_FMT_LASER_CH;
+	mc_language.gauge_feed = GAUGE_FEED_LASER_CH;
+	mc_language.job_feed_real = JOB_FEED_REAL_LASER_CH;
+	mc_language.back = BACK_CH;
+	mc_language.yes = YES_CH;
+	mc_language.no = NO_CH;
+	mc_language.control = CONTROL_CH;
+	mc_language.sculpture = SCULPTURE_CH;
+	mc_language.tool = TOOL_CH;
+	mc_language.Mpos = MPOS_CH;
+	mc_language.Wpos = WPOS_CH;
+	mc_language.wifi_connect = WIFI_CONNECT_CH;
+	mc_language.wifi_disconnect = WIFI_DISCONNECT_CH;
+	mc_language.xy_clear = XY_CLEAR_CH;
+	mc_language.z_clear = Z_CLEAR_CH;
+	mc_language.knife = KNIFE_CH;
+	mc_language.next = NEXT_CH;
+	mc_language.up = UP_CH;
+	mc_language.cooling = COOLING_CH;
+	mc_language.position = POSITION_CH;
+	mc_language.speed_high = SPEED_HIGH_CH;
+	mc_language.speed_mid = SPEED_MID_CH;
+	mc_language.speed_low = SPEED_LOW_CH;
+	mc_language.spindle = SPINDLE_CH;
+	mc_language.carve = CARVE_CH;
+	mc_language.dis_no_sd_card = DIS_NO_SDCARD_CH;
+	mc_language.hold = HOLD_CH;
+	mc_language.cycle = CYCLE_CH;
+	mc_language.stop = STOP_CH;
+	mc_language.adjust = ADJUST_CH;
+	mc_language.spindle_speed = SPINDLE_SPPED_CH;
+	mc_language.feed_rate = FEED_RATE_CH;
+	mc_language.rapid_speed = RAPID_SPEED_CH;
+	mc_language.carve_times = CARVE_TIMES_CH;
+	mc_language.dis_stop_print = DIS_STOP_CARVE_CH;
+	mc_language.dis_homing = DIS_HOMEING_CH;
+	mc_language.dis_no_hard_homing = DIS_NO_HARD_HOME_CH;
+	mc_language.dis_homing_succeed = DIS_HOME_SUCCEED_CH;
+	mc_language.dis_homing_fail = DIS_HOME_FAIL_CH;
+	mc_language.dis_probe_succeed = DIS_PROBE_SECCEED_CH;
+	mc_language.dis_probe_fail = DIS_PROBE_FAIL_CH;
+	mc_language.cancel = CANCEL_CH;
+	mc_language.frame = FRAME_CH;
+	mc_language.carve_file_sure = CARVE_FILE_SURE_CH;
+	mc_language.pause = PAUSE_CH;
+	mc_language.start = START_CH;
+	mc_language.confirm = CONFIRM_CH;
+	mc_language.add = ADD_CH;
+	mc_language.reduce = REDUCE_CH;
+	mc_language.exit = EXIT_CH;
+	mc_language.language = LANGUAGE_CH;
+	mc_language.scanf = SCANF_CH;
+	mc_language.reconnect = RECONNECT_CH;
+	mc_language.connect = CONNECT_CH;
+	mc_language.password = PASSWORD_CH;
+	mc_language.z_home = Z_HOME_CH;
+	mc_language.update_title = UPDATE_TITLE_CH;
+	mc_language.dis_info = INFO_CH;
+	mc_language.dis_warning = WARNING_CH;
+	mc_language.dis_error = ERROR_CH;
+	mc_language.dis_unlock_success = UNLOCK_SUCCESS_CH;
+	mc_language.dis_setting_error = SETTING_ERROR_CH;
+	mc_language.dis_set_6_1 = SET_6_1_CH;
+	mc_language.dis_wait_idle = WAIT_IDLE_CH;
+	mc_language.dis_file_too_big = FILE_TOO_BIG_CH;
+	mc_language.dis_continue_sure = CONTINUE_SURE_CH;
+	mc_language.dis_file_loading = FILE_LOADING_CH;
+	mc_language.dis_loading_file = LOADING_FILE_CH;
+	mc_language.dis_sd_busy = SD_BUSY_CH;
+	mc_language.dis_running = RUNNING_CH;
+	mc_language.dis_print_stop_sure = PRINT_STOP_SURE_CH;
+	mc_language.dis_print_done = PRINT_DONE_CH;
+	mc_language.wifi_scanning = WIFI_SCANNING_CH;
+	mc_language.wifi_connecting = WIFI_CONNECTING_CH;
+	mc_language.wifi_disconnecting = WIFI_DISCONNECTING_CH;
+	mc_language.wifi_pwd_prompt = WIFI_PWD_PROMPT_CH;
+	mc_language.wifi_status_on = WIFI_STATUS_ON_CH;
+	mc_language.wifi_status_off = WIFI_STATUS_OFF_CH;
+	mc_language.dis_update_succeed = UPDATE_SUCCEED_CH;
+	mc_language.dis_update_restart = UPDATE_RESTART_CH;
+	mc_language.dis_update_fail = UPDATE_FAIL_CH;
+	mc_language.dis_update_fail_help = UPDATE_FAIL_HELP_CH;
+	mc_language.power_fmt = POWER_FMT_CH;
+	mc_language.speed_fmt = SPEED_FMT_CH;
+	mc_language.spindle_speed_fmt = SPINDLE_SPEED_FMT_CH;
+	mc_language.feed_rate_fmt = FEED_RATE_FMT_CH;
+	mc_language.rapid_fmt = RAPID_FMT_CH;
+	mc_language.gauge_feed = GAUGE_FEED_CH;
+	mc_language.gauge_spindle = GAUGE_SPINDLE_CH;
+	mc_language.gauge_rapid = GAUGE_RAPID_CH;
+	mc_language.job_elapsed = JOB_ELAPSED_CH;
+	mc_language.job_left = JOB_LEFT_CH;
+	mc_language.job_feed_real = JOB_FEED_REAL_CH;
+	mc_language.job_power_real = JOB_POWER_REAL_CH;
+	mc_language.resume = RESUME_CH;
+	mc_language.tool_board = TOOL_BOARD_CH;
+	mc_language.test_title = TESTING_CH;
+	mc_language.probe_check = PROBE_CHECK_CH;
+	mc_language.x_limit_check = X_LIMIT_CHECK_CH;
+	mc_language.y_limit_check = Y_LIMIT_CHECK_CH;
+	mc_language.z_limit_check = Z_LIMIT_CHECK_CH;
+	mc_language.sd_check = SD_CHECK_CH;
+	mc_language.i2c_check = I2C_CHECK_CH;
+	mc_language.cpu_temp = CPU_TEMP_CH;
+	mc_language.test_warning = TEST_WARNING_CH;
+}
+
+const lv_font_t* mc_font(void) {
+	// Roboto con Latin-1 para ES/EN/DE; con chino hace falta la fuente que trae los glifos chinos
+	return (mks_grbl.language == SimpleChinese) ? &dlc32FontLatin : &roboto16Latin;
+}
+
+// Con el modo laser activo ($32=1) los rotulos de potencia y velocidad hablan de laser
+// (Potencia / Velocidad); sin el, de husillo y avance. Se aplica tras cargar el idioma y se
+// repite cuando cambia $32 (ver mks_page_data_updata). Las paginas ya dibujadas conservan el
+// texto anterior hasta que se vuelven a pintar.
+static void mc_language_apply_mode(void) {
+	if(!laser_mode->get()) return;
+
+	if(mks_grbl.language == SimpleChinese) {
+		mc_language.spindle = SPINDLE_LASER_CH;
+		mc_language.spindle_speed = SPINDLE_SPEED_LASER_CH;
+		mc_language.spindle_speed_fmt = SPINDLE_SPEED_FMT_LASER_CH;
+		mc_language.gauge_spindle = GAUGE_SPINDLE_LASER_CH;
+		mc_language.feed_rate = FEED_RATE_LASER_CH;
+		mc_language.feed_rate_fmt = FEED_RATE_FMT_LASER_CH;
+		mc_language.gauge_feed = GAUGE_FEED_LASER_CH;
+		mc_language.job_feed_real = JOB_FEED_REAL_LASER_CH;
+	} else if(mks_grbl.language == Espanol) {
+		mc_language.spindle = SPINDLE_LASER_ES;
+		mc_language.spindle_speed = SPINDLE_SPEED_LASER_ES;
+		mc_language.spindle_speed_fmt = SPINDLE_SPEED_FMT_LASER_ES;
+		mc_language.gauge_spindle = GAUGE_SPINDLE_LASER_ES;
+		mc_language.feed_rate = FEED_RATE_LASER_ES;
+		mc_language.feed_rate_fmt = FEED_RATE_FMT_LASER_ES;
+		mc_language.gauge_feed = GAUGE_FEED_LASER_ES;
+		mc_language.job_feed_real = JOB_FEED_REAL_LASER_ES;
+	} else {
+		mc_language.spindle = SPINDLE_LASER_EN;
+		mc_language.spindle_speed = SPINDLE_SPEED_LASER_EN;
+		mc_language.spindle_speed_fmt = SPINDLE_SPEED_FMT_LASER_EN;
+		mc_language.gauge_spindle = GAUGE_SPINDLE_LASER_EN;
+		mc_language.feed_rate = FEED_RATE_LASER_EN;
+		mc_language.feed_rate_fmt = FEED_RATE_FMT_LASER_EN;
+		mc_language.gauge_feed = GAUGE_FEED_LASER_EN;
+		mc_language.job_feed_real = JOB_FEED_REAL_LASER_EN;
+	}
+}
+
 void mc_language_init(void) {
 
 	if(mks_grbl.language == Espanol) {
@@ -117,6 +273,15 @@ void mc_language_init(void) {
 		mc_language.spindle_speed_fmt = SPINDLE_SPEED_FMT_ES;
 		mc_language.feed_rate_fmt = FEED_RATE_FMT_ES;
 		mc_language.rapid_fmt = RAPID_FMT_ES;
+		mc_language.gauge_feed = GAUGE_FEED_ES;
+		mc_language.gauge_spindle = GAUGE_SPINDLE_ES;
+		mc_language.gauge_rapid = GAUGE_RAPID_ES;
+		mc_language.job_elapsed = JOB_ELAPSED_ES;
+		mc_language.job_left = JOB_LEFT_ES;
+		mc_language.job_feed_real = JOB_FEED_REAL_ES;
+		mc_language.job_power_real = JOB_POWER_REAL_ES;
+		mc_language.resume = RESUME_ES;
+		mc_language.tool_board = TOOL_BOARD_ES;
 
 		/* pagina de pruebas */
 		mc_language.test_title = TESTING_ES;
@@ -230,6 +395,15 @@ void mc_language_init(void) {
 		mc_language.spindle_speed_fmt = SPINDLE_SPEED_FMT_EN;
 		mc_language.feed_rate_fmt = FEED_RATE_FMT_EN;
 		mc_language.rapid_fmt = RAPID_FMT_EN;
+		mc_language.gauge_feed = GAUGE_FEED_EN;
+		mc_language.gauge_spindle = GAUGE_SPINDLE_EN;
+		mc_language.gauge_rapid = GAUGE_RAPID_EN;
+		mc_language.job_elapsed = JOB_ELAPSED_EN;
+		mc_language.job_left = JOB_LEFT_EN;
+		mc_language.job_feed_real = JOB_FEED_REAL_EN;
+		mc_language.job_power_real = JOB_POWER_REAL_EN;
+		mc_language.resume = RESUME_EN;
+		mc_language.tool_board = TOOL_BOARD_EN;
 
 		/* pagina de pruebas */
 		mc_language.test_title = TESTING_EN;
@@ -242,6 +416,10 @@ void mc_language_init(void) {
 		mc_language.cpu_temp = CPU_TEMP_EN;
 		mc_language.test_warning = TEST_WARNING_EN;
 	}
+
+	if(mks_grbl.language == SimpleChinese) mc_language_apply_chinese();
+
+	mc_language_apply_mode();
 }
 
 

@@ -31,6 +31,27 @@ var I18N_EN = {
   "Próximamente": "Coming soon",
 
   /* ---------- vista Acerca de y panel lateral ---------- */
+  "Enciende el láser fijo en el punto actual hasta pulsar OFF. Usa gafas de protección y no lo dejes sobre el material.": "Turns the laser on at the current spot until you press OFF. Wear protective eyewear and do not leave it on the material.",
+  "MODO DE LA MÁQUINA": "MACHINE MODE",
+  "Cambia el parámetro $32 y los rótulos de la pantalla y de esta web. Solo con la máquina parada.": "Changes parameter $32 and the labels on the screen and in this web UI. Only while the machine is stopped.",
+  "LÁSER": "LASER",
+  "HUSILLO": "SPINDLE",
+  "F (Velocidad)": "F (Speed)",
+  "F (Avance)": "F (Feed)",
+  "S (Potencia)": "S (Power)",
+  "S (Husillo)": "S (Spindle)",
+  "AVANCE Y VELOCIDAD DEL HUSILLO": "FEED AND SPINDLE SPEED",
+  "Velocidad": "Speed",
+  "Avance": "Feed",
+  "Potencia": "Power",
+  "Husillo": "Spindle",
+  "Detén el trabajo antes de cambiar el modo de la máquina.": "Stop the job before changing the machine mode.",
+  "¿Cambiar a modo LÁSER ($32=1)? Activa el M4 de potencia dinámica y rotula la interfaz como Potencia y Velocidad.": "Switch to LASER mode ($32=1)? It enables dynamic-power M4 and labels the interface as Power and Speed.",
+  "¿Cambiar a modo CNC ($32=0)? Desactiva el modo láser del controlador y rotula la interfaz como Husillo y Avance.": "Switch to CNC mode ($32=0)? It turns off the controller's laser mode and labels the interface as Spindle and Feed.",
+  "VELOCIDAD Y POTENCIA DEL LÁSER": "LASER SPEED AND POWER",
+  "Velocidad (avance)": "Speed (feed)",
+  "Potencia (láser)": "Power (laser)",
+  "Se aplican en vivo durante el trabajo, de 10 % a 200 %. El 100 % es el valor programado en el archivo.": "Applied live during the job, from 10% to 200%. 100% is the value programmed in the file.",
   "Contraer panel": "Collapse panel",
   "Expandir panel": "Expand panel",
   "ACERCA DE": "ABOUT",
@@ -39,6 +60,7 @@ var I18N_EN = {
   "Nombre de host": "Hostname",
   "Dirección IP": "IP address",
   "Versión de la WebUI": "WebUI version",
+  "Probado en": "Tested on",
   "CRÉDITOS Y LICENCIA": "CREDITS AND LICENSE",
   "Repositorio de esta versión": "Repository for this version",
   "Código fuente, descargas y registro de cambios.": "Source code, downloads and change log.",
@@ -332,6 +354,7 @@ var I18N_EN = {
   "IDIOMA DE ESTA WEBUI": "THIS WEBUI LANGUAGE",
   "Interfaz en español": "Interface in Spanish",
   "Interfaz en inglés": "Interface in English",
+  "Interfaz en chino": "Interface in Chinese",
   "Alcance": "Scope",
   "Menús, tablas, avisos y mensajes de esta web. No toca la consola ni la pantalla LCD.":
     "Menus, tables, notices and messages on this site. It does not touch the console or the LCD screen.",
@@ -350,16 +373,31 @@ var I18N_EN = {
   "NOTAS": "NOTES",
   "• El cambio de la pantalla es inmediato: el controlador recarga los textos del LCD en menos de un segundo. Si la página abierta no cambia de texto, entra y sale de esa página.":
     "• The screen change is immediate: the controller reloads the LCD texts in under a second. If the open page does not update its text, leave the page and come back.",
-  "• 中文 y Deutsch muestran los textos en inglés: en el firmware solo existen":
-    "• 中文 and Deutsch show the English text: the firmware only ships",
-  "(inglés) y": "(English) and",
-  "(español).": "(Spanish).",
-  "• El botón 中文 de la pantalla puede salir con un recuadro: la fuente del LCD":
-    "• The 中文 button on the screen may show an empty box: the LCD font",
-  "no incluye glifos chinos (sí tiene tildes, ñ, ¿ y ¡).":
-    " has no Chinese glyphs (it does have accents, ñ, ¿ and ¡).",
+  "• Deutsch muestra los textos en inglés: el firmware solo trae textos en inglés, español y chino.":
+    "• Deutsch shows the English text: the firmware only ships English, Spanish and Chinese texts.",
+  "• El chino (中文) usa solo los 131 caracteres chinos que trae la fuente de la pantalla: algunos textos usan sinónimos o se quedan en inglés. Las tildes, la ñ, ¿ y ¡ se ven con una fuente Latin-1 (Roboto).":
+    "• Chinese (中文) uses only the 131 Chinese characters in the screen font: some texts use synonyms or stay in English. Accents, ñ, ¿ and ¡ show with a Latin-1 font (Roboto).",
   "• El idioma de la pantalla se guarda en NVS: sobrevive a los reinicios. El de esta web se guarda en el navegador (localStorage) y no afecta a nadie más.":
-    "• The screen language is stored in NVS: it survives reboots. This site's is stored in the browser (localStorage) and affects nobody else."
+    "• The screen language is stored in NVS: it survives reboots. This site's is stored in the browser (localStorage) and affects nobody else.",
+  "ACTUALIZAR WEBUI": "UPDATE WEBUI",
+  "Sube un archivo index.html.gz (o index.html) para reemplazar esta interfaz en la memoria interna de la placa.": "Upload an index.html.gz (or index.html) file to replace this interface in the board's internal memory.",
+  "Actualizar WebUI": "Update WebUI",
+  "INSTRUCCIONES": "INSTRUCTIONS",
+  "Imagen de inicio": "Boot image",
+  "Para cambiar esta interfaz, genera el archivo index.html.gz con «python3 webui/build.py» (o descarga el de la última versión del repositorio).": "To change this interface, generate the index.html.gz file with \"python3 webui/build.py\" (or download the one from the latest repository release).",
+  "Pulsa «Actualizar WebUI», elige el archivo y espera a que la página se recargue sola. No lo hagas con un trabajo en marcha.": "Press \"Update WebUI\", choose the file and wait for the page to reload by itself. Do not do it while a job is running.",
+  "Si la interfaz deja de abrir, entra en http://IP-de-la-placa/?index=yes: aparece una página de emergencia para volver a subir el archivo.": "If the interface stops opening, go to http://BOARD-IP/?index=yes: an emergency page appears so you can upload the file again.",
+  "La imagen que se ve al encender (PNG de 480×320 píxeles) va dentro del firmware: no se cambia desde la web.": "The image shown at power-on (480×320 pixel PNG) is part of the firmware: it cannot be changed from the web.",
+  "Conviértela con «python3 tools/png2lvgl.py logo.png». Esto reemplaza lv_pic/mks_logo.c.": "Convert it with \"python3 tools/png2lvgl.py logo.png\". This replaces lv_pic/mks_logo.c.",
+  "Después compila y flashea el firmware: «pio run -e mks_dlc32_8mb -t upload».": "Then build and flash the firmware: \"pio run -e mks_dlc32_8mb -t upload\".",
+  "Detén el trabajo antes de actualizar la WebUI.": "Stop the job before updating the WebUI.",
+  "Elige un archivo .gz o .html.": "Choose a .gz or .html file.",
+  "¿Reemplazar la WebUI de la placa por el archivo seleccionado? Si el archivo está dañado tendrás que usar la página de emergencia (?index=yes).": "Replace the board's WebUI with the selected file? If the file is damaged you will have to use the emergency page (?index=yes).",
+  "Subiendo WebUI…": "Uploading WebUI…",
+  "WebUI actualizada. Recargando…": "WebUI updated. Reloading…",
+  "El archivo no es un .gz válido.": "The file is not a valid .gz.",
+  "Tu navegador no puede comprimir el .html: sube un index.html.gz.": "Your browser cannot compress the .html: upload an index.html.gz instead.",
+  "No se pudo actualizar la WebUI": "Could not update the WebUI"
 };
 
 /**
@@ -368,7 +406,7 @@ var I18N_EN = {
  */
 function i18nLookup(text) {
   if (typeof text !== "string" || !text) return text;
-  if (I18N_EN[text] !== undefined) return I18N_EN[text];
+  if (I18N_CUR[text] !== undefined) return I18N_CUR[text];
   if (i18nLookup.cache[text] !== undefined) return i18nLookup.cache[text];
 
   // Se trabaja sin los espacios de los bordes y se vuelven a pegar al final.
@@ -377,9 +415,9 @@ function i18nLookup(text) {
 
   // El HTML puede dejar saltos e indentacion dentro del texto: si con el texto
   // plano hay clave, se usa esa (el resultado conserva los bordes originales).
-  if (I18N_EN[core] === undefined && /\s{2,}|\n|\t/.test(core)) {
+  if (I18N_CUR[core] === undefined && /\s{2,}|\n|\t/.test(core)) {
     var flat = core.replace(/\s+/g, " ");
-    if (I18N_EN[flat] !== undefined) core = flat;
+    if (I18N_CUR[flat] !== undefined) core = flat;
   }
 
   var out = i18nCore(core);
@@ -389,6 +427,13 @@ function i18nLookup(text) {
 }
 i18nLookup.cache = {};
 
+/** Elige el diccionario activo: "en" -> I18N_EN, "zh" -> I18N_ZH (si esta cargado). */
+var I18N_CUR = I18N_EN;
+function i18nUse(lang) {
+  I18N_CUR = lang === "zh" && typeof I18N_ZH !== "undefined" ? I18N_ZH : I18N_EN;
+  i18nLookup.cache = {};
+}
+
 function i18nIsWord(ch) {
   return ch !== "" && /[\w\u00C0-\u024F]/.test(ch);
 }
@@ -396,7 +441,7 @@ function i18nIsWord(ch) {
 /** Prefijo o sufijo mas largo que encaje en la frontera de palabra. */
 function i18nMatch(c, mode) {
   var best = null;
-  for (var k in I18N_EN) {
+  for (var k in I18N_CUR) {
     if (k.length < 4 || k.length >= c.length) continue;
     if (mode === "prefix") {
       if (c.lastIndexOf(k, 0) !== 0) continue;
@@ -412,12 +457,12 @@ function i18nMatch(c, mode) {
 }
 
 function i18nOnce(c) {
-  if (I18N_EN[c] !== undefined) return I18N_EN[c];
+  if (I18N_CUR[c] !== undefined) return I18N_CUR[c];
   var out = c;
   var p = i18nMatch(c, "prefix");
-  if (p !== null) out = I18N_EN[p] + c.slice(p.length);
+  if (p !== null) out = I18N_CUR[p] + c.slice(p.length);
   var s = i18nMatch(out, "suffix");
-  if (s !== null && out.length > s.length) out = out.slice(0, out.length - s.length) + I18N_EN[s];
+  if (s !== null && out.length > s.length) out = out.slice(0, out.length - s.length) + I18N_CUR[s];
   return out;
 }
 

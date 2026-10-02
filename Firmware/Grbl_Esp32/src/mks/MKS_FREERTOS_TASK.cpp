@@ -118,6 +118,14 @@ static void mks_page_data_updata(void) {
         mc_language_init();
     }
 
+    // $32 (modo laser) tambien cambia los rotulos (Potencia/Velocidad frente a Husillo/Avance).
+    static int32_t last_laser = -1;
+    int32_t        cur_laser  = laser_mode->get() ? 1 : 0;
+    if(cur_laser != last_laser) {
+        last_laser = cur_laser;
+        mc_language_init();
+    }
+
     if(mks_ui_page.mks_ui_page == MKS_UI_PAGE_LOADING) {
         /* Do not updata */
         return ;

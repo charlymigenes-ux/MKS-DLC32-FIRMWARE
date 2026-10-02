@@ -26,11 +26,13 @@ SRC_HTML = WEBUI_DIR / "index.html"
 SRC_CSS = WEBUI_DIR / "css" / "style.css"
 SRC_JS = WEBUI_DIR / "js" / "app.js"
 SRC_I18N = WEBUI_DIR / "js" / "i18n.js"
+SRC_I18N_ZH = WEBUI_DIR / "js" / "i18n_zh.js"
 
 DIST_HTML = WEBUI_DIR / "dist" / "index.html"
 FIRMWARE_GZ = REPO_ROOT / "Firmware" / "Grbl_Esp32" / "data" / "index.html.gz"
 
 CSS_TAG = '<link rel="stylesheet" href="css/style.css">'
+I18N_ZH_TAG = '<script src="js/i18n_zh.js"></script>'
 I18N_TAG = '<script src="js/i18n.js"></script>'
 JS_TAG = '<script src="js/app.js"></script>'
 
@@ -43,7 +45,7 @@ def inline() -> str:
     """Devuelve el HTML con el CSS y el JS embebidos."""
     html = SRC_HTML.read_text(encoding="utf-8")
 
-    for tag, name in ((CSS_TAG, "CSS"), (I18N_TAG, "I18N"), (JS_TAG, "JS")):
+    for tag, name in ((CSS_TAG, "CSS"), (I18N_ZH_TAG, "I18N_ZH"), (I18N_TAG, "I18N"), (JS_TAG, "JS")):
         if html.count(tag) != 1:
             sys.exit(
                 f"error: se esperaba exactamente una referencia a {name} en "
@@ -53,9 +55,11 @@ def inline() -> str:
 
     css = SRC_CSS.read_text(encoding="utf-8")
     i18n = SRC_I18N.read_text(encoding="utf-8")
+    i18n_zh = SRC_I18N_ZH.read_text(encoding="utf-8")
     js = SRC_JS.read_text(encoding="utf-8")
 
     html = html.replace(CSS_TAG, f"<style>{css}</style>")
+    html = html.replace(I18N_ZH_TAG, f"<script>{i18n_zh}</script>")
     html = html.replace(I18N_TAG, f"<script>{i18n}</script>")
     html = html.replace(JS_TAG, f"<script>{js}</script>")
     return html

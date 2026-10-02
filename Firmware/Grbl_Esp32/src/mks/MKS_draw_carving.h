@@ -38,7 +38,7 @@ typedef enum {
 
 }CAVING_XY_t;
 
-#define MKS_FILE_NUM 8
+#define MKS_FILE_NUM 5   // archivos por pagina de la lista de la SD
 #define MKS_FILE_NAME_LENGTH   64
 #define MKS_FILE_DEEP  1
 typedef struct {
@@ -46,6 +46,7 @@ typedef struct {
     uint32_t file_size[MKS_FILE_NUM];
     uint16_t file_begin_num;        // 它用来计数，并选择数组的位置,filename_str[file_begin_num][...]
     uint16_t file_count;            // 它用来计算从第几个文件开始存名字
+    uint16_t file_total;            // archivos validos en toda la SD
     uint16_t file_page;             // 它从1开始
     uint8_t file_choose;            //标记选择的是第几个文件
 }MKS_FILE_LIST_t;
