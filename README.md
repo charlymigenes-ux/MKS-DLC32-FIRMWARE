@@ -1,4 +1,7 @@
 # MKS-DLC32-FIRMWARE
+[![License: GPL v3](https://img.shields.io/badge/license-GPLv3-39D62E)](./LICENSE)
+[![Last commit](https://img.shields.io/github/last-commit/charlymigenes-ux/MKS-DLC32-FIRMWARE?color=39D62E)](https://github.com/charlymigenes-ux/MKS-DLC32-FIRMWARE/commits/main)
+[![Status](https://img.shields.io/badge/status-active%20development-e6b422)](./CHANGELOG.md)
 
 Firmware Grbl_ESP32 para la controladora **MKS DLC32**, con interfaz web propia y pantalla táctil (LVGL) en
 español, inglés y chino. Pensado para láser y CNC de uso general. Basado en el firmware original de
@@ -15,6 +18,18 @@ Todo lo de este repositorio está probado en esa combinación. En otras placas o
 pero no está verificado: revisa `$100`–`$132` (pasos, velocidades, recorrido) y `$32` antes de mover nada.
 
 ## Qué incluye
+
+<table>
+  <tr>
+    <td><img width="630" alt="dashboard" src="https://github.com/user-attachments/assets/079cd1aa-b36f-44bd-aaca-7af3f551e80b" /></td>
+    <td><img width="630" alt="3D printers panel" src="https://github.com/user-attachments/assets/6c8ed92c-8071-45b1-8b74-921328046201" /></td>
+    <td><img width="630" alt="Laser / CNC panel" src="https://github.com/user-attachments/assets/430b80e6-f9e1-487e-b1c2-bf2f65b81954" /></td>
+  </tr>
+  <tr>
+    <td><img width="630" alt="Materials (Spoolman) panel" src="https://github.com/user-attachments/assets/12671e69-666d-4778-a075-7f4c526fff14" /></td>
+    <td><img width="630" alt="Quoting tool" src="https://github.com/user-attachments/assets/01f5a678-6027-4a15-88d9-d94ccb0d15ca" /></td>
+    <td><img width="630" alt="Camera viewer" src="https://github.com/user-attachments/assets/03268387-f2d4-4191-a236-0e2e8513b52a" /></td>
+</table>
 
 - **WebUI nueva** (`webui/`): control, archivos de la SD, parámetros, idioma (español, inglés y chino),
   panel lateral contraíble, actualización de la propia WebUI desde Acerca de.
