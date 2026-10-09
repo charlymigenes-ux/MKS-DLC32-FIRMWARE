@@ -48,6 +48,7 @@ static lv_obj_t* tool_side_lbl[SEC_COUNT];
 static lv_obj_t* tool_panel = NULL;
 static lv_obj_t* tool_crumb = NULL;
 static lv_obj_t* tool_beep_val = NULL;
+static lv_obj_t* tool_alert_val = NULL;
 static int       tool_section = SEC_TOOL;
 static int       tool_last_section = SEC_TOOL;   // se reabre al volver de las pantallas de Wifi
 static lv_obj_t* tool_lang_row[4];
@@ -60,6 +61,7 @@ static char      tool_buf[SEC_COUNT][64];
 // Estado mostrado del beep ($38). Se invierte al tocar y se envia el comando;
 // asi dos toques seguidos no leen el valor viejo mientras $38 aun se procesa.
 static bool tool_beep_on = false;
+static bool tool_alert_on = false;   // $39: sonidos de alerta
 
 // Texto segun el idioma de la pantalla (espanol / resto en ingles)
 static const char* T(const char* es, const char* en) { return mks_grbl.language == Espanol ? es : en; }
@@ -163,12 +165,12 @@ static void tool_pill(lv_obj_t* row, const char* text, lv_obj_t** lbl_out) {
     if (lbl_out) *lbl_out = l;
 }
 
-static void tool_beep_refresh(void) {
-    if (tool_beep_val == NULL) return;
-    lv_obj_t* pill = lv_obj_get_parent(tool_beep_val);
-    lv_label_set_text(tool_beep_val, tool_beep_on ? "ON" : "OFF");
-    lv_obj_set_size(pill, lv_obj_get_width(tool_beep_val) + 24, 28);
-    lv_obj_align(tool_beep_val, pill, LV_ALIGN_CENTER, 0, 0);
+static void tool_pill_refresh(lv_obj_t* val, bool on) {
+    if (val == NULL) return;
+    lv_obj_t* pill = lv_obj_get_parent(val);
+    lv_label_set_text(val, on ? "ON" : "OFF");
+    lv_obj_set_size(pill, lv_obj_get_width(val) + 24, 28);
+    lv_obj_align(val, pill, LV_ALIGN_CENTER, 0, 0);
     lv_obj_align(pill, lv_obj_get_parent(pill), LV_ALIGN_IN_RIGHT_MID, -12, 0);
 }
 
@@ -176,7 +178,15 @@ static void event_btn_tool_beep(lv_obj_t* obj, lv_event_t event) {
     if (event == LV_EVENT_RELEASED) {
         tool_beep_on = !tool_beep_on;
         MKS_GRBL_CMD_SEND((tool_beep_on ? "$38=1\n" : "$38=0\n"));
-        tool_beep_refresh();
+        tool_pill_refresh(tool_beep_val, tool_beep_on);
+    }
+}
+
+static void event_btn_tool_alert(lv_obj_t* obj, lv_event_t event) {
+    if (event == LV_EVENT_RELEASED) {
+        tool_alert_on = !tool_alert_on;
+        MKS_GRBL_CMD_SEND((tool_alert_on ? "$39=1\n" : "$39=0\n"));
+        tool_pill_refresh(tool_alert_val, tool_alert_on);
     }
 }
 
@@ -416,6 +426,7 @@ static void tool_build_wifi(void) {
 
 static void tool_build_panel(int sec) {
     tool_beep_val = NULL;
+    tool_alert_val = NULL;
     lv_obj_clean(tool_panel);
 
     if (sec == SEC_TOOL) {
@@ -459,9 +470,11 @@ static void tool_build_panel(int sec) {
 #endif
     }
     else if (sec == SEC_BEEP) {
-        tool_panel_head("Beeper", T("Sonido al tocar la pantalla", "Sound when touching the screen"));
+        tool_panel_head("Beeper", T("Sonido al tocar y alertas", "Touch sound and alerts"));
         tool_beep_on = beep_status->get();
-        tool_row(0, "Beeper", T("Toca para activar o desactivar", "Tap to turn on or off"), tool_beep_on ? "ON" : "OFF", event_btn_tool_beep, &tool_beep_val);
+        tool_alert_on = alert_sound_status->get();
+        tool_row(0, T("Al tocar", "On touch"), T("Pitido al tocar la pantalla", "Beep when touching the screen"), tool_beep_on ? "ON" : "OFF", event_btn_tool_beep, &tool_beep_val);
+        tool_row(1, T("Alertas", "Alerts"), T("Fin de trabajo, error y alarma", "Job done, error and alarm"), tool_alert_on ? "ON" : "OFF", event_btn_tool_alert, &tool_alert_val);
     }
     else if (sec == SEC_BOARD) {
         tool_panel_head(tool_section_title(sec), T("Datos del microcontrolador", "Microcontroller details"));
@@ -521,6 +534,7 @@ void mks_draw_tool(void) {
 
     tool_styles_init();
     tool_beep_val = NULL;
+    tool_alert_val = NULL;
 
     // barra superior: ruta a la izquierda; estado (wifi y temperatura) a la derecha
     tool_crumb = lv_label_create(mks_global.mks_src, NULL);

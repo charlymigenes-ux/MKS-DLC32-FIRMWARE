@@ -323,7 +323,7 @@ static const uint8_t laser_presets[4] = { 0, 5, 30, 70 };
 static lv_obj_t*     laser_pop_bg = NULL;
 static lv_obj_t*     laser_pop_btn[4];
 static lv_obj_t*     laser_pop_back;
-static lv_style_t    laser_pop_bg_style, laser_pop_card_style, laser_pop_btn_style, laser_pop_btn_pr_style, laser_pop_off_style;
+static lv_style_t    laser_pop_bg_style, laser_pop_card_style, laser_pop_btn_style, laser_pop_btn_pr_style, laser_pop_off_style, laser_pop_on_style;
 static uint8_t       laser_on_pct = 0;     // potencia con la que esta encendido (0 = apagado)
 static char          laser_btn_txt[32];
 
@@ -361,16 +361,30 @@ static void laser_apply(uint8_t pct) {
 	laser_label_update();
 }
 
+// Resalta en verde el boton de la potencia con la que esta encendido el laser.
+static void laser_pop_mark(void) {
+	for(int i = 0; i < 4; i++) {
+		if(laser_pop_btn[i] == NULL) continue;
+		bool on = (laser_presets[i] != 0) && (laser_presets[i] == laser_on_pct);
+		lv_btn_set_style(laser_pop_btn[i], LV_BTN_STYLE_REL, laser_presets[i] == 0 ? &laser_pop_off_style : (on ? &laser_pop_on_style : &laser_pop_btn_style));
+	}
+}
+
+// El popup NO se cierra al elegir una potencia: el laser queda encendido y se cambia o se apaga desde
+// aqui (0 %). "Atras" con el laser encendido lo apaga antes de cerrar.
 static void laser_pop_event(lv_obj_t* obj, lv_event_t event) {
 	if(event != LV_EVENT_RELEASED) return;
 	for(int i = 0; i < 4; i++) {
 		if(obj == laser_pop_btn[i]) {
 			laser_apply(laser_presets[i]);
-			laser_popup_close();
+			laser_pop_mark();
 			return;
 		}
 	}
-	if(obj == laser_pop_back) laser_popup_close();
+	if(obj == laser_pop_back) {
+		if(laser_on_pct > 0) laser_apply(0);
+		laser_popup_close();
+	}
 }
 
 static void laser_popup_open(void) {
@@ -400,6 +414,10 @@ static void laser_popup_open(void) {
 	laser_pop_btn_pr_style.body.main_color = LV_COLOR_MAKE(0x2D, 0xE0, 0xA7);
 	laser_pop_btn_pr_style.body.grad_color = LV_COLOR_MAKE(0x2D, 0xE0, 0xA7);
 	laser_pop_btn_pr_style.text.color      = LV_COLOR_MAKE(0x1F, 0x23, 0x33);
+	lv_style_copy(&laser_pop_on_style, &laser_pop_btn_style);    // potencia activa
+	laser_pop_on_style.body.main_color = LV_COLOR_MAKE(0x2D, 0xE0, 0xA7);
+	laser_pop_on_style.body.grad_color = LV_COLOR_MAKE(0x2D, 0xE0, 0xA7);
+	laser_pop_on_style.text.color      = LV_COLOR_MAKE(0x1F, 0x23, 0x33);
 	lv_style_copy(&laser_pop_off_style, &laser_pop_btn_style);   // 0 % = apagar
 	laser_pop_off_style.body.main_color = LV_COLOR_MAKE(0xB0, 0x40, 0x40);
 	laser_pop_off_style.body.grad_color = LV_COLOR_MAKE(0xB0, 0x40, 0x40);
@@ -442,6 +460,7 @@ static void laser_popup_open(void) {
 	lv_obj_set_event_cb(laser_pop_back, laser_pop_event);
 	lv_obj_t* bl = lv_label_create(laser_pop_back, NULL);
 	lv_label_set_text(bl, mc_language.back);
+	laser_pop_mark();   // si ya estaba encendido (se reabre el popup), marcar su potencia
 }
 
 static void set_cnc_ctrl(void) {
@@ -552,9 +571,58 @@ void mks_draw_move(void) {
     mks_ui_page.wait_count = DEFAULT_UI_COUNT;
 }
 
+// ---- Cabecera de Control: botones de tarjeta con icono (simbolo o texto) y titulo corto ----
+// Antes eran imagenes con el rotulo debajo (en espanol "Borrar XY Borrar Z Cuchilla Siguiente" se montaban).
+// Cada boton conserva su puntero de move_page (Back, xy_clear, ...) para que los manejadores sigan igual.
+static lv_style_t hdr_btn_style, hdr_btn_pr_style, hdr_icon_style, hdr_cap_style;
+static bool       hdr_styles_ready = false;
+
+static const char* hdr_T(const char* es, const char* en, const char* zh) {
+	return mks_grbl.language == SimpleChinese ? zh : (mks_grbl.language == Espanol ? es : en);
+}
+
+static void hdr_styles_init(void) {
+	lv_style_copy(&hdr_btn_style, &lv_style_plain_color);
+	hdr_btn_style.body.main_color   = LV_COLOR_MAKE(0x2A, 0x30, 0x50);
+	hdr_btn_style.body.grad_color   = LV_COLOR_MAKE(0x2A, 0x30, 0x50);
+	hdr_btn_style.body.radius       = 10;
+	hdr_btn_style.body.border.width = 0;
+	lv_style_copy(&hdr_btn_pr_style, &hdr_btn_style);
+	hdr_btn_pr_style.body.main_color = LV_COLOR_MAKE(0x2D, 0xE0, 0xA7);
+	hdr_btn_pr_style.body.grad_color = LV_COLOR_MAKE(0x2D, 0xE0, 0xA7);
+	lv_style_copy(&hdr_icon_style, &lv_style_plain);
+	hdr_icon_style.text.font  = &lv_font_roboto_22;
+	hdr_icon_style.text.color = LV_COLOR_MAKE(0x2D, 0xE0, 0xA7);
+	lv_style_copy(&hdr_cap_style, &lv_style_plain);
+	hdr_cap_style.text.font  = mc_font();
+	hdr_cap_style.text.color = LV_COLOR_WHITE;
+	hdr_styles_ready = true;
+}
+
+// Boton n (0..4) de la cabecera: 84x66 con 7 px de hueco; icono arriba y titulo abajo.
+static lv_obj_t* hdr_btn(int n, const char* icon, const char* caption, lv_event_cb_t cb) {
+	if (!hdr_styles_ready || n == 0) hdr_styles_init();   // el idioma puede haber cambiado
+	lv_obj_t* b = lv_btn_create(mks_global.mks_src_1, NULL);
+	lv_obj_set_size(b, 84, 66);
+	lv_obj_set_pos(b, 7 + n * 91, 6);
+	lv_btn_set_style(b, LV_BTN_STYLE_REL, &hdr_btn_style);
+	lv_btn_set_style(b, LV_BTN_STYLE_PR, &hdr_btn_pr_style);
+	lv_obj_set_event_cb(b, cb);
+	lv_cont_set_layout(b, LV_LAYOUT_OFF);
+	lv_obj_t* ic = lv_label_create(b, NULL);
+	lv_label_set_style(ic, LV_LABEL_STYLE_MAIN, &hdr_icon_style);
+	lv_label_set_text(ic, icon);
+	lv_obj_align(ic, b, LV_ALIGN_IN_TOP_MID, 0, 6);
+	lv_obj_t* cp = lv_label_create(b, NULL);
+	lv_label_set_style(cp, LV_LABEL_STYLE_MAIN, &hdr_cap_style);
+	lv_label_set_text(cp, caption);
+	lv_obj_align(cp, b, LV_ALIGN_IN_BOTTOM_MID, 0, -6);
+	return b;
+}
+
 static void disp_imgbtn(void) {
 
-	move_page.Back = lv_imgbtn_creat_mks(mks_global.mks_src_1, move_page.Back, &png_back_pre, &back, LV_ALIGN_IN_TOP_LEFT, 21, 5 , event_handler);
+	move_page.Back = hdr_btn(0, LV_SYMBOL_LEFT, mc_language.back, event_handler);
 
 	disp_imgbtn_1();
 
@@ -569,20 +637,11 @@ static void disp_imgbtn(void) {
 	move_page.z_home = lv_imgbtn_creat_mks(mks_global.mks_src_2, move_page.z_home, &png_z_home_pre, &png_z_home, LV_ALIGN_IN_TOP_LEFT, 244, 74, event_handler);
 }
 
-static void disp_imgbtn_1_del(void) {
+static void disp_imgbtn_1_del(void) {   // las etiquetas son hijas de cada boton: se borran con el
 	lv_obj_del(move_page.xy_clear);
 	lv_obj_del(move_page.z_clear);
 	lv_obj_del(move_page.knife);
 	lv_obj_del(move_page.next);
-
-	lv_obj_del(move_page.label_xy_clear);
-	lv_obj_del(move_page.label_z_clear);
-	lv_obj_del(move_page.label_knife);
-	lv_obj_del(move_page.label_next);
-
-	// lv_obj_del(move_page.label_xpos);
-	// lv_obj_del(move_page.label_ypos);
-	// lv_obj_del(move_page.label_zpos);
 }
 
 static void disp_up_set(lv_obj_t* obj, lv_event_t event) {
@@ -600,36 +659,24 @@ static void disp_down_set(lv_obj_t* obj, lv_event_t event) {
 }
 
 static void disp_imgbtn_1(void) {
-
-	move_page.xy_clear = lv_imgbtn_creat_mks(mks_global.mks_src_1, move_page.xy_clear, &png_xyclear_pre, &png_xyclear, LV_ALIGN_IN_TOP_LEFT, 113, 5, set_xy_pos);
-	move_page.z_clear = lv_imgbtn_creat_mks(mks_global.mks_src_1, move_page.z_clear, &png_zclear_pre, &png_zclear, LV_ALIGN_IN_TOP_LEFT, 205, 5, set_z_pos);
-	move_page.knife = lv_imgbtn_creat_mks(mks_global.mks_src_1, move_page.knife, &png_knife_pre, &png_knife, LV_ALIGN_IN_TOP_LEFT, 297, 5, event_handler);
-	move_page.next = lv_imgbtn_creat_mks(mks_global.mks_src_1, move_page.next, &png_l_next_pre, &png_l_next, LV_ALIGN_IN_TOP_LEFT, 389, 5, disp_down_set);
-
-	move_page.label_xy_clear = label_for_imgbtn_name(mks_global.mks_src_1, move_page.label_xy_clear, move_page.xy_clear, 0, 0, mc_language.xy_clear);
-	move_page.label_z_clear = label_for_imgbtn_name(mks_global.mks_src_1, move_page.label_z_clear, move_page.z_clear, 0, 0, mc_language.z_clear);
-	move_page.label_knife = label_for_imgbtn_name(mks_global.mks_src_1, move_page.label_knife, move_page.knife, 0, 0, mc_language.knife);
-	move_page.label_next = label_for_imgbtn_name(mks_global.mks_src_1, move_page.label_next, move_page.next, 0, 0, mc_language.next);
+	move_page.xy_clear = hdr_btn(1, LV_SYMBOL_GPS,      hdr_T("Cero XY", "Zero XY", mc_language.xy_clear), set_xy_pos);
+	move_page.z_clear  = hdr_btn(2, LV_SYMBOL_DOWNLOAD, hdr_T("Cero Z", "Zero Z", mc_language.z_clear), set_z_pos);
+	move_page.knife    = hdr_btn(3, LV_SYMBOL_CHARGE,   hdr_T("Sonda Z", "Z probe", mc_language.knife), event_handler);
+	move_page.next     = hdr_btn(4, LV_SYMBOL_RIGHT,    hdr_T("Más", "More", mc_language.next), disp_down_set);
+	move_page.label_xy_clear = move_page.label_z_clear = move_page.label_knife = move_page.label_next = NULL;   // son hijos del boton
 }
 
 static void disp_imgbtn_2(void) {
-	move_page.up = lv_imgbtn_creat_mks(mks_global.mks_src_1, move_page.up, &png_l_up_pre, &png_l_up, LV_ALIGN_IN_TOP_LEFT, 113, 5, disp_up_set);
-	move_page.cooling = lv_imgbtn_creat_mks(mks_global.mks_src_1, move_page.cooling, &png_cooling_pre, &png_cooling, LV_ALIGN_IN_TOP_LEFT, 205, 5, set_cooling);
-	move_page.position = lv_imgbtn_creat_mks(mks_global.mks_src_1, move_page.position, &png_position_pre, &png_position, LV_ALIGN_IN_TOP_LEFT, 297, 5, set_xyz_pos);
-
-	move_page.label_cooling = label_for_imgbtn_name(mks_global.mks_src_1, move_page.label_cooling, move_page.cooling, 0, 0, mc_language.cooling);
-	move_page.label_position = label_for_imgbtn_name(mks_global.mks_src_1, move_page.label_position, move_page.position, 0, 0, mc_language.position);
-	move_page.label_up = label_for_imgbtn_name(mks_global.mks_src_1, move_page.label_up, move_page.up, 0, 0, mc_language.up);
+	move_page.up       = hdr_btn(1, LV_SYMBOL_LEFT,    hdr_T("Menos", "Less", mc_language.up), disp_up_set);
+	move_page.cooling  = hdr_btn(2, LV_SYMBOL_REFRESH, hdr_T("Aire", "Air", mc_language.cooling), set_cooling);
+	move_page.position = hdr_btn(3, LV_SYMBOL_HOME,    hdr_T("Cero XYZ", "Zero XYZ", mc_language.position), set_xyz_pos);
+	move_page.label_cooling = move_page.label_position = move_page.label_up = NULL;   // son hijos del boton
 }
 
 static void disp_imgbtn_2_del(void) {
 	lv_obj_del(move_page.cooling);
 	lv_obj_del(move_page.position);
 	lv_obj_del(move_page.up);
-
-	lv_obj_del(move_page.label_cooling);
-	lv_obj_del(move_page.label_position);
-	lv_obj_del(move_page.label_up);
 }
 
 void move_pos_update(void) {
@@ -698,11 +745,20 @@ static void disp_btn(void) {
 
 static void disp_label(void) {
 
-	label_for_imgbtn_name(mks_global.mks_src_1, move_page.Label_back, move_page.Back, 0, 0, mc_language.back);
 
 	move_page.label_xpos = label_for_text(pos_strip, move_page.label_xpos, pos_strip, -153, 0, LV_ALIGN_CENTER, "X:0");
 	move_page.label_ypos = label_for_text(pos_strip, move_page.label_ypos, pos_strip, 0, 0, LV_ALIGN_CENTER, "Y:0");
 	move_page.label_zpos = label_for_text(pos_strip, move_page.label_zpos, pos_strip, 153, 0, LV_ALIGN_CENTER, "Z:0");
+	// fuente de la franja igual a la del resto de la pantalla (antes salia la tipografia serif de la LCD original)
+	{
+		static lv_style_t strip_text_style;
+		lv_style_copy(&strip_text_style, &lv_style_plain);
+		strip_text_style.text.font  = mc_font();
+		strip_text_style.text.color = LV_COLOR_WHITE;
+		lv_label_set_style(move_page.label_xpos, LV_LABEL_STYLE_MAIN, &strip_text_style);
+		lv_label_set_style(move_page.label_ypos, LV_LABEL_STYLE_MAIN, &strip_text_style);
+		lv_label_set_style(move_page.label_zpos, LV_LABEL_STYLE_MAIN, &strip_text_style);
+	}
 
 	if(mks_grbl.move_dis == M_0_1_MM) {
 		move_page.label_len = mks_lvgl_long_sroll_label_with_wight_set_center(move_page.btn_len, move_page.label_len, 0, 0, "0.1mm", 50);

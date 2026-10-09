@@ -382,6 +382,19 @@ static void job_info_update(void) {
     lv_label_set_text(job_lbl_power, job_power_str);
 }
 
+// Si hay un archivo de la SD en curso (lanzado desde la WebUI, la LCD o el serie), dibuja la pantalla
+// de trabajo en curso en la pantalla ya limpia y devuelve true. Asi ninguna otra pantalla toca la SD
+// (listarla la desmonta con SD.end() y mata el trabajo).
+bool mks_job_goto_print(void) {
+    if (get_sd_state(false) != SDState::BusyPrinting) return false;
+    sd_get_current_filename(file_print_send);   // nombre del archivo realmente abierto (puede venir de la WebUI)
+    mks_grbl.is_mks_ts35_flag = true;                                           // al terminar, mostrar el aviso de trabajo finalizado
+    mks_ui_page.mks_ui_page = MKS_UI_PAGE_LOADING;
+    mks_ui_page.wait_count = DEFAULT_UI_COUNT;
+    mks_draw_print();
+    return true;
+}
+
 void mks_draw_print(void) {
 
     char print_file_name[128];

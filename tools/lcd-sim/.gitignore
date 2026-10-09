@@ -1,0 +1,5 @@
+build/
+sim
+src/mks/
+out/
+__pycache__/

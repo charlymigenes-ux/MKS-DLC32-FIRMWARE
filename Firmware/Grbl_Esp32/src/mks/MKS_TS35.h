@@ -51,6 +51,13 @@ void ts35_beep_init();
 void ts35_beep_on(void);
 void ts35_beep_off(void);
 
+// Sonidos del zumbador (es un pin de encendido/apagado, sin tono): patrones de pitidos largos y cortos.
+// ts35_beep_play() no bloquea; ts35_beep_tick() se llama cada ~5 ms desde la tarea de la LCD.
+// Se activan y desactivan con $39 (alert_sound), independiente del pitido al tocar ($38).
+typedef enum { BEEP_DONE, BEEP_ERROR, BEEP_ALARM } ts35_beep_kind_t;
+void ts35_beep_play(ts35_beep_kind_t kind);
+void ts35_beep_tick(void);
+
 void bsp_led_init(void);
 void ts35_set_flag(bool flag);
 

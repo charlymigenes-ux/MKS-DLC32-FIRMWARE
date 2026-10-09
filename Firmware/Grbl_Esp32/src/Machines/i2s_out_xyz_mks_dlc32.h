@@ -34,7 +34,7 @@
 
 #define MACHINE_NAME                "MKS DLC32"
 #ifdef USE_BOARD_V2_0
-    #define BOARD_NAME              "Board:MKS DLC32 V2.0"
+    #define BOARD_NAME              "Board:MKS DLC32 V2.1"
 #else 
     #define BOARD_NAME              "Board:MKS LTS V1.1"
 #endif

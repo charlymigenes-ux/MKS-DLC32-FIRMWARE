@@ -356,6 +356,7 @@ void protocol_main_loop() {
                         }
                         grbl_notifyf("SD print done", "%s print is successful", temp);
                         grbl_send(CLIENT_ALL, "SD Print Finish!\n");
+                        ts35_beep_play(BEEP_DONE);
                         // MKS_GRBL_CMD_SEND("G0 X0 Y0 Z0 F300\n");
 
                         sys_rt_f_override                    = FeedOverride::Default;

@@ -177,6 +177,30 @@ static uint8_t getClientChar(uint8_t* data) {
 volatile int64_t diag_cli_max = 0;
 #endif  // ENABLE_JOB_DIAG
 
+// Estado UTF-8 por cliente (ver clientCheckTask) y la escritura de un byte de dato en su buffer.
+static uint8_t utf8_left[CLIENT_COUNT] = { 0 };
+static bool    utf8_c2[CLIENT_COUNT]   = { false };
+
+static void client_push(uint8_t client, uint8_t data) {
+#if defined(ENABLE_SD_CARD)
+    if (get_sd_state(false) < SDState::Busy) {
+#endif  //ENABLE_SD_CARD
+        vTaskEnterCritical(&myMutex);
+        client_buffer[client].write(data);
+        vTaskExitCritical(&myMutex);
+#if defined(ENABLE_SD_CARD)
+    } else {
+        if (data == '\r' || data == '\n') {
+            grbl_sendf(client, "error %d\r\n", Error::AnotherInterfaceBusy);
+            grbl_msg_sendf(client, MsgLevel::Info, "SD card job running");
+            if (sys.state == State::Idle) {
+                set_sd_state(SDState::Idle);
+            }
+        }
+    }
+#endif  //ENABLE_SD_CARD
+}
+
 void clientCheckTask(void* pvParameters) {
     uint8_t            data = 0;
     uint8_t            client;  // who sent the data
@@ -189,28 +213,44 @@ void clientCheckTask(void* pvParameters) {
         diag_cli_t0 = (int64_t)xTaskGetTickCount();
 #endif  // ENABLE_JOB_DIAG
         while ((client = getClientChar(&data)) != CLIENT_ALL) {
+            // UTF-8: is_realtime_command() trata TODO byte >= 0x80 como comando de tiempo real y lo saca de
+            // la linea, asi que "$SD/Run=teponiña.gc" llegaba como "teponia.gc" (error:66, no existe).
+            // Los bytes de cabecera UTF-8 (0xC3..0xF4) y sus continuaciones nunca son comandos de Grbl y
+            // pasan como datos. 0xC2 es la excepcion: la WebUI manda los overrides como C2 90..9F, asi
+            // que se retiene hasta ver el siguiente byte (C2 A0..BF = ¡ ¿ ° ª º... -> dato; C2 80..9F = override).
+            if (client < CLIENT_COUNT) {
+                if (utf8_c2[client]) {
+                    utf8_c2[client] = false;
+                    if (data >= 0xA0 && data <= 0xBF) {
+                        client_push(client, 0xC2);
+                        client_push(client, data);
+                        continue;
+                    }
+                    // C2 + override (80..9F) u otro byte: la C2 se descarta y 'data' sigue su camino normal
+                } else if (utf8_left[client]) {
+                    if ((data & 0xC0) == 0x80) {
+                        utf8_left[client]--;
+                        client_push(client, data);
+                        continue;
+                    }
+                    utf8_left[client] = 0;
+                }
+                if (data == 0xC2) {
+                    utf8_c2[client] = true;
+                    continue;
+                }
+                if (data >= 0xC3 && data <= 0xF4) {
+                    utf8_left[client] = data >= 0xF0 ? 3 : (data >= 0xE0 ? 2 : 1);
+                    client_push(client, data);
+                    continue;
+                }
+            }
             // Pick off realtime command characters directly from the serial stream. These characters are
             // not passed into the main buffer, but these set system state flag bits for realtime execution.
             if (is_realtime_command(data)) {
                 execute_realtime_command(static_cast<Cmd>(data), client);
             } else {
-#if defined(ENABLE_SD_CARD)
-                if (get_sd_state(false) < SDState::Busy) {
-#endif  //ENABLE_SD_CARD
-                    vTaskEnterCritical(&myMutex);
-                    client_buffer[client].write(data);
-                    vTaskExitCritical(&myMutex);
-#if defined(ENABLE_SD_CARD)
-                } else {
-                    if (data == '\r' || data == '\n') {
-                        grbl_sendf(client, "error %d\r\n", Error::AnotherInterfaceBusy);
-                        grbl_msg_sendf(client, MsgLevel::Info, "SD card job running");
-                        if(sys.state == State::Idle) {
-                            set_sd_state(SDState::Idle);
-                        }
-                    }
-                }
-#endif  //ENABLE_SD_CARD
+                client_push(client, data);
             }
         }  // if something available
         WebUI::COMMANDS::handle();

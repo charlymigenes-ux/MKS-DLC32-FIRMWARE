@@ -23,6 +23,7 @@ AxisMaskSetting* stallguard_debug_mask;
 
 IntSetting* language_select;
 FlagSetting* beep_status; // mks-fix
+FlagSetting* alert_sound_status;   // $39: sonidos de fin de trabajo, error y alarma
 
 
 
@@ -342,6 +343,7 @@ void make_settings() {
 
     language_select              = new IntSetting(GRBL, WG, "40", "Language", DEFAULT_LANGUAGE_STATUS, 0, 3);  // max 3: 0=cn 1=en 2=de 3=es
     beep_status                  = new FlagSetting(GRBL, WG, "38", "beep_status", DEFAULT_BEEP_STATUS);
+    alert_sound_status           = new FlagSetting(GRBL, WG, "39", "alert_sound", true);
     
     // Spindle Settings
     spindle_type =

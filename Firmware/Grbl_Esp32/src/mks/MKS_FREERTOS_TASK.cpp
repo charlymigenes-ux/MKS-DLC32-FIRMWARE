@@ -101,6 +101,8 @@ uint8_t count_updata = 0;
 uint8_t fram_count = 0;
 static void mks_page_data_updata(void) { 
 
+    ts35_beep_tick();   // sonidos de fin de trabajo / error (patrones del zumbador)
+
     // $40 se puede cambiar desde la pantalla (set_language) o a distancia, con
     // la WebUI escribiendo "$40=n". Aqui se detecta el cambio y se recargan las
     // cadenas del LCD; sin esto mc_language solo se actualizaba al pulsar los
@@ -124,6 +126,24 @@ static void mks_page_data_updata(void) {
     if(cur_laser != last_laser) {
         last_laser = cur_laser;
         mc_language_init();
+    }
+
+    // Un trabajo lanzado desde la WebUI (o el serie) no pasa por la LCD: si hay una pantalla "normal"
+    // abierta, saltar solo a la de trabajo en curso (200 ms de confirmacion para no reaccionar a un parpadeo).
+    {
+        static uint8_t job_seen = 0;
+        mks_ui_page_t  pg       = mks_ui_page.mks_ui_page;
+        bool           otra     = (pg == MKS_UI_Ready) || (pg == MKS_UI_Control) || (pg == MKS_UI_Caving) ||
+                        (pg == MKS_UI_inFile) || (pg == MKS_UI_Tool) || (pg == MKS_UI_LANGUAGE) || (pg == MKS_UI_Adjust);
+        if(otra && get_sd_state(false) == SDState::BusyPrinting) {
+            if(++job_seen >= 40) {
+                job_seen = 0;
+                mks_lv_clean_ui();
+                mks_job_goto_print();
+            }
+        } else {
+            job_seen = 0;
+        }
     }
 
     if(mks_ui_page.mks_ui_page == MKS_UI_PAGE_LOADING) {

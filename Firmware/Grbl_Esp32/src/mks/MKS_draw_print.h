@@ -193,6 +193,7 @@ extern uint32_t ddxd;
 
 void mks_clear_print(void);
 void mks_draw_print(void);
+bool mks_job_goto_print(void);   // true si habia un trabajo en curso y se dibujo su pantalla
 void mks_draw_print_popup(const char* text);
 void mks_del_obj(lv_obj_t *obj);
 void mks_draw_finsh_pupop(void);

@@ -79,67 +79,41 @@ char file_print_send[128];
 #define FIEL_NAME		128
 char filename[FILE_NUM][FIEL_NAME];
 
-static void event_handler_up(lv_obj_t* obj, lv_event_t event) {
-
-	if (event == LV_EVENT_RELEASED) {
-
-		char p[30];
-
-		if(file_popup_select_flag == true) return;
-
-		if(mks_readSD_Status() == SDState::NotPresent)  // check sdcard is work
-		{
-
-		}
-		else{
-
-			if(mks_file_list.file_page == 1) {
-
-			}else {
-			mks_file_list.file_count = 0;
-				mks_file_list.file_page--;
-				// mks_draw_file_loadig();
-				// lv_refr_now(lv_refr_get_disp_refreshing());
-				// mks_del_file_obj_1(mks_file_list.file_begin_num);
-				mks_del_file_obj();
-				mks_file_list.file_begin_num = 0;
-				mks_listDir(SD, "/",MKS_FILE_DEEP);
-				// draw_file_btmimg();
-				// draw_file_btmimg_1(mks_file_list.file_begin_num);
-				// lv_obj_del(caving_read_file_src1);
-				SD.end();
-			}
-		}
-	}
+// Paginas totales de la SD (al menos 1).
+static uint16_t file_pages_total(void) {
+	return mks_file_list.file_total < 1 ? 1 : (mks_file_list.file_total + MKS_FILE_NUM - 1) / MKS_FILE_NUM;
 }
 
+// Cambia a la pagina "page" (1..total): borra las filas y vuelve a listar la SD.
+static void file_goto_page(uint16_t page) {
+	mks_file_list.file_count = 0;
+	mks_file_list.file_page = page;
+	mks_del_file_obj();
+	mks_file_list.file_begin_num = 0;
+	mks_listDir(SD, "/", MKS_FILE_DEEP);
+	SD.end();
+}
+
+// Subir (pagina anterior). Desde la primera salta a la ULTIMA, para no recorrerlas todas con Siguiente.
+static void event_handler_up(lv_obj_t* obj, lv_event_t event) {
+	if (event != LV_EVENT_RELEASED) return;
+	if (file_popup_select_flag == true) return;
+	if (mks_readSD_Status() == SDState::NotPresent) return;   // sin tarjeta
+
+	uint16_t total = file_pages_total();
+	if (total < 2) return;
+	file_goto_page(mks_file_list.file_page <= 1 ? total : mks_file_list.file_page - 1);
+}
+
+// Siguiente. Desde la ultima vuelve a la primera.
 static void event_handler_next(lv_obj_t* obj, lv_event_t event) {
+	if (event != LV_EVENT_RELEASED) return;
+	if (file_popup_select_flag == true) return;
+	if (mks_readSD_Status() == SDState::NotPresent) return;   // sin tarjeta
 
-		if (event == LV_EVENT_RELEASED) {
-
-			if(file_popup_select_flag == true) return;
-
-			if(mks_readSD_Status() == SDState::NotPresent)  // check sdcard is work
-			{ 
-				
-			}
-			else {
-			if (event == LV_EVENT_RELEASED) {
-				if(mks_file_list.file_begin_num >= MKS_FILE_NUM) {
-					mks_file_list.file_count = 0;
-					mks_file_list.file_page++;
-					// mks_draw_file_loadig();
-					// lv_refr_now(lv_refr_get_disp_refreshing());
-					mks_del_file_obj();
-					mks_file_list.file_begin_num = 0;
-					mks_listDir(SD, "/",MKS_FILE_DEEP);
-					// draw_file_btmimg();
-					// lv_obj_del(caving_read_file_src1);
-					SD.end();
-				}
-			}
-		}
-	}
+	uint16_t total = file_pages_total();
+	if (total < 2) return;
+	file_goto_page(mks_file_list.file_page >= total ? 1 : mks_file_list.file_page + 1);
 }
 
 static void event_handler_cback(lv_obj_t* obj, lv_event_t event) {
@@ -389,15 +363,15 @@ static void file_nav_style(lv_obj_t* b, bool on) {
 	lv_btn_set_style(b, LV_BTN_STYLE_PR, on ? &file_side_pr_style : &file_open_style);
 }
 
-// "1/3" arriba a la derecha; Anterior/Siguiente se apagan en la primera/ultima pagina.
+// "1/3" arriba a la derecha; Subir/Siguiente son circulares y solo se apagan si hay una unica pagina.
 static void file_page_update(void) {
 	if(file_pagelbl == NULL) return;
 	uint16_t total = mks_file_list.file_total < 1 ? 1 : (mks_file_list.file_total + MKS_FILE_NUM - 1) / MKS_FILE_NUM;
 	snprintf(file_page_txt, sizeof(file_page_txt), "%u/%u", (unsigned)mks_file_list.file_page, (unsigned)total);
 	lv_label_set_text(file_pagelbl, file_page_txt);
 	lv_obj_align(file_pagelbl, NULL, LV_ALIGN_IN_TOP_RIGHT, -14, 12);
-	file_nav_style(file_btn_up, mks_file_list.file_page > 1);
-	file_nav_style(file_btn_next, mks_file_list.file_page < total);
+	file_nav_style(file_btn_up, total > 1);      // circulares: desde la primera, Subir va a la ultima
+	file_nav_style(file_btn_next, total > 1);
 }
 
 // Abre el archivo de la fila n: lo mismo que hacian antes los manejadores file0..file7.
@@ -503,6 +477,8 @@ void draw_filexx(uint8_t num, char *name) {
 }
 
 void mks_draw_craving(void) {
+
+	if(mks_job_goto_print()) return;   // con un trabajo en curso no se lista la SD: SD.end() lo mataria
 
 	SDState state = get_sd_state(true);
 
@@ -917,6 +893,8 @@ static void event_btn_cancle(lv_obj_t* obj, lv_event_t event) {
 }
 
 void start_print(void) { 
+
+	if(mks_job_goto_print()) return;   // ya hay un trabajo: no volver a lanzar [ESP220]
 
 	char str_cmd[255] = "[ESP220]";
 	char line_num[50];

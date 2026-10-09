@@ -1188,6 +1188,7 @@
     "34": { name: "Valor PWM apagado", unit: "% (float)", desc: "Valor PWM cuando está apagado (requiere reinicio).", cat: "laser" },
     "35": { name: "Valor PWM mínimo", unit: "% (float)", desc: "Valor PWM mínimo (requiere reinicio).", cat: "laser" },
     "36": { name: "Valor PWM máximo", unit: "% (float)", desc: "Valor PWM máximo (requiere reinicio).", cat: "laser" },
+    "39": { name: "Sonidos de alerta", unit: "booleano", desc: "Zumbador al terminar un trabajo, al abortarlo por un error y en las alarmas.", cat: "sistema" },
     "40": { name: "Idioma del LCD", unit: "0..3", desc: "Idioma de la pantalla: 0=中文 1=English 2=Deutsch 3=Español. Ver la vista Idioma.", cat: "sistema" },
     "80": { name: "Entero de usuario 80", unit: "entero", desc: "Reservado para uso personalizado.", cat: "sistema" },
     "81": { name: "Entero de usuario 81", unit: "entero", desc: "Reservado para uso personalizado.", cat: "sistema" },

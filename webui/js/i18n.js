@@ -397,7 +397,9 @@ var I18N_EN = {
   "WebUI actualizada. Recargando…": "WebUI updated. Reloading…",
   "El archivo no es un .gz válido.": "The file is not a valid .gz.",
   "Tu navegador no puede comprimir el .html: sube un index.html.gz.": "Your browser cannot compress the .html: upload an index.html.gz instead.",
-  "No se pudo actualizar la WebUI": "Could not update the WebUI"
+  "No se pudo actualizar la WebUI": "Could not update the WebUI",
+  "Sonidos de alerta": "Alert sounds",
+  "Zumbador al terminar un trabajo, al abortarlo por un error y en las alarmas.": "Buzzer when a job finishes, when it is aborted by an error, and on alarms."
 };
 
 /**

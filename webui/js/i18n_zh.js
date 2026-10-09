@@ -380,5 +380,7 @@ var I18N_ZH = {
   "WebUI actualizada. Recargando…": "WebUI已更新，正在重新加载…",
   "El archivo no es un .gz válido.": "该文件不是有效的.gz。",
   "Tu navegador no puede comprimir el .html: sube un index.html.gz.": "您的浏览器无法压缩.html，请上传index.html.gz。",
-  "No se pudo actualizar la WebUI": "无法更新WebUI"
+  "No se pudo actualizar la WebUI": "无法更新WebUI",
+  "Sonidos de alerta": "提示音",
+  "Zumbador al terminar un trabajo, al abortarlo por un error y en las alarmas.": "作业完成、因错误中止以及报警时蜂鸣器发声。"
 };

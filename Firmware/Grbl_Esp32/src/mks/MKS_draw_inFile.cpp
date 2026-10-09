@@ -289,7 +289,7 @@ extern lv_obj_t* pos_strip;   // MKS_draw_move.cpp: franja X / Y / Z que reajust
 #define INF_COL_MUTED  LV_COLOR_MAKE(0x9A, 0xA3, 0xC0)
 
 enum { IB_UP, IB_DOWN, IB_LEFT, IB_RIGHT, IB_XY0, IB_ZUP, IB_ZDOWN, IB_Z0, IB_STEP, IB_SPEED, IB_PROBE,
-       IB_AIR, IB_XYZ0, IB_START, IB_BACK, IB_COUNT };
+       IB_AIR, IB_XYZ0, IB_FRAME, IB_START, IB_BACK, IB_COUNT };
 
 static lv_style_t inf_btn_style, inf_btn_pr_style, inf_start_style, inf_strip_style;
 static lv_style_t inf_text_style, inf_dark_style, inf_muted_style, inf_sym_style, inf_symhome_style;
@@ -360,6 +360,35 @@ static lv_obj_t* inf_mkbtn(int id, lv_coord_t x, lv_coord_t y, lv_coord_t w, lv_
 	return b;
 }
 
+// Marco: recorre el contorno del trabajo (mks_draw_frame lee el archivo y busca X/Y minimos y maximos).
+// Igual que el original: con archivos de 1 MB o mas avisa antes, porque leerlos entero tarda.
+static void inf_frame_go(void) {
+	mks_ui_page.mks_ui_page = MKS_UI_PAGE_LOADING;
+	mks_ui_page.wait_count = 1;
+	mks_lv_clean_ui();
+	mks_draw_frame();
+	lv_refr_now(lv_refr_get_disp_refreshing());
+}
+
+static void inf_frame_yes(lv_obj_t* obj, lv_event_t event) {
+	if(event != LV_EVENT_RELEASED) return;
+	lv_obj_del(com_p1.com_popup_src);
+	inf_frame_go();
+}
+
+static void inf_frame_no(lv_obj_t* obj, lv_event_t event) {
+	if(event != LV_EVENT_RELEASED) return;
+	lv_obj_del(com_p1.com_popup_src);
+}
+
+static void inf_frame_start(void) {
+	if(frame_ctrl.file_size >= 1024 * 1024) {
+		mks_draw_common_popup(mc_language.dis_warning, mc_language.dis_file_too_big, mc_language.dis_continue_sure, inf_frame_yes, inf_frame_no);
+	} else {
+		inf_frame_go();
+	}
+}
+
 static void inf_event(lv_obj_t* obj, lv_event_t event) {
 	if(event != LV_EVENT_RELEASED) return;
 	for(int i = 0; i < IB_COUNT; i++) {
@@ -378,6 +407,7 @@ static void inf_event(lv_obj_t* obj, lv_event_t event) {
 			case IB_SPEED: event_handler_speed(); break;
 			case IB_PROBE: set_knife(); break;
 			case IB_AIR:   set_cooling(obj, event); break;
+			case IB_FRAME: inf_frame_start(); break;
 			case IB_START: event_handler_sure(); break;
 			case IB_BACK:
 				// atras: a la lista de archivos (antes iba al menu principal)
@@ -428,6 +458,9 @@ void mks_draw_inFile(char *fn) {
 	move_page.label_xpos = label_for_text(pos_strip, move_page.label_xpos, pos_strip, -153, 0, LV_ALIGN_CENTER, "X:0");
 	move_page.label_ypos = label_for_text(pos_strip, move_page.label_ypos, pos_strip, 0, 0, LV_ALIGN_CENTER, "Y:0");
 	move_page.label_zpos = label_for_text(pos_strip, move_page.label_zpos, pos_strip, 153, 0, LV_ALIGN_CENTER, "Z:0");
+	lv_label_set_style(move_page.label_xpos, LV_LABEL_STYLE_MAIN, &inf_text_style);
+	lv_label_set_style(move_page.label_ypos, LV_LABEL_STYLE_MAIN, &inf_text_style);
+	lv_label_set_style(move_page.label_zpos, LV_LABEL_STYLE_MAIN, &inf_text_style);
 
 	// cruceta XY: la tecla del centro pone el cero de X e Y en la posicion actual
 	inf_mkbtn(IB_UP,    82,  68, 68, 52, LV_SYMBOL_UP,    &inf_sym_style, &inf_btn_style);
@@ -457,9 +490,10 @@ void mks_draw_inFile(char *fn) {
 	else                                        lv_label_set_text(move_page.label_speed, mc_language.speed_high);
 
 	// fila inferior: aire, cero de los tres ejes y el boton grande de iniciar
-	inf_mkbtn(IB_AIR,   8, 244, 100, 68, inf_T("Aire", "Air", "M8"), &inf_text_style, &inf_btn_style);
-	inf_mkbtn(IB_XYZ0, 114, 244, 100, 68, "XYZ=0", &inf_text_style, &inf_btn_style);
-	lv_obj_t* go = inf_mkbtn(IB_START, 220, 244, 252, 68, mc_language.start, &inf_dark_style, &inf_start_style);
+	inf_mkbtn(IB_AIR,    8, 244,  78, 68, inf_T("Aire", "Air", "M8"), &inf_text_style, &inf_btn_style);
+	inf_mkbtn(IB_XYZ0,  92, 244,  78, 68, "XYZ=0", &inf_text_style, &inf_btn_style);
+	inf_mkbtn(IB_FRAME, 176, 244, 78, 68, mc_language.frame, &inf_text_style, &inf_btn_style);
+	lv_obj_t* go = inf_mkbtn(IB_START, 260, 244, 212, 68, mc_language.start, &inf_dark_style, &inf_start_style);
 	lv_btn_set_style(go, LV_BTN_STYLE_PR, &inf_btn_pr_style);
 
 	mks_ui_page.mks_ui_page = MKS_UI_inFile;

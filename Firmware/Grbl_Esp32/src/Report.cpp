@@ -49,6 +49,7 @@
 #include "Grbl.h"
 #include <map>
 #include "mks/MKS_draw_print.h"
+#include "mks/MKS_TS35.h"
 
 #ifdef REPORT_HEAP
 EspClass esp;
@@ -224,6 +225,7 @@ void report_status_message(Error status_code, uint8_t client) {
                     // don't close file
                     SD_ready_next = true;  // flag so system_execute_line() will send the next line
                 } else {
+                    ts35_beep_play(BEEP_ERROR);
                     grbl_notifyf("SD print error", "Error:%d during SD file at line: %d", status_code, sd_get_current_line_number());
                     grbl_sendf(CLIENT_ALL, "error:%d in SD file at line %d\r\n", status_code, sd_get_current_line_number());
                     closeFile();
@@ -244,6 +246,9 @@ void report_status_message(Error status_code, uint8_t client) {
 
 // Prints alarm messages.
 void report_alarm_message(ExecAlarm alarm_code) {
+    if (alarm_code != ExecAlarm::AbortCycle) {   // el paro pedido por el usuario (Ctrl-X) no suena como alarma
+        ts35_beep_play(BEEP_ALARM);
+    }
     grbl_sendf(CLIENT_ALL, "ALARM:%d\r\n", static_cast<int>(alarm_code));  // OK to send to all clients
     delay_ms(500);                                                         // Force delay to ensure message clears serial write buffer.
 }
