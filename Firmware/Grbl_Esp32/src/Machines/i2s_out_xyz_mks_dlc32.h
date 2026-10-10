@@ -20,7 +20,6 @@
     along with Grbl_ESP32.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// #define USE_BOARD_V2_0
 
 #define USE_LCD_DMA
 
@@ -33,10 +32,14 @@
 // #define USE_BL_TOUCH
 
 #define MACHINE_NAME                "MKS DLC32"
-#ifdef USE_BOARD_V2_0
-    #define BOARD_NAME              "Board:MKS DLC32 V2.1"
-#else 
-    #define BOARD_NAME              "Board:MKS LTS V1.1"
+// Perfil de placa (solo lo que cambia entre placas: pines del laser y de la sonda, y el nombre).
+//   BOARD_PROFILE_DLC32_V2 -> boards/dlc32_v2.h  (MKS DLC32 V2.x, EXPERIMENTAL)
+//   (sin definir)          -> boards/lts_v1_1.h  (MKS LTS V1.1 de la TTS-55 PRO, PROBADO)
+// USE_BOARD_V2_0 se mantiene como alias antiguo de BOARD_PROFILE_DLC32_V2.
+#if defined(BOARD_PROFILE_DLC32_V2) || defined(USE_BOARD_V2_0)
+#    include "boards/dlc32_v2.h"
+#else
+#    include "boards/lts_v1_1.h"
 #endif
 
 #define FW_NAME                     "V1.0(DLC32.8M.20261001)"
@@ -93,13 +96,7 @@
 // false, sin importar $32). LightBurn y similares generan M4, asi que se usa la subclase
 // Laser, cuyo inLaserMode() si lee $32; con $32=0 se comporta como un husillo PWM normal.
 #define SPINDLE_TYPE                SpindleType::LASER
-#ifdef USE_BOARD_V2_0
-#define SPINDLE_OUTPUT_PIN          GPIO_NUM_32
-#define LASER_OUTPUT_PIN            GPIO_NUM_32
-#else
-#define SPINDLE_OUTPUT_PIN          GPIO_NUM_22
-#define LASER_OUTPUT_PIN            GPIO_NUM_22
-#endif
+// SPINDLE_OUTPUT_PIN y LASER_OUTPUT_PIN: ver el perfil de placa (boards/)
 
 #define X_LIMIT_PIN                 GPIO_NUM_36
 #define Y_LIMIT_PIN                 GPIO_NUM_35
@@ -108,11 +105,7 @@
 #define Z_LIMIT_PIN                 GPIO_NUM_34
 #endif
 
-#ifdef USE_BOARD_V2_0
-#define PROBE_PIN                   GPIO_NUM_22    
-#else
-#define PROBE_PIN                   GPIO_NUM_2    
-#endif
+// PROBE_PIN: ver el perfil de placa (boards/)
 
 #define LCD_SCK				        GPIO_NUM_18
 #define LCD_MISO				    GPIO_NUM_19
@@ -198,7 +191,7 @@
 #define DEFAULT_Y_MAX_TRAVEL 300.0 // mm  $131: area real de la maquina
 #define DEFAULT_Z_MAX_TRAVEL 80.0 // mm   $132
 
-#define DEFAULT_SPINDLE_FREQ        1000    // Hz  $33: PWM del laser
+#define DEFAULT_SPINDLE_FREQ        1000    // Hz  $28: PWM del laser
 #define DEFAULT_LASER_FULL_POWER    1000
 #define DEFAULT_SPINDLE_MAX_VALUE   1000    
 #define DEFAULT_SPINDLE_MIN_VALUE   0

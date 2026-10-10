@@ -176,7 +176,7 @@
 #endif
 
 #ifndef DEFAULT_SPINDLE_FREQ
-#    define DEFAULT_SPINDLE_FREQ 5000.0  // $33 Hz (extended set)
+#    define DEFAULT_SPINDLE_FREQ 5000.0  // Hz ($28 en este fork de MKS; $33 en Grbl_ESP32 original)
 #endif
 
 #ifndef DEFAULT_SPINDLE_OFF_VALUE

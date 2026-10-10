@@ -262,9 +262,9 @@ Los ajustes viven en la memoria no volátil (NVS) y **sobreviven a un reflasheo*
 
 | Ajuste | Valor de fábrica | Qué es |
 |---|---|---|
+| `$28` | 1000 Hz | **Frecuencia PWM del láser** |
 | `$30` / `$31` | 1000 / 0 | Potencia máxima y mínima (S1000 = 100 %) |
 | `$32` | 1 | **Modo láser** |
-| `$33` | 1000 Hz | Frecuencia PWM del láser |
 | `$38` | 1 | Pitido al tocar la pantalla |
 | `$39` | 1 | **Sonidos de alerta** (fin de trabajo, error, alarma) |
 | `$40` | 1 | Idioma del LCD: 0 中文 · 1 English · 3 Español |

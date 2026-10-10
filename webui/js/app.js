@@ -1184,7 +1184,7 @@
     "30": { name: "Velocidad máxima de spindle", unit: "RPM", desc: "Velocidad máxima. PWM al 100%.", cat: "laser" },
     "31": { name: "Velocidad mínima de spindle", unit: "RPM", desc: "Velocidad mínima. PWM al 0.4%.", cat: "laser" },
     "32": { name: "Modo láser", unit: "booleano", desc: "Comandos G1/2/3 consecutivos no se detienen al cambiar potencia.", cat: "laser" },
-    "33": { name: "Frecuencia PWM del spindle", unit: "% (float)", desc: "Frecuencia PWM (requiere reinicio).", cat: "laser" },
+    "28": { name: "Frecuencia PWM del spindle", unit: "Hz", desc: "Frecuencia PWM (requiere reinicio).", cat: "laser" },
     "34": { name: "Valor PWM apagado", unit: "% (float)", desc: "Valor PWM cuando está apagado (requiere reinicio).", cat: "laser" },
     "35": { name: "Valor PWM mínimo", unit: "% (float)", desc: "Valor PWM mínimo (requiere reinicio).", cat: "laser" },
     "36": { name: "Valor PWM máximo", unit: "% (float)", desc: "Valor PWM máximo (requiere reinicio).", cat: "laser" },
