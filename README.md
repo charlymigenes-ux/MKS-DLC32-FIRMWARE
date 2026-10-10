@@ -1,8 +1,10 @@
 <div align="center">
 
-# MKS DLC32 · Firmware abierto para láser y CNC
+# M+X · Firmware abierto para láser y CNC
 
 **Grbl_ESP32 con interfaz web propia y pantalla táctil rediseñada, en español, inglés y chino**
+
+<sub>Basado en el firmware de las placas MKS DLC32 de Makerbase</sub>
 
 [![Licencia GPLv3](https://img.shields.io/badge/licencia-GPLv3-2de0a7?style=for-the-badge)](LICENSE)
 [![ESP32](https://img.shields.io/badge/ESP32-Grbl__ESP32-1f2333?style=for-the-badge&logo=espressif&logoColor=2de0a7)](https://github.com/bdring/Grbl_Esp32)
@@ -403,7 +405,7 @@ En modo láser (`$32=1`) un `M3 S…` suelto no enciende mientras el modo de mov
 
 Este proyecto se apoya en el trabajo de otros:
 
-- [**MKS DLC32** (Makerbase)](https://github.com/makerbase-mks/MKS-DLC32-FIRMWARE): el firmware original en el que se basa esta versión.
+- [**MKS DLC32** (Makerbase)](https://github.com/makerbase-mks/MKS-DLC32-FIRMWARE): el firmware original en el que se basa M+X.
 - [**Grbl_ESP32**](https://github.com/bdring/Grbl_Esp32): núcleo de control de movimiento para ESP32.
 - [**Grbl**](https://github.com/gnea/grbl): intérprete de G-code y planificador originales.
 - [**LVGL**](https://lvgl.io): biblioteca gráfica de la pantalla táctil.

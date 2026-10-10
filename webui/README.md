@@ -1,4 +1,4 @@
-# WebUI para MKS DLC32
+# WebUI de M+X
 
 Interfaz web propia que reemplaza a la WebUI original de ESP3D en el DLC32.
 Se sirve desde SPIFFS del ESP32; el firmware la entrega comprimida.

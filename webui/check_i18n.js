@@ -30,7 +30,7 @@ var SKIP = new Set([
   "0-255", "0..3", "%", "% (float)", "float", "X", "Y", "MX", "MY",
   "Z+", "Z-", "F (Feed)", "S (Spindle/Light)", "MPos", "WPos",
   "$40=0", "$40=1", "$40=2", "$40=3", "→", "—", "⇩", "⌖", "▲", "▼", "✎",
-  "中文", "Deutsch", "English", "MKS DLC32", "MKS DLC32 - ESP32-WEB", "ESP32-WEB",
+  "中文", "Deutsch", "English", "MKS DLC32", "MKS DLC32 - ESP32-WEB", "M+X", "M+X - ESP32-WEB", "ESP32-WEB",
   "MKS DLC32 Firmware", "MKS DLC32 (Makerbase)", "Grbl_ESP32", "Grbl", "LVGL",
   "GNU General Public License v3",
   "Control", "Autoscroll", "OFF", "ON", "Macro 1", "Macro 2", "Macro 3",

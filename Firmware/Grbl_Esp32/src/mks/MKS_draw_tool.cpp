@@ -436,7 +436,7 @@ static void tool_build_panel(int sec) {
         if (strncmp(board, "Board:", 6) == 0) board += 6;
         tool_row(0, T("Placa", "Board"), T("Modelo de la placa", "Board model"), board, NULL, NULL);
 
-        // FW_NAME = "V1.0(DLC32.8M.20261001)": la version en la pastilla y la compilacion debajo
+        // FW_NAME = "V1.0(M+X.8M.20261001)": la version en la pastilla y la compilacion debajo
         char ver[24] = "", build[40] = "";
         const char* open = strchr(FW_NAME, '(');
         if (open != NULL) {
@@ -486,7 +486,7 @@ static void tool_build_panel(int sec) {
         tool_row(2, "ID", T("Identificador del chip", "Chip identifier"), tool_buf[2], NULL, NULL);
     }
     else {  // SEC_ABOUT
-        tool_panel_head(tool_section_title(sec), "MKS DLC32 Firmware");
+        tool_panel_head(tool_section_title(sec), "M+X");
         tool_row(0, T("Licencia", "License"), T("Software libre", "Free software"), "GPL v3", NULL, NULL);
         tool_row(1, T("Basado en", "Based on"), "Grbl_ESP32 | LVGL", "MKS", NULL, NULL);
         lv_obj_t* url = lv_label_create(tool_panel, NULL);

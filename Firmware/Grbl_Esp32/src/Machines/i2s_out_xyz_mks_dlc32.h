@@ -42,7 +42,7 @@
 #    include "boards/lts_v1_1.h"
 #endif
 
-#define FW_NAME                     "V1.0(DLC32.8M.20261001)"
+#define FW_NAME                     "V1.0(M+X.8M.20261001)"
 
 
 #ifdef N_AXIS

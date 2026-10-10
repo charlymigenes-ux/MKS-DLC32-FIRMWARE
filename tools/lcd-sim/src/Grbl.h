@@ -10,7 +10,7 @@
 
 #define MAX_N_AXIS 3
 #define BOARD_NAME "Board:MKS LTS V1.1"
-#define FW_NAME "V1.0(DLC32.8M.20261001)"
+#define FW_NAME "V1.0(M+X.8M.20261001)"
 
 // ---- Config.h: limites de los overrides
 namespace FeedOverride { const int Default = 100, Max = 200, Min = 10, CoarseIncrement = 10, FineIncrement = 1; }

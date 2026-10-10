@@ -55,7 +55,7 @@ var I18N_EN = {
   "Contraer panel": "Collapse panel",
   "Expandir panel": "Expand panel",
   "ACERCA DE": "ABOUT",
-  "Firmware Grbl_ESP32 para la controladora MKS DLC32, con interfaz web integrada y pantalla táctil. Pensado para láser y CNC de uso general.": "Grbl_ESP32 firmware for the MKS DLC32 controller, with a built-in web interface and touchscreen. Designed for general-purpose laser and CNC machines.",
+  "M+X es un firmware Grbl_ESP32 para controladoras MKS DLC32 y compatibles, con interfaz web integrada y pantalla táctil. Pensado para láser y CNC de uso general.": "M+X is a Grbl_ESP32 firmware for MKS DLC32 and compatible controllers, with a built-in web interface and touchscreen. Designed for general-purpose laser and CNC machines.",
   "Destino": "Target",
   "Nombre de host": "Hostname",
   "Dirección IP": "IP address",

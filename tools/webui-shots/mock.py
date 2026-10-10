@@ -12,7 +12,7 @@ CLIENTS = set()
 LOOP = None
 MPOS = (125.4, 87.0, 0.0)
 SETTINGS = {0: "10", 1: "25", 2: "0", 3: "2", 4: "0", 5: "1", 6: "0", 10: "1", 11: "0.010", 12: "0.002", 13: "0",
-            20: "0", 21: "1", 22: "1", 23: "3", 24: "300.000", 25: "3000.000", 26: "250", 27: "2.000",
+            20: "0", 21: "1", 22: "1", 23: "3", 24: "300.000", 25: "3000.000", 26: "250", 27: "2.000", 28: "1000.000",
             30: "1000.000", 31: "0.000", 32: "1", 33: "1000.000", 34: "0.000", 35: "0.000", 36: "1000.000",
             38: "1", 39: "1", 40: "3", 100: "80.000", 101: "80.000", 102: "80.000", 110: "10000.000", 111: "10000.000",
             112: "8000.000", 120: "500.000", 121: "500.000", 122: "500.000", 130: "300.000", 131: "300.000", 132: "80.000"}
@@ -20,12 +20,12 @@ FILES = [("virgenRosas75x130.gc", "8.28 MB"), ("guadaclasica75x130.gc", "5.18 MB
          ("trescruces75x130.gc", "2.58 MB"), ("Sagrado75x130INV.gc", "2.75 MB"), ("CristoCloseUp130x75.gc", "1.27 MB"),
          ("teponiña202x270.gc", "24.54 MB"), ("efelante120x120.gc", "247.46 KB"), ("buda120x120.gc", "196.38 KB"),
          ("CirsCruz_120x120.gc", "1.43 MB"), ("logo_taller.gc", "47.10 KB"), ("prueba_linea.gc", "1.00 KB")]
-BANNER = ["Grbl 1.1h ['$' for help]", "[MSG:Using machine:MKS DLC32]", "[MSG:Start mDNS with hostname:http://mks-dlc32.local/]",
+BANNER = ["Grbl 1.1h ['$' for help]", "[MSG:Using machine:MKS DLC32]", "[MSG:Start mDNS with hostname:http://mx-laser.local/]",
           "[MSG:Connected - IP is 192.168.0.61]", "ok"]
 
 def esp800():
     return ("FW version:1.1 (20261001) # FW target:grbl-embedded  # FW HW:Direct SD  # primary sd:/sd # secondary sd:none # "
-            "authentication:no # webcommunication: Sync: 81:192.168.0.61 # hostname:mks-dlc32 # axis:3")
+            "authentication:no # webcommunication: Sync: 81:192.168.0.61 # hostname:mx-laser # axis:3")
 
 def gcode():
     # rosa polar de 7 petalos con pasos pequenos: una figura reconocible en la vista previa
@@ -72,7 +72,7 @@ INJECT_TAIL = """<script>(function(){var q=new URLSearchParams(location.search);
   if(v==='sdfile'){setTimeout(function(){var r=document.querySelector('#sd-table-body tr:nth-child(4)');if(r)r.click();
    setTimeout(function(){var p=document.getElementById('sd-preview-load-btn');if(p)p.click();},300);},500);}
  var ip=document.getElementById('pill-ip');if(ip)ip.textContent='IP 192.168.0.61';var a=document.getElementById('about-ip');if(a)a.textContent='192.168.0.61';
- },700);setTimeout(function(){var ip=document.getElementById('pill-ip');if(ip)ip.textContent='IP 192.168.0.61';var a=document.getElementById('about-ip');if(a)a.textContent='192.168.0.61';},1800);})();</script>"""
+ },1800);setTimeout(function(){var ip=document.getElementById('pill-ip');if(ip)ip.textContent='IP 192.168.0.61';var a=document.getElementById('about-ip');if(a)a.textContent='192.168.0.61';},1800);})();</script>"""
 
 class H(http.server.BaseHTTPRequestHandler):
     def log_message(self, *a): pass
