@@ -2,7 +2,7 @@
 
 # M+X · Firmware abierto para láser y CNC
 
-**Grbl_ESP32 con interfaz web propia y pantalla táctil rediseñada, en español, inglés y chino**
+**Grbl_ESP32 con interfaz web propia y pantalla táctil rediseñada, en español, inglés, portugués y chino**
 
 <sub>Basado en el firmware de las placas MKS DLC32 de Makerbase</sub>
 
@@ -62,13 +62,15 @@
 
 ### 🖐️ Pantalla táctil rediseñada
 - Estilo oscuro con esmeralda, **480×320**, botones grandes
-- **Español, inglés y chino** (con tildes y ñ)
+- **Español, inglés, portugués (Brasil) y chino** (con tildes, ñ y ç)
 - Pantalla principal con **reloj por NTP** y coordenadas de trabajo/origen
 - **Lista de la SD paginada** (`1/N`), circular, que abre el archivo al tocarlo
 - **Marco** del trabajo con aviso para archivos grandes
 - **Trabajo en curso** con tres diales: velocidad, potencia y rápido
 - Herramientas: Wifi, idioma, **Beeper**, placa y acerca de
 - Salta sola a la pantalla de trabajo si lo lanzas desde la web
+- **Arranque** de 4 s con la versión en la esquina; **mantener pulsado** el logo muestra un **QR del repositorio** (tocarlo continúa)
+- El reloj solo aparece cuando hay hora (por red); sin hora no se ve nada raro
 
 </td>
 <td width="50%" valign="top">
@@ -79,7 +81,11 @@
 - **Parámetros** con catálogo, copia de seguridad, exportar/importar
 - Ajuste en vivo de **velocidad y potencia** (10 %–200 %)
 - **Tema claro/oscuro**, panel lateral contraíble, tamaño de texto
-- **Español, inglés y chino**
+- **Español, inglés, portugués y chino**
+- **Vista previa** del grabado al elegir un archivo (en la pantalla y en la web), sin pulsar nada más; se guarda para no recalcularla
+- **Carpetas** en la SD: contador de archivos y carpetas, navegar, crear, renombrar y eliminar
+- **Pasadas**: al elegir un archivo se indica cuántas veces se repite (1 a 99)
+- La lista de la SD llena la pantalla, hace scroll y deja siempre a la vista la **capacidad de la tarjeta**
 - **Actualiza la propia WebUI** desde el navegador, sin cable
 
 </td>
@@ -121,20 +127,20 @@ Todas las capturas las genera el [simulador](#-simulador-del-lcd-y-capturas) con
 </tr>
 <tr>
 <td align="center"><img src="docs/pantallas/es/04_sd_pagina1.png" width="300"><br><sub><b>Archivos SD</b><br>páginas circulares <code>1/3</code></sub></td>
-<td align="center"><img src="docs/pantallas/es/07_archivo.png" width="300"><br><sub><b>Archivo elegido</b><br>posicionar, marco e iniciar</sub></td>
+<td align="center"><img src="docs/pantallas/es/07b_vista_previa.png" width="300"><br><sub><b>Archivo elegido</b><br>vista previa del grabado, datos e Iniciar</sub></td>
+<td align="center"><img src="docs/pantallas/es/07_archivo.png" width="300"><br><sub><b>Posicionar</b><br>mover, cero, marco e iniciar</sub></td>
 <td align="center"><img src="docs/pantallas/es/14_trabajo.png" width="300"><br><sub><b>Trabajo en curso</b><br>tres diales y progreso</sub></td>
 </tr>
 <tr>
-<td align="center"><img src="docs/pantallas/es/10_idioma.png" width="300"><br><sub><b>Idioma</b><br>chino · inglés · alemán* · español</sub></td>
+<td align="center"><img src="docs/pantallas/es/10_idioma.png" width="300"><br><sub><b>Idioma</b><br>chino · inglés · portugués · español</sub></td>
 <td align="center"><img src="docs/pantallas/es/11_beeper.png" width="300"><br><sub><b>Beeper</b><br>al tocar y alertas</sub></td>
 <td align="center"><img src="docs/pantallas/es/12_placa.png" width="300"><br><sub><b>Placa</b><br>chip, flash y versión</sub></td>
 </tr>
 </table>
 
-<sub>* El alemán muestra los textos en inglés: el firmware solo trae textos en inglés, español y chino.</sub>
 
 <details>
-<summary><b>Ver todas las pantallas en inglés y en chino</b></summary>
+<summary><b>Ver todas las pantallas en inglés, portugués y chino</b></summary>
 
 <br>
 
@@ -150,6 +156,21 @@ Todas las capturas las genera el [simulador](#-simulador-del-lcd-y-capturas) con
 <td><img src="docs/pantallas/en/07_archivo.png" width="260"></td>
 <td><img src="docs/pantallas/en/14_trabajo.png" width="260"></td>
 <td><img src="docs/pantallas/en/11_beeper.png" width="260"></td>
+</tr>
+</table>
+
+**Português**
+
+<table>
+<tr>
+<td><img src="docs/pantallas/pt/01_principal.png" width="260"></td>
+<td><img src="docs/pantallas/pt/02_control.png" width="260"></td>
+<td><img src="docs/pantallas/pt/04_sd_pagina1.png" width="260"></td>
+</tr>
+<tr>
+<td><img src="docs/pantallas/pt/07_archivo.png" width="260"></td>
+<td><img src="docs/pantallas/pt/14_trabajo.png" width="260"></td>
+<td><img src="docs/pantallas/pt/11_beeper.png" width="260"></td>
 </tr>
 </table>
 
@@ -179,7 +200,12 @@ Todas las capturas las genera el [simulador](#-simulador-del-lcd-y-capturas) con
 <tr>
 <td><img src="docs/pantallas/es/05_sd_pagina2.png" width="260"><br><sub>SD, página 2</sub></td>
 <td><img src="docs/pantallas/es/09_wifi.png" width="260"><br><sub>Wifi</sub></td>
-<td><img src="docs/pantallas/es/13_acerca.png" width="260"><br><sub>Acerca de</sub></td>
+<td><img src="docs/pantallas/es/13_acerca.png" width="260"><br><sub>Acerca de (el enlace abre el QR)</sub></td>
+</tr>
+<tr>
+<td><img src="docs/pantallas/es/00b_arranque_qr.png" width="260"><br><sub>Arranque: mantener pulsado = QR</sub></td>
+<td><img src="docs/pantallas/es/13b_acerca_qr.png" width="260"><br><sub>QR desde «Acerca de»</sub></td>
+<td><img src="docs/pantallas/es/01b_principal_sin_hora.png" width="260"><br><sub>Principal sin hora (sin reloj)</sub></td>
 </tr>
 </table>
 
@@ -190,7 +216,8 @@ Todas las capturas las genera el [simulador](#-simulador-del-lcd-y-capturas) con
 1. **Elegir y lanzar un archivo:** *Tallado* → toca el archivo (se abre solo) → coloca el cabezal con la cruceta → **Marco** (opcional) → **Iniciar**.
 2. **Encender el láser a mano** (para enfocar): en *Control* pulsa **Láser** y elige 5 / 30 / 70 %. El popup queda abierto para cambiar la potencia o apagar con **0 %**; **Atrás** lo apaga y cierra.
 3. **Páginas de la SD:** **Subir** y **Siguiente** son circulares: desde la página 1, *Subir* salta a la última.
-4. **Ceros y sonda:** *Cero XY*, *Cero Z* y *Cero XYZ* fijan el origen de trabajo en la posición actual (⚠️ no mueven nada). *Sonda Z* usa el palpador de la placa.
+4. **Arranque y QR:** el logo se ve 4 s. Si lo mantienes pulsado, al soltar aparece el QR del repositorio y el arranque espera; tocar el QR continúa. Lo mismo desde *Herramientas → Acerca de* pulsando el enlace.
+5. **Ceros y sonda:** *Cero XY*, *Cero Z* y *Cero XYZ* fijan el origen de trabajo en la posición actual (⚠️ no mueven nada). *Sonda Z* usa el palpador de la placa.
 
 ---
 
@@ -220,7 +247,7 @@ internet ni dependencias externas. Entra a `http://<ip-de-la-placa>/`.
 | Vista | Qué permite |
 |---|---|
 | **Control** | Estado en vivo (X/Y/Z, máquina y trabajo), jog con rueda y Z±, distancia y velocidad, **Origen**/**Posición**, modo **Láser/CNC** (`$32`), láser fijo con OFF/5/25/50/100 %, **consola** con filtro, modo verboso y tres macros configurables, **overrides** de velocidad y potencia de 10 % a 200 % |
-| **Archivos SD** | Lista con búsqueda y orden, subida múltiple con progreso, **vista previa** (dimensiones, recorrido, puntos), **Iniciar / Pausar / Detener**, **Encuadrar**, descargar, renombrar y eliminar, actividad reciente |
+| **Archivos SD** | Lista que ocupa toda la altura, con búsqueda y orden, subida múltiple con progreso, la capacidad de la SD siempre visible, **vista previa** (dimensiones, recorrido, puntos), **pasadas** (1–99), **Iniciar / Pausar / Detener**, **Encuadrar**, descargar, renombrar y eliminar, actividad reciente |
 | **Parámetros** | Catálogo de `$` por categorías con descripción y unidad, búsqueda, **Guardar con respaldo automático**, restaurar, exportar/importar, valores por defecto (`$RST=$`) y resumen de cambios pendientes |
 | **Idioma** | Idioma de la interfaz (se guarda en el navegador) e idioma de la pantalla LCD (`$40`) |
 | **Acerca de** | Versión y datos de la placa, **Actualizar WebUI**, instrucciones y créditos |
@@ -254,7 +281,7 @@ Se activan con **`$39`** (*Herramientas → Beeper → Alertas*). El pitido al t
 | Español | ✅ `3` | ✅ |
 | English | ✅ `1` | ✅ |
 | 中文 | ✅ `0` (131 caracteres de la fuente) | ✅ |
-| Deutsch | muestra inglés | — |
+| Português (Brasil) | ✅ `2` | ✅ |
 
 ---
 
@@ -275,6 +302,8 @@ Los ajustes viven en la memoria no volátil (NVS) y **sobreviven a un reflasheo*
 | `$120`–`$122` | 500 | Aceleración (mm/s²) |
 | `$130`–`$132` | 300 / 300 / 80 | Recorrido máximo (mm) |
 | `$21`, `$22` | 1, 1 | Límites duros y homing activados |
+
+**Comando propio para las pasadas** (lo usa la WebUI; también sirve desde la consola): `$SD/Passes=N` y, justo después, `$SD/Run=archivo`. Si no se manda `$SD/Passes`, el archivo corre una sola vez.
 
 > Los valores de fábrica están calibrados para una máquina de **300 × 300 mm con finales de carrera**. Ajústalos a la tuya.
 
@@ -317,7 +346,7 @@ Si la interfaz dejara de abrir, entra en `http://<ip>/?index=yes`: la placa mues
 
 ## 🖼️ Imagen de inicio
 
-La imagen que se ve al encender (**PNG de 480×320**) va dentro del firmware. Se convierte con una herramienta sin dependencias:
+La imagen que se ve al encender (**PNG de 480×320**) va dentro del firmware (hoy es el logo de M+X). Se convierte con una herramienta sin dependencias:
 
 ```bash
 python3 tools/png2lvgl.py logo.png      # reemplaza Firmware/Grbl_Esp32/src/lv_pic/mks_logo.c
