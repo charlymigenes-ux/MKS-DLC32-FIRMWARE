@@ -183,6 +183,7 @@ boolean closeFile() {
     set_sd_state(SDState::Idle);
     SD_ready_next          = false;
     sd_current_line_number = 0;
+    mks_grbl.carve_times   = 0;   // un trabajo detenido a medias no deja pasadas pendientes para el siguiente
     myFile.close();
     SD.end();
     return true;

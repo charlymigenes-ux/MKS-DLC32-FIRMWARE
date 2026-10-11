@@ -12,4 +12,5 @@ void disp_task_init(void);
 void disp_task_data_updata(void);
 
 void frame_task_init(void );
+void frame_task_ensure(void);   // crea la tarea del marco si no existe (se borra sola al terminar)
 #endif

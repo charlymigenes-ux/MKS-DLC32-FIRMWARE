@@ -1,4 +1,5 @@
 #include "MKS_draw_tool.h"
+#include "MKS_draw_qr.h"
 #include "MKS_draw_language.h"   // mc_language: textos del LCD
 #include "../WebUI/WifiConfig.h"
 
@@ -21,7 +22,8 @@ lv_obj_t *about_src1;
 #define COL_EMERALD  LV_COLOR_MAKE(0x2D, 0xE0, 0xA7)
 #define COL_MUTED    LV_COLOR_MAKE(0x9A, 0xA3, 0xC0)
 
-enum { SEC_BACK, SEC_TOOL, SEC_WIFI, SEC_LANG, SEC_BEEP, SEC_BOARD, SEC_ABOUT, SEC_COUNT };
+// El orden del menu lateral es el de este enum (SEC_BACK siempre primero).
+enum { SEC_BACK, SEC_WIFI, SEC_BEEP, SEC_LANG, SEC_TOOL, SEC_BOARD, SEC_ABOUT, SEC_COUNT };
 
 #define TOOL_SIDE_X     6
 #define TOOL_SIDE_Y     38
@@ -52,6 +54,7 @@ static lv_obj_t* tool_alert_val = NULL;
 static int       tool_section = SEC_TOOL;
 static int       tool_last_section = SEC_TOOL;   // se reabre al volver de las pantallas de Wifi
 static lv_obj_t* tool_lang_row[4];
+static lv_style_t tool_tile_sel_style;   // idioma activo: borde esmeralda
 static int       tool_wifi_state = TOOL_WIFI_SUMMARY;
 static int       tool_wifi_page = 0;
 static lv_style_t tool_cjk_style;
@@ -64,7 +67,7 @@ static bool tool_beep_on = false;
 static bool tool_alert_on = false;   // $39: sonidos de alerta
 
 // Texto segun el idioma de la pantalla (espanol / resto en ingles)
-static const char* T(const char* es, const char* en) { return mks_grbl.language == Espanol ? es : en; }
+static const char* T(const char* es, const char* en) { return mks_tr(es, en); }
 // Con chino: solo los titulos principales (los demas textos de esta pantalla quedan en ingles)
 static const char* TC(const char* es, const char* en, const char* ch) {
     return mks_grbl.language == SimpleChinese ? ch : T(es, en);
@@ -82,6 +85,15 @@ static const char* tool_section_title(int sec) {
     }
 }
 
+#define TOOL_REPO_URL "github.com/charlymigenes-ux/MKS-DLC32-FIRMWARE"
+static lv_style_t tool_link_style;
+
+static void tool_url_event(lv_obj_t* obj, lv_event_t event) {
+    if (event == LV_EVENT_RELEASED) {
+        mks_qr_popup(TOOL_REPO_URL, T("Toca para cerrar", "Tap to close"), NULL);
+    }
+}
+
 static void tool_go_back(void) {
     tool_last_section = SEC_TOOL;   // la proxima vez que se entre desde el menu, empieza en Herramienta
 #if defined(ENABLE_WIFI)
@@ -94,6 +106,9 @@ static void tool_go_back(void) {
 }
 
 static void tool_styles_init(void) {
+    lv_style_copy(&tool_link_style, &lv_style_plain);        // enlace: esmeralda, como el resto de acentos
+    tool_link_style.text.font  = mc_font();
+    tool_link_style.text.color = COL_EMERALD;
     lv_style_copy(&tool_side_rel_style, &lv_style_plain_color);
     tool_side_rel_style.body.main_color   = COL_SIDE;
     tool_side_rel_style.body.grad_color   = COL_SIDE;
@@ -122,6 +137,10 @@ static void tool_styles_init(void) {
     tool_row_pr_style.body.main_color = COL_TRACK;
     tool_row_pr_style.body.grad_color = COL_TRACK;
     lv_style_copy(&tool_row_info_style, &tool_row_rel_style);
+    lv_style_copy(&tool_tile_sel_style, &tool_row_rel_style);
+    tool_tile_sel_style.body.border.width = 2;
+    tool_tile_sel_style.body.border.color = COL_EMERALD;
+    tool_tile_sel_style.body.border.opa   = LV_OPA_COVER;
 
     lv_style_copy(&tool_pill_style, &lv_style_plain_color);
     tool_pill_style.body.main_color   = LV_COLOR_MAKE(0x1E, 0x3A, 0x5F);
@@ -240,14 +259,14 @@ static int tool_language_index(void) {
     switch (mks_grbl.language) {
         case SimpleChinese: return 0;
         case English:       return 1;
-        case Deutsch:       return 2;
+        case Portugues:       return 2;
         default:            return 3;
     }
 }
 
 static void tool_lang_event(lv_obj_t* obj, lv_event_t event) {
     if (event != LV_EVENT_RELEASED) return;
-    static const GRBL_Language langs[4] = { SimpleChinese, English, Deutsch, Espanol };
+    static const GRBL_Language langs[4] = { SimpleChinese, English, Portugues, Espanol };
     for (int i = 0; i < 4; i++) {
         if (obj != tool_lang_row[i]) continue;
         if (i == tool_language_index()) return;   // ya es el idioma activo
@@ -454,12 +473,29 @@ static void tool_build_panel(int sec) {
     }
     else if (sec == SEC_LANG) {
         tool_panel_head(tool_section_title(sec), T("Idioma de la pantalla ($40)", "Screen language ($40)"));
-        static const char* native[4] = { "\xe4\xb8\xad\xe6\x96\x87", "English", "Deutsch", "Espa\xc3\xb1ol" };
+        static const char* native[4] = { "\xe4\xb8\xad\xe6\x96\x87", "English", "Portugu\xc3\xaas", "Espa\xc3\xb1ol" };
         static const char* codes[4]  = { "$40=0", "$40=1", "$40=2", "$40=3" };
         int cur = tool_language_index();
+        // Mosaico 2x2: nombre grande y, debajo, el comando; el del idioma activo va en verde y con borde.
+        const int tw = (TOOL_ROW_W - 10) / 2, th = 92;
         for (int i = 0; i < 4; i++) {
-            if (i == 0) tool_row_title_style = &tool_cjk_style;
-            tool_lang_row[i] = tool_row(i, native[i], codes[i], i == cur ? T("Activo", "Active") : T("Elegir", "Select"), tool_lang_event, NULL);
+            const bool on = (i == cur);
+            lv_obj_t* tile = lv_btn_create(tool_panel, NULL);
+            lv_btn_set_style(tile, LV_BTN_STYLE_REL, on ? &tool_tile_sel_style : &tool_row_rel_style);
+            lv_btn_set_style(tile, LV_BTN_STYLE_PR, on ? &tool_tile_sel_style : &tool_row_pr_style);
+            lv_obj_set_event_cb(tile, tool_lang_event);
+            lv_cont_set_layout(tile, LV_LAYOUT_OFF);
+            lv_obj_set_size(tile, tw, th);
+            lv_obj_set_pos(tile, TOOL_ROW_X + (i % 2) * (tw + 10), 62 + (i / 2) * (th + 10));
+            lv_obj_t* name = lv_label_create(tile, NULL);
+            lv_label_set_style(name, LV_LABEL_STYLE_MAIN, i == 0 ? &tool_cjk_style : &tool_text_style);   // 22 px no trae Latin-1 (ê, ñ)
+            lv_label_set_text(name, native[i]);
+            lv_obj_align(name, tile, LV_ALIGN_CENTER, 0, -14);
+            lv_obj_t* code = lv_label_create(tile, NULL);
+            lv_label_set_style(code, LV_LABEL_STYLE_MAIN, on ? &tool_ok_style : &tool_muted_style);
+            lv_label_set_text(code, codes[i]);
+            lv_obj_align(code, tile, LV_ALIGN_CENTER, 0, 20);
+            tool_lang_row[i] = tile;
         }
     }
     else if (sec == SEC_WIFI) {
@@ -490,18 +526,24 @@ static void tool_build_panel(int sec) {
         tool_row(0, T("Licencia", "License"), T("Software libre", "Free software"), "GPL v3", NULL, NULL);
         tool_row(1, T("Basado en", "Based on"), "Grbl_ESP32 | LVGL", "MKS", NULL, NULL);
         lv_obj_t* url = lv_label_create(tool_panel, NULL);
-        lv_label_set_style(url, LV_LABEL_STYLE_MAIN, &tool_muted_style);
+        lv_label_set_style(url, LV_LABEL_STYLE_MAIN, &tool_link_style);
         lv_label_set_long_mode(url, LV_LABEL_LONG_BREAK);
         lv_obj_set_width(url, TOOL_ROW_W);
-        lv_label_set_text(url, "github.com/charlymigenes-ux/MKS-DLC32-FIRMWARE");
+        lv_label_set_text(url, TOOL_REPO_URL);
+        lv_obj_set_click(url, true);                       // pulsarlo abre el QR del repositorio
+        lv_obj_set_event_cb(url, tool_url_event);
         lv_obj_set_pos(url, 14, TOOL_ROW_Y0 + 2 * TOOL_ROW_STEP + 4);
+        lv_obj_t* qrhint = lv_label_create(tool_panel, NULL);
+        lv_label_set_style(qrhint, LV_LABEL_STYLE_MAIN, &tool_muted_style);
+        lv_label_set_text(qrhint, T("Toca el enlace para ver el QR", "Tap the link to see the QR"));
+        lv_obj_set_pos(qrhint, 14, TOOL_ROW_Y0 + 2 * TOOL_ROW_STEP + 60);
     }
 }
 
 static void tool_select(int sec) {
     tool_section = sec;
     tool_last_section = sec;
-    for (int i = SEC_TOOL; i < SEC_COUNT; i++) {
+    for (int i = SEC_BACK + 1; i < SEC_COUNT; i++) {   // todas menos "Atras"
         bool on = (i == sec);
         lv_btn_set_style(tool_side_btn[i], LV_BTN_STYLE_REL, on ? &tool_side_sel_style : &tool_side_rel_style);
         lv_btn_set_style(tool_side_btn[i], LV_BTN_STYLE_PR, on ? &tool_side_sel_style : &tool_side_pr_style);

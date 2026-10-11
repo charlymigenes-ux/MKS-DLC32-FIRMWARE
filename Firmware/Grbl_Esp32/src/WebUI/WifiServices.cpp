@@ -110,12 +110,15 @@ namespace WebUI {
             }
         }
 #    endif
+        MEMLOG("WiFi: antes de web_server");
 #    ifdef ENABLE_HTTP
         web_server.begin();
 #    endif
+        MEMLOG("WiFi: tras web_server");
 #    ifdef ENABLE_TELNET
         telnet_server.begin();
 #    endif
+        MEMLOG("WiFi: tras telnet");
 #    ifdef ENABLE_NOTIFICATIONS
         notificationsservice.begin();
 #    endif

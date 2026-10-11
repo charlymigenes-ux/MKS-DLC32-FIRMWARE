@@ -29,7 +29,7 @@ typedef enum {
 typedef enum {
     SimpleChinese,
     English,
-    Deutsch,
+    Portugues,   // $40=2: portugues de Brasil (language_pt.h)
     Espanol,   // $40=3: español (language_es.h). Debe ir el ultimo: el valor
                // del enum es el numero de $40 (ver mks_grbl_parg_init y el
                // refresco periodico de MKS_FREERTOS_TASK.cpp).
@@ -110,6 +110,7 @@ typedef enum {
     MKS_UI_inFile,  // 打开文件后的界面
     MKS_UI_UPDATA,  // 配置文件更新界面
     MKS_UI_LANGUAGE,    // 语言设置界面
+    MKS_UI_FileView,    // vista previa del archivo elegido
     MKS_UI_TEST,    // 测试模式的页面
 }mks_ui_page_t;
 

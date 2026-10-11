@@ -1,5 +1,6 @@
 #include "MKS_draw_frame.h"
 #include "MKS_draw_language.h"   // mc_language: textos del LCD
+#include "MKS_FREERTOS_TASK.h"
 #include "../WebUI/WebSettings.h"
 #include "../WebUI/ESPResponse.h"
 #include "../SDCard.h"
@@ -65,6 +66,7 @@ void mks_draw_frame(void) {
     frame_ctrl.current_file_size = mks_file_list.file_size[mks_file_list.file_choose]; 
 
     // 发送信号量通知线程进入巡边
+    frame_task_ensure();     // la tarea solo existe mientras se usa
     sem_give = xSemaphoreGive(is_fram_need);
 
     if(sem_give == pdTRUE) {

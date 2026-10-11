@@ -21,6 +21,8 @@
 */
 
 #include "../Grbl.h"
+#include "../mks/MKS_FREERTOS_TASK.h"   // lv_disp_tcb: para medir la pila de la tarea de pantalla
+#include "lvgl.h"
 
 #include <WiFi.h>
 #include <FS.h>
@@ -30,6 +32,7 @@
 
 #include "ESPResponse.h"
 #include "WebServer.h"
+#include "../mks/MKS_LVGL.h"   // mks_grbl.carve_times (pasadas de un trabajo de la SD)
 #include <string.h>
 
 namespace WebUI {
@@ -229,7 +232,12 @@ namespace WebUI {
 
     static Error showFwInfo(char* parameter, AuthenticationLevel auth_level) {  // ESP800
         webPrint("FW version:");
-        webPrint(GRBL_VERSION);
+        {
+            // version propia (FW_NAME antes del parentesis), no la del protocolo Grbl
+            const char* open = strchr(FW_NAME, '(');
+            String      ver  = open ? String(FW_NAME).substring(0, open - FW_NAME) : String(FW_NAME);
+            webPrint(ver.c_str());
+        }
         webPrint(" (");
         webPrint(GRBL_VERSION_BUILD);
         webPrint(")"
@@ -426,6 +434,22 @@ namespace WebUI {
         webPrintln("CPU Frequency: ", String(ESP.getCpuFreqMHz()) + "Mhz");
         webPrintln("CPU Temperature: ", String(temperatureRead(), 1) + "C");
         webPrintln("Free memory: ", ESPResponseStream::formatBytes(ESP.getFreeHeap()));
+        {   // memoria interna: total, libre, minimo historico y mayor bloque contiguo
+            multi_heap_info_t hi;
+            heap_caps_get_info(&hi, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+            webPrintln("Heap total: ", String(hi.total_free_bytes + hi.total_allocated_bytes));
+            webPrintln("Heap used: ", String(hi.total_allocated_bytes));
+            webPrintln("Heap min free: ", String(hi.minimum_free_bytes));
+            webPrintln("Heap largest block: ", String(hi.largest_free_block));
+            if (lv_disp_tcb) webPrintln("Task lvgl stack_free_min: ", String((unsigned)uxTaskGetStackHighWaterMark(lv_disp_tcb)));
+            webPrintln("Task loop stack_free_min: ", String((unsigned)uxTaskGetStackHighWaterMark(NULL)));
+            webPrintln("Task clientCheck stack_free_min: ", String((unsigned)client_task_stack_free()));
+            if (frame_task_tcb) webPrintln("Task frame stack_free_min: ", String((unsigned)uxTaskGetStackHighWaterMark(frame_task_tcb)));
+            lv_mem_monitor_t lvm;
+            lv_mem_monitor(&lvm);   // pool de LVGL: total, usado y mayor bloque libre
+            webPrintln("LVGL pool: ", String((unsigned)lvm.total_size) + " used=" + String((unsigned)(lvm.total_size - lvm.free_size)) +
+                                          " max_used=" + String((unsigned)lvm.used_pct) + "% largest_free=" + String((unsigned)lvm.free_biggest_size));
+        }
         webPrintln("SDK: ", ESP.getSdkVersion());
         webPrintln("Board Version: ", String(BOARD_NAME).substring(6));   // sin el prefijo "Board:"
         webPrintln("Firmware: ", FW_NAME);
@@ -720,8 +744,24 @@ namespace WebUI {
         return Error::Ok;
     }
 
+    // Pasadas pedidas desde la WebUI para el PROXIMO $SD/Run (la LCD las pone en mks_grbl.carve_times antes).
+    // La WebUI manda siempre "$SD/Passes=N" y "$SD/Run=archivo" en la misma peticion, en ese orden.
+    static uint8_t sd_passes_pending = 0;
+
+    static Error setSDPasses(char* parameter, AuthenticationLevel auth_level) {  // ESP222
+        int n = atoi(trim(parameter));
+        if (n < 1 || n > 99) {
+            webPrintln("Passes must be 1..99");
+            return Error::InvalidValue;
+        }
+        sd_passes_pending = (uint8_t)n;
+        return Error::Ok;
+    }
+
     static Error runSDFile(char* parameter, AuthenticationLevel auth_level) {  // ESP220
-        Error err;
+        Error   err;
+        uint8_t passes    = sd_passes_pending;   // se consumen SIEMPRE: si este Run se rechaza, no quedan para el siguiente
+        sd_passes_pending = 0;
         if (sys.state == State::Alarm) {
             webPrintln("Alarm");
             return Error::IdleError;
@@ -739,6 +779,9 @@ namespace WebUI {
             closeFile();
             webPrintln("");
             return Error::Ok;
+        }
+        if (passes > 0) {                              // pasadas pedidas por la WebUI
+            mks_grbl.carve_times = passes;
         }
         SD_client     = (espresponse) ? espresponse->client() : CLIENT_ALL;
         SD_auth_level = auth_level;
@@ -1086,6 +1129,7 @@ namespace WebUI {
 #ifdef ENABLE_SD_CARD
         new WebCommand("path", WEBCMD, WU, "ESP221", "SD/Show", showSDFile);
         new WebCommand("path", WEBCMD, WU, "ESP220", "SD/Run", runSDFile);
+        new WebCommand("passes", WEBCMD, WU, "ESP222", "SD/Passes", setSDPasses);
         new WebCommand("file_or_directory_path", WEBCMD, WU, "ESP215", "SD/Delete", deleteSDObject);
         new WebCommand(NULL, WEBCMD, WU, "ESP210", "SD/List", listSDFiles);
 #endif

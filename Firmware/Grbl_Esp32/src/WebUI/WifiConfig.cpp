@@ -317,7 +317,9 @@ namespace WebUI {
             WiFi.softAPdisconnect();
         }
         WiFi.enableAP(false);
+        MEMLOG("WiFi: antes de WiFi.mode(STA)");
         WiFi.mode(WIFI_STA);
+        MEMLOG("WiFi: tras WiFi.mode(STA)");
         //Get parameters for STA
         String h = wifi_hostname->get();
         WiFi.setHostname(h.c_str());
@@ -382,7 +384,9 @@ namespace WebUI {
             IPAddress ip(IP), mask(MK), gateway(GW);
             WiFi.config(ip, gateway, mask);
         }
+        MEMLOG("WiFi: antes de WiFi.begin");
         if (WiFi.begin(SSID.c_str(), (password.length() > 0) ? password.c_str() : NULL)) {
+            MEMLOG("WiFi: tras WiFi.begin");
             return mks_ConnectSTA2AP();
         } else {
             grbl_send(CLIENT_ALL, "[MSG:Starting client failed]\r\n");

@@ -578,7 +578,7 @@ static lv_style_t hdr_btn_style, hdr_btn_pr_style, hdr_icon_style, hdr_cap_style
 static bool       hdr_styles_ready = false;
 
 static const char* hdr_T(const char* es, const char* en, const char* zh) {
-	return mks_grbl.language == SimpleChinese ? zh : (mks_grbl.language == Espanol ? es : en);
+	return mks_grbl.language == SimpleChinese ? zh : mks_tr(es, en);
 }
 
 static void hdr_styles_init(void) {

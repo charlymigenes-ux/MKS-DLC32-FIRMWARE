@@ -22,6 +22,8 @@
 
 #include "stdint.h"
 
+uint32_t client_task_stack_free(void);
+
 #ifndef RX_BUFFER_SIZE
 #    define RX_BUFFER_SIZE 256
 #endif

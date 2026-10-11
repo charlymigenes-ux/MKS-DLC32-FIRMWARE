@@ -47,6 +47,7 @@ void grbl_init() {
     diag_boot_t0     = esp_timer_get_time();
 #endif  // ENABLE_JOB_DIAG
 
+    MEMLOG("grbl_init: inicio");
     pinMode(LCD_EN, OUTPUT);
     
     LCD_BLK_OFF;
@@ -54,22 +55,29 @@ void grbl_init() {
 #ifdef USE_I2S_OUT
     i2s_out_init();  // The I2S out must be initialized before it can access the expanded GPIO port
 #endif
+    MEMLOG("tras i2s_out_init");
     WiFi.persistent(false);
     WiFi.disconnect(true);
     WiFi.enableSTA(false);
     WiFi.enableAP(false);
     WiFi.mode(WIFI_OFF);
+    MEMLOG("tras WiFi apagado");
     client_init();  // Setup serial baud rate and interrupts
+    MEMLOG("tras client_init");
     display_init();
 
 // show the map name at startup
 #ifdef MACHINE_NAME
     // report_machine_type(CLIENT_SERIAL);
 #endif
+    MEMLOG("tras display_init");
     settings_init();  // Load Grbl settings from non-volatile storage
+    MEMLOG("tras settings_init");
     stepper_init();   // Configure stepper pins and interrupt timers
+    MEMLOG("tras stepper_init");
     system_ini();     // Configure pinout pins and pin-change interrupt (Renamed due to conflict with esp32 files)
     init_motors();
+    MEMLOG("tras init_motors");
     memset(sys_position, 0, sizeof(sys_position));  // Clear machine position.
     machine_init();                                 // weak definition in Grbl.cpp does nothing
     // Initialize system state.
@@ -99,6 +107,7 @@ void grbl_init() {
     WebUI::bt_config.begin();
 #endif
     WebUI::inputBuffer.begin();
+    MEMLOG("fin de grbl_init");
 }
 
 void phy_init_reinit(void) {
@@ -132,12 +141,20 @@ void reset_mc_config(void) {
 
 void _mc_task_init(void) {
 
+    MEMLOG("_mc_task_init: inicio");
     mks_grbl_parg_init();
+    MEMLOG("tras mks_grbl_parg_init");
     ts35_beep_init();
+    MEMLOG("tras ts35_beep_init");
     bsp_led_init();
+    MEMLOG("tras bsp_led_init");
     tft_TS35_init();
+    MEMLOG("tras tft_TS35_init (LCD)");
     test_cfg_find_init();
+    MEMLOG("tras test_cfg_find_init (SD)");
+    MEMLOG("antes de crear tarea LVGL");
     disp_task_init();
+    MEMLOG("tras crear tarea LVGL");
 }
 
 

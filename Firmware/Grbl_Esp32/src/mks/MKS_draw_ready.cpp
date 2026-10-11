@@ -85,7 +85,8 @@ LV_IMG_DECLARE(png_tile_ctrl);    // glifos blancos con alfa: toman el degradado
 LV_IMG_DECLARE(png_tile_carve);
 LV_IMG_DECLARE(png_tile_tool);
 
-static lv_obj_t *rd_time_lbl, *rd_date_lbl, *rd_wday_lbl;
+static lv_obj_t *rd_time_lbl, *rd_date_lbl, *rd_wday_lbl, *rd_sep_obj;
+static bool      rd_clock_shown = false;
 static lv_style_t rd_clock_style, rd_sep_style;
 static lv_style_t rd_card_style, rd_text_style, rd_muted_style, rd_tile_style[3], rd_tile_pr_style[3];
 
@@ -165,11 +166,18 @@ void mks_draw_ready(void) {
     // hora, fecha y dia (por NTP cuando hay Wifi; sin sincronizar se ve --:--) y Wifi a la derecha
     rd_time_lbl = rd_label(bar, "--:--", 12, 10, &rd_clock_style);
     lv_obj_t* sep = lv_obj_create(bar, NULL);
+    rd_sep_obj = sep;
     lv_obj_set_size(sep, 2, 26);
     lv_obj_set_pos(sep, 86, 9);
     lv_obj_set_style(sep, &rd_sep_style);
     rd_date_lbl = rd_label(bar, "--/--/----", 100, 12, &rd_text_style);
     rd_wday_lbl = rd_label(bar, "", 200, 12, &rd_muted_style);
+    // sin hora sincronizada (sin red/NTP) no se muestra nada: ni "--:--" ni la fecha; aparecen al tener hora
+    rd_clock_shown = false;
+    lv_obj_set_hidden(rd_time_lbl, true);
+    lv_obj_set_hidden(rd_date_lbl, true);
+    lv_obj_set_hidden(rd_wday_lbl, true);
+    lv_obj_set_hidden(rd_sep_obj, true);
     ready_src.ready_imgbtn_wifi_status = lv_img_create(bar, NULL);
     lv_img_set_src(ready_src.ready_imgbtn_wifi_status, wifi_on ? &png_wifi_connect : &png_wifi_disconnect);
     lv_obj_set_pos(ready_src.ready_imgbtn_wifi_status, 262, 7);
@@ -248,12 +256,20 @@ static void rd_clock_update(void) {
     struct tm t;
     localtime_r(&now, &t);
     static const char* wd_es[7] = { "Dom", "Lun", "Mar", "Mi\xc3\xa9", "Jue", "Vie", "S\xc3\xa1" "b" };
+    static const char* wd_pt[7] = { "Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "S\xc3\xa1" "b" };
     static const char* wd_en[7] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
     snprintf(tbuf, sizeof(tbuf), "%02d:%02d", t.tm_hour, t.tm_min);
     snprintf(dbuf, sizeof(dbuf), "%02d/%02d/%04d", t.tm_mday, t.tm_mon + 1, t.tm_year + 1900);
+    if (!rd_clock_shown) {
+        rd_clock_shown = true;
+        lv_obj_set_hidden(rd_time_lbl, false);
+        lv_obj_set_hidden(rd_date_lbl, false);
+        lv_obj_set_hidden(rd_wday_lbl, false);
+        lv_obj_set_hidden(rd_sep_obj, false);
+    }
     lv_label_set_text(rd_time_lbl, tbuf);
     lv_label_set_text(rd_date_lbl, dbuf);
-    lv_label_set_text(rd_wday_lbl, mks_grbl.language == Espanol ? wd_es[t.tm_wday] : wd_en[t.tm_wday]);
+    lv_label_set_text(rd_wday_lbl, mks_grbl.language == Espanol ? wd_es[t.tm_wday] : (mks_grbl.language == Portugues ? wd_pt[t.tm_wday] : wd_en[t.tm_wday]));
 }
 
 void ready_data_updata(void) {

@@ -67,6 +67,10 @@
 portMUX_TYPE myMutex = portMUX_INITIALIZER_UNLOCKED;
 
 static TaskHandle_t clientCheckTaskHandle = 0;
+// bytes de pila que nunca se han usado en la tarea de entrada (para ajustar su tamano); 0 si no existe
+uint32_t client_task_stack_free(void) {
+    return clientCheckTaskHandle ? (uint32_t)uxTaskGetStackHighWaterMark(clientCheckTaskHandle) : 0;
+}
 
 WebUI::InputBuffer client_buffer[CLIENT_COUNT];  // create a buffer for each client
 
@@ -121,7 +125,7 @@ void client_init() {
     // after WebUI attaches.
     xTaskCreatePinnedToCore(clientCheckTask,    // task
                             "clientCheckTask",  // name for task
-                            4096*2,               // size of task stack
+                            4096*2,               // pila (se intento 6144 midiendo en reposo; no se toca sin medir bajo carga)
                             NULL,               // parameters
                             3,                  // priority
                             &clientCheckTaskHandle,

@@ -1,6 +1,74 @@
 #include "MKS_draw_language.h"
+#include <string.h>
 
 mc_lg_muilt_t mc_language;
+
+// Textos sueltos de las paginas (los que no estan en language_es.h): la clave es el texto en
+// espanol tal como lo escriben los T()/hdr_T()/... de cada pagina. Sin entrada, el portugues
+// cae al ingles.
+static const struct { const char* es; const char* pt; } mks_pt_table[] = {
+	{ "Acerca de", "Sobre" },
+	{ "Activo", "Ativo" },
+	{ "Al tocar", "Ao tocar" },
+	{ "Alertas", "Alertas" },
+	{ "Basado en", "Baseado em" },
+	{ "Buscando redes", "Buscando redes" },
+	{ "Buscar redes", "Buscar redes" },
+	{ "Cerrar la conexión actual", "Encerrar a conexão atual" },
+	{ "Conectando", "Conectando" },
+	{ "Conexión de la red", "Conexão de rede" },
+	{ "Datos del microcontrolador", "Dados do microcontrolador" },
+	{ "Desconectando", "Desconectando" },
+	{ "Desconectar", "Desconectar" },
+	{ "Elegir", "Escolher" },
+	{ "Elige una red", "Escolha uma rede" },
+	{ "Fin de trabajo, error y alarma", "Fim do trabalho, erro e alarme" },
+	{ "Identificador del chip", "Identificador do chip" },
+	{ "Idioma de la pantalla ($40)", "Idioma da tela ($40)" },
+	{ "Información del sistema y del hardware", "Informações do sistema e do hardware" },
+	{ "Intensidad de la señal", "Intensidade do sinal" },
+	{ "Licencia", "Licença" },
+	{ "Memoria del programa", "Memória do programa" },
+	{ "Modelo de la placa", "Modelo da placa" },
+	{ "No disponible en esta compilación", "Indisponível nesta compilação" },
+	{ "No se encontraron redes", "Nenhuma rede encontrada" },
+	{ "Pitido al tocar la pantalla", "Bipe ao tocar na tela" },
+	{ "Placa", "Placa" },
+	{ "Procesador", "Processador" },
+	{ "Red", "Rede" },
+	{ "Redes disponibles", "Redes disponíveis" },
+	{ "Reloj y temperatura", "Relógio e temperatura" },
+	{ "Señal", "Sinal" },
+	{ "Sin conexión", "Sem conexão" },
+	{ "Software libre", "Software livre" },
+	{ "Sonido al tocar y alertas", "Som ao tocar e alertas" },
+	{ "Toca el enlace para ver el QR", "Toque no link para ver o QR" },
+	{ "Toca para cerrar", "Toque para fechar" },
+	{ "Versión instalada", "Versão instalada" },
+	{ "Toca el QR para continuar", "Toque no QR para continuar" },
+	{ "Archivos SD", "Arquivos SD" },
+	{ "Aire", "Ar" },
+	{ "Sonda Z", "Sonda Z" },
+	{ "Cero XY", "Zero XY" },
+	{ "Cero XYZ", "Zero XYZ" },
+	{ "Cero Z", "Zero Z" },
+	{ "Más", "Mais" },
+	{ "Menos", "Menos" },
+	{ "Red: ", "Rede: " },
+	{ "Herramienta", "Ferramenta" },
+	{ "Configuraci\xc3\xb3n", "Configura\xc3\xa7\xc3\xb5" "es" },
+	{ "Señal: ", "Sinal: " },
+};
+
+const char* mks_tr(const char* es, const char* en) {
+	if(mks_grbl.language == Espanol) return es;
+	if(mks_grbl.language == Portugues) {
+		for(size_t i = 0; i < sizeof(mks_pt_table) / sizeof(mks_pt_table[0]); i++) {
+			if(strcmp(es, mks_pt_table[i].es) == 0) return mks_pt_table[i].pt;
+		}
+	}
+	return en;
+}
 LANGUAGE_PAGE_T language_page;
 
 // Carga en mc_language las cadenas que van a usar los labels del LCD.
@@ -10,7 +78,7 @@ LANGUAGE_PAGE_T language_page;
 //
 // Corregido (bug original): aqui ponia "=" (asignacion) y no "==", asi que
 // esta funcion cargaba SIEMPRE ingles y ademas pisaba mks_grbl.language.
-// El aleman no tiene fichero propio: comparte las cadenas EN (si no, los punteros
+// El portugues tiene language_pt.h. El ingles se usa tambien como respaldo (si no, los punteros
 // quedarian NULL y las etiquetas se quedarian con el "Text" por defecto de LVGL).
 // El chino (language_ch.h) se aplica encima del ingles al final de mc_language_init().
 // Chino simplificado: se aplica sobre el ingles (los textos que la fuente no puede escribir se
@@ -158,6 +226,15 @@ static void mc_language_apply_mode(void) {
 		mc_language.feed_rate_fmt = FEED_RATE_FMT_LASER_ES;
 		mc_language.gauge_feed = GAUGE_FEED_LASER_ES;
 		mc_language.job_feed_real = JOB_FEED_REAL_LASER_ES;
+	} else if(mks_grbl.language == Portugues) {
+		mc_language.spindle = SPINDLE_LASER_PT;
+		mc_language.spindle_speed = SPINDLE_SPEED_LASER_PT;
+		mc_language.spindle_speed_fmt = SPINDLE_SPEED_FMT_LASER_PT;
+		mc_language.gauge_spindle = GAUGE_SPINDLE_LASER_PT;
+		mc_language.feed_rate = FEED_RATE_LASER_PT;
+		mc_language.feed_rate_fmt = FEED_RATE_FMT_LASER_PT;
+		mc_language.gauge_feed = GAUGE_FEED_LASER_PT;
+		mc_language.job_feed_real = JOB_FEED_REAL_LASER_PT;
 	} else {
 		mc_language.spindle = SPINDLE_LASER_EN;
 		mc_language.spindle_speed = SPINDLE_SPEED_LASER_EN;
@@ -294,7 +371,129 @@ void mc_language_init(void) {
 		mc_language.cpu_temp = CPU_TEMP_ES;
 		mc_language.test_warning = TEST_WARNING_ES;
 
-	} else {  // SimpleChinese / English / Deutsch -> cadenas EN
+	} else if(mks_grbl.language == Portugues) {
+
+		mc_language.back = BACK_PT;
+		mc_language.yes = YES_PT;
+		mc_language.no = NO_PT;
+
+		mc_language.control = CONTROL_PT;
+		mc_language.sculpture = SCULPTURE_PT;
+		mc_language.tool = TOOL_PT;
+		mc_language.Mpos = MPOS_PT;
+		mc_language.Wpos = WPOS_PT;
+		mc_language.wifi_connect = WIFI_CONNECT_PT;
+		mc_language.wifi_disconnect = WIFI_DISCONNECT_PT;
+
+		mc_language.xy_clear = XY_CLEAR_PT;
+		mc_language.z_clear = Z_CLEAR_PT;
+		mc_language.knife = KNIFE_PT;
+		mc_language.next = NEXT_PT;
+		mc_language.up = UP_PT;
+		mc_language.cooling = COOLING_PT;
+		mc_language.position = POSITION_PT;
+		mc_language.speed_high = SPEED_HIGH_PT;
+		mc_language.speed_mid = SPEED_MID_PT;
+		mc_language.speed_low = SPEED_LOW_PT;
+		mc_language.spindle = SPINDLE_PT;
+		mc_language.carve = CARVE_PT;
+
+		mc_language.dis_no_sd_card = DIS_NO_SDCARD_PT;
+
+		mc_language.hold = HOLD_PT;
+		mc_language.cycle = CYCLE_PT;
+		mc_language.stop = STOP_PT;
+		mc_language.adjust = ADJUST_PT;
+		mc_language.spindle_speed = SPINDLE_SPPED_PT;
+		mc_language.feed_rate = FEED_RATE_PT;
+		mc_language.rapid_speed = RAPID_SPEED_PT;
+		mc_language.carve_times = CARVE_TIMES_PT;
+
+		mc_language.dis_stop_print = DIS_STOP_CARVE_PT;
+		mc_language.dis_homing = DIS_HOMEING_PT;
+		mc_language.dis_no_hard_homing = DIS_NO_HARD_HOME_PT;
+		mc_language.dis_homing_succeed = DIS_HOME_SUCCEED_PT;
+		mc_language.dis_homing_fail = DIS_HOME_FAIL_PT;
+		mc_language.dis_probe_set = DIS_PROBE_SET_PT;
+		mc_language.dis_probe_succeed = DIS_PROBE_SECCEED_PT;
+		mc_language.dis_probe_fail = DIS_PROBE_FAIL_PT;
+
+		/* botones y popups */
+		mc_language.cancel = CANCEL_PT;
+		mc_language.frame = FRAME_PT;
+		mc_language.carve_file_sure = CARVE_FILE_SURE_PT;
+		mc_language.pause = PAUSE_PT;
+		mc_language.start = START_PT;
+		mc_language.confirm = CONFIRM_PT;
+		mc_language.add = ADD_PT;
+		mc_language.reduce = REDUCE_PT;
+		mc_language.exit = EXIT_PT;
+		mc_language.language = LANGUAGE_PT;
+		mc_language.scanf = SCANF_PT;
+		mc_language.reconnect = RECONNECT_PT;
+		mc_language.connect = CONNECT_PT;
+		mc_language.password = PASSWORD_PT;
+		mc_language.z_home = Z_HOME_PT;
+		mc_language.update_title = UPDATE_TITLE_PT;
+
+		/* avisos y mensajes */
+		mc_language.dis_info = INFO_PT;
+		mc_language.dis_warning = WARNING_PT;
+		mc_language.dis_error = ERROR_PT;
+		mc_language.dis_pos_succeed = DIS_POS_SUCCEED_PT;
+		mc_language.dis_wait_mc_stop = DIS_WAIT_MC_STOP_PT;
+		mc_language.dis_unlock = DIS_UNLOCK_PT;
+		mc_language.dis_unlock_success = UNLOCK_SUCCESS_PT;
+		mc_language.dis_setting_error = SETTING_ERROR_PT;
+		mc_language.dis_set_6_1 = SET_6_1_PT;
+		mc_language.dis_wait_idle = WAIT_IDLE_PT;
+		mc_language.dis_file_too_big = FILE_TOO_BIG_PT;
+		mc_language.dis_continue_sure = CONTINUE_SURE_PT;
+		mc_language.dis_file_loading = FILE_LOADING_PT;
+		mc_language.dis_loading_file = LOADING_FILE_PT;
+		mc_language.dis_sd_busy = SD_BUSY_PT;
+		mc_language.dis_running = RUNNING_PT;
+		mc_language.dis_print_stop_sure = PRINT_STOP_SURE_PT;
+		mc_language.dis_print_done = PRINT_DONE_PT;
+		mc_language.wifi_scanning = WIFI_SCANNING_PT;
+		mc_language.wifi_connecting = WIFI_CONNECTING_PT;
+		mc_language.wifi_disconnecting = WIFI_DISCONNECTING_PT;
+		mc_language.wifi_pwd_prompt = WIFI_PWD_PROMPT_PT;
+		mc_language.wifi_status_on = WIFI_STATUS_ON_PT;
+		mc_language.wifi_status_off = WIFI_STATUS_OFF_PT;
+		mc_language.dis_update_succeed = UPDATE_SUCCEED_PT;
+		mc_language.dis_update_restart = UPDATE_RESTART_PT;
+		mc_language.dis_update_fail = UPDATE_FAIL_PT;
+		mc_language.dis_update_fail_help = UPDATE_FAIL_HELP_PT;
+
+		/* formatos con %d */
+		mc_language.power_fmt = POWER_FMT_PT;
+		mc_language.speed_fmt = SPEED_FMT_PT;
+		mc_language.spindle_speed_fmt = SPINDLE_SPEED_FMT_PT;
+		mc_language.feed_rate_fmt = FEED_RATE_FMT_PT;
+		mc_language.rapid_fmt = RAPID_FMT_PT;
+		mc_language.gauge_feed = GAUGE_FEED_PT;
+		mc_language.gauge_spindle = GAUGE_SPINDLE_PT;
+		mc_language.gauge_rapid = GAUGE_RAPID_PT;
+		mc_language.job_elapsed = JOB_ELAPSED_PT;
+		mc_language.job_left = JOB_LEFT_PT;
+		mc_language.job_feed_real = JOB_FEED_REAL_PT;
+		mc_language.job_power_real = JOB_POWER_REAL_PT;
+		mc_language.resume = RESUME_PT;
+		mc_language.tool_board = TOOL_BOARD_PT;
+
+		/* pagina de pruebas */
+		mc_language.test_title = TESTING_PT;
+		mc_language.probe_check = PROBE_CHECK_PT;
+		mc_language.x_limit_check = X_LIMIT_CHECK_PT;
+		mc_language.y_limit_check = Y_LIMIT_CHECK_PT;
+		mc_language.z_limit_check = Z_LIMIT_CHECK_PT;
+		mc_language.sd_check = SD_CHECK_PT;
+		mc_language.i2c_check = I2C_CHECK_PT;
+		mc_language.cpu_temp = CPU_TEMP_PT;
+		mc_language.test_warning = TEST_WARNING_PT;
+
+	} else {  // SimpleChinese / English -> cadenas EN
 
 		mc_language.back = BACK_EN;
 		mc_language.yes = YES_EN;
@@ -427,7 +626,7 @@ enum {
 	ID_L_BACK,
 	ID_L_CN,
 	ID_L_EN,
-	ID_L_DE,
+	ID_L_PT,
 	ID_L_ES,
 };
 
@@ -436,7 +635,7 @@ static uint8_t get_event(lv_obj_t* obj) {
     if(obj == language_page.imgbtn_back)                		return ID_L_BACK;
     else if(obj == language_page.imgbtn_simple_cn)           	return ID_L_CN;
 	else if(obj == language_page.imgbtn_en)						return ID_L_EN;
-	else if(obj == language_page.imgbtn_de)						return ID_L_DE;
+	else if(obj == language_page.imgbtn_pt)						return ID_L_PT;
 	else if(obj == language_page.imgbtn_es)						return ID_L_ES;
 	return 255;  // sin coincidencia: el id basura podia mandar $40=2 (idioma)
 }
@@ -445,7 +644,7 @@ static uint8_t get_event(lv_obj_t* obj) {
  *	language num:
  *	0------cn
  *	1------en
- *	2------de
+ *	2------pt
  *	3------es
  */
 static void set_language(uint8_t language) {
@@ -461,7 +660,7 @@ static void set_language(uint8_t language) {
 		break;
 
 		case 2:
-			mks_grbl.language = Deutsch;
+			mks_grbl.language = Portugues;
 		break;
 
 		case 3:
@@ -481,8 +680,7 @@ static void enent_handler_back(void) {
 
 // Marca el boton del idioma activo. OJO: el puntero de estilo se guarda en el
 // objeto, asi que hay que pasar SIEMPRE &mks_global... (nunca una copia local).
-// imgbtn_de no se crea en draw_language(), por eso no se toca: pasarle NULL
-// hundiria el LVGL en lv_btn_set_style.
+// Si un boton no existe (NULL) se ignora: pasarle NULL hundiria el LVGL.
 static void language_btn_set_selected(lv_obj_t* btn, bool selected) {
 
 	if(btn == NULL) return;
@@ -497,14 +695,14 @@ void set_language_btn_style(uint8_t language) {
 
 	language_btn_set_selected(language_page.imgbtn_simple_cn, language == 0);
 	language_btn_set_selected(language_page.imgbtn_en,        language == 1);
+	language_btn_set_selected(language_page.imgbtn_pt,        language == 2);
 	language_btn_set_selected(language_page.imgbtn_es,        language == 3);
-	// language == 2 (Deutsch): sin boton en pantalla, ninguno destacado.
 }
 
 
 char str_language_ch[10] = "$40=0\n";
 char str_language_en[10] = "$40=1\n";
-char str_language_de[10] = "$40=2\n"; 
+char str_language_pt[10] = "$40=2\n"; 
 char str_language_es[10] = "$40=3\n";
 static void event_handler(lv_obj_t* obj, lv_event_t event) {
 
@@ -528,10 +726,10 @@ static void event_handler(lv_obj_t* obj, lv_event_t event) {
 				set_language_btn_style(1);
 				MKS_GRBL_CMD_SEND(str_language_en);
 			break;
-			case ID_L_DE: 
+			case ID_L_PT: 
 				set_language(2); 
 				set_language_btn_style(2);
-				MKS_GRBL_CMD_SEND(str_language_de);
+				MKS_GRBL_CMD_SEND(str_language_pt);
 			break;
 			case ID_L_ES:
 				set_language(3);
@@ -557,9 +755,11 @@ void draw_language(void) {
 
 	// Botones 130x50 en columna izquierda. La pantalla es 480x320 y la cabecera
 	// (about_src1) ocupa y=10..100, asi que caben las filas y=110, 170 y 230.
-	language_page.imgbtn_simple_cn = mks_lv_btn_set(mks_global.mks_src, language_page.imgbtn_simple_cn, 130, 50, 20, 110, event_handler);
-	language_page.imgbtn_en = mks_lv_btn_set(mks_global.mks_src, language_page.imgbtn_en, 130, 50, 20, 110 + 60, event_handler);
-	language_page.imgbtn_es = mks_lv_btn_set(mks_global.mks_src, language_page.imgbtn_es, 130, 50, 20, 110 + 120, event_handler);
+	// Cuatro filas de 42 px con paso de 48 (y=108..294).
+	language_page.imgbtn_simple_cn = mks_lv_btn_set(mks_global.mks_src, language_page.imgbtn_simple_cn, 130, 42, 20, 108, event_handler);
+	language_page.imgbtn_en = mks_lv_btn_set(mks_global.mks_src, language_page.imgbtn_en, 130, 42, 20, 108 + 48, event_handler);
+	language_page.imgbtn_pt = mks_lv_btn_set(mks_global.mks_src, language_page.imgbtn_pt, 130, 42, 20, 108 + 96, event_handler);
+	language_page.imgbtn_es = mks_lv_btn_set(mks_global.mks_src, language_page.imgbtn_es, 130, 42, 20, 108 + 144, event_handler);
 
 	language_num = language_select->get();
 
@@ -568,6 +768,7 @@ void draw_language(void) {
 	language_page.label_back = label_for_imgbtn_name(mks_global.mks_src, language_page.label_back, language_page.imgbtn_back, 0, 0, mc_language.back);
 	language_page.label_simple_cn = label_for_btn_name(language_page.imgbtn_simple_cn, language_page.label_simple_cn , 0, 0, "中文");
 	language_page.label_en = label_for_btn_name(language_page.imgbtn_en, language_page.label_en, 0, 0, "English");
+	language_page.label_pt = label_for_btn_name(language_page.imgbtn_pt, language_page.label_pt, 0, 0, "Portugu\xc3\xaas");
 	language_page.label_es = label_for_btn_name(language_page.imgbtn_es, language_page.label_es, 0, 0, "Español");
 	mks_ui_page.mks_ui_page = MKS_UI_LANGUAGE;
 }

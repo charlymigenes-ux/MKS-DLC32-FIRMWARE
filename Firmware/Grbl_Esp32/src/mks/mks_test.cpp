@@ -1,4 +1,5 @@
 #include "mks_test.h"
+#include "../SDCard.h"   // get_sd_state()
 #include "MKS_draw_language.h"   // mc_language: textos del LCD
 
 MKS_PAGE_TEST_T test_page;
@@ -256,6 +257,11 @@ void test_cfg_find_init(void) {
     }else {
 
     }
+
+    // tf.init() monta la SD con la configuracion por defecto de la libreria (~27 KB de RAM que nadie usa).
+    // get_sd_state(true) la desmonta y la vuelve a montar como hace el resto del firmware (2 ficheros, 40 MHz):
+    // es lo mismo que ya ocurria en el primer acceso a la SD, pero sin tener esos 27 KB retenidos desde el arranque.
+    get_sd_state(true);
 }
 
 

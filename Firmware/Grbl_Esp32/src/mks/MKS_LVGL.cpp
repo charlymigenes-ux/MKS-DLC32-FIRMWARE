@@ -23,7 +23,9 @@ void mks_lvgl_init(void) {
         static lv_color_t buf2_2[LV_HOR_RES_MAX * 20];                       
         lv_disp_buf_init(&disp_buf_2, buf2_1, buf2_2, LV_HOR_RES_MAX * 10);  
     */
+    MEMLOG("mks_lvgl_init: inicio");
     lv_init();
+    MEMLOG("tras lv_init (pool LVGL)");
     // lv_disp_buf_init(&disp_buf, bmp_public_buf, bmp_private_buf1, LV_BUF_SIZE); // Initialize the display buffer
     lv_disp_buf_init(&disp_buf, bmp_public_buf, NULL, LV_BUF_SIZE);  
 
@@ -41,6 +43,7 @@ void mks_lvgl_init(void) {
     indev_drv.type = LV_INDEV_TYPE_POINTER;
     indev_drv.read_cb = my_indev_touch;
     lv_indev_drv_register(&indev_drv);
+    MEMLOG("tras registrar display y tactil");
 }
 
 void my_disp_flush(lv_disp_drv_t * disp, const lv_area_t * area, lv_color_t * color_p) {
@@ -107,7 +110,7 @@ void mks_grbl_parg_init(void) {
 
     if(language_select->get() == 0) mks_grbl.language = SimpleChinese;
     else if(language_select->get() == 1) mks_grbl.language = English;
-    else if(language_select->get() == 2) mks_grbl.language = Deutsch;  // era "== 1": alemán inalcanzable
+    else if(language_select->get() == 2) mks_grbl.language = Portugues;  // portugués (language_pt.h)
     else if(language_select->get() == 3) mks_grbl.language = Espanol;  // español (language_es.h)
     // fuera de 0..3 no se toca: conserva el valor por defecto de mks_grbl
 

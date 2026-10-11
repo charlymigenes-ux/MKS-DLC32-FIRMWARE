@@ -29,6 +29,7 @@
 #    include "WebServer.h"
 #    include <WebSocketsServer.h>
 #    include <WiFi.h>
+#    include <esp_wifi.h>
 #    include <FS.h>
 #    include <SPIFFS.h>
 #    ifdef ENABLE_SD_CARD
@@ -299,20 +300,45 @@ namespace WebUI {
                     bool   done          = false;
                     _webserver->setContentLength(totalFileSize);
                     _webserver->send(200, contentType, "");
-                    uint8_t buf[1024];
+                    // Trozos de 8 KB (antes 1 KB con una pausa de un tick cada uno: ~100 KB/s como maximo).
+                    // Se cede la CPU una vez por trozo y se escribe solo lo leido (antes siempre 1024 bytes).
+                    // Con el ahorro de energia del WiFi (modem sleep) cada paquete espera al siguiente aviso del router:
+                    // mientras dura la descarga se desactiva y despues se restaura el modo que habia.
+                    wifi_ps_type_t old_ps = WIFI_PS_NONE;
+                    bool           ps_ok  = (esp_wifi_get_ps(&old_ps) == ESP_OK);
+                    if (ps_ok && old_ps != WIFI_PS_NONE) {
+                        esp_wifi_set_ps(WIFI_PS_NONE);
+                    }
+                    const size_t BUF_SIZE = 8192;
+                    uint8_t*     buf      = (uint8_t*)malloc(BUF_SIZE);
+                    size_t       bufsz    = BUF_SIZE;
+                    uint32_t     chunks   = 0;
+                    if (buf == NULL) {
+                        static uint8_t small[1024];
+                        buf   = small;
+                        bufsz = sizeof(small);
+                    }
                     while (!done) {
-                        vTaskDelay(1 / portTICK_RATE_MS);
-                        int v = datafile.read(buf, 1024);
+                        int v = datafile.read(buf, bufsz);
                         if ((v == -1) || (v == 0)) {
                             done = true;
                         } else {
-                            _webserver->client().write(buf, 1024);
+                            _webserver->client().write(buf, v);
                             i += v;
+                            if ((++chunks & 0x7) == 0) {
+                                vTaskDelay(1 / portTICK_RATE_MS);   // cede la CPU cada 64 KB, no en cada trozo
+                            }
                         }
 
                         if (i >= totalFileSize) {
                             done = true;
                         }
+                    }
+                    if (bufsz == BUF_SIZE) {
+                        free(buf);
+                    }
+                    if (ps_ok && old_ps != WIFI_PS_NONE) {
+                        esp_wifi_set_ps(old_ps);
                     }
                     datafile.close();
                     if (i != totalFileSize) {

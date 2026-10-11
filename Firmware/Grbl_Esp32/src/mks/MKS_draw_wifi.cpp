@@ -311,7 +311,7 @@ uint8_t wifi_div(int32_t rssi) {
 void mks_draw_wifi_kb(char *username) {
 
     char un_str[138];
-    snprintf(un_str, sizeof(un_str), "%s", mks_grbl.language == Espanol ? "Red: " : "Network: ");
+    snprintf(un_str, sizeof(un_str), "%s", mks_tr("Red: ", "Network: "));
     char rssi_str[138];
     uint8_t get_rssi = 0;
 
@@ -366,7 +366,7 @@ void mks_draw_wifi_kb(char *username) {
     strcat(un_str, username);
 
     get_rssi = wifi_div(mks_wifi.wifi_rssi[mks_wifi.wifi_choose]);
-    snprintf(rssi_str, sizeof(rssi_str), "%s%d%%", mks_grbl.language == Espanol ? "Se\xc3\xb1\x61l: " : "Signal: ", get_rssi);
+    snprintf(rssi_str, sizeof(rssi_str), "%s%d%%", mks_tr("Se\xc3\xb1\x61l: ", "Signal: "), get_rssi);
 
     wifi_src.wifi_label_username = mks_lvgl_long_sroll_label_with_wight_set_center(wifi_src.wifi_kb_src_1, wifi_src.wifi_label_username, 10, 5, un_str, 0);
     wifi_src.wifi_label_password = mks_lvgl_long_sroll_label_with_wight_set_center(wifi_src.wifi_kb_src_1, wifi_src.wifi_label_password, 10, 30,mc_language.password, 0);

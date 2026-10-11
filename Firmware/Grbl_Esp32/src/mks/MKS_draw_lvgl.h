@@ -22,6 +22,7 @@
 
 #include "language_en.h"
 #include "language_es.h"   // español ($40=3)
+#include "language_pt.h"   // portugués ($40=2)
 #include "language_ch.h"
 // #include "language_de.h"
 

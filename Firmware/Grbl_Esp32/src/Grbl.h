@@ -91,6 +91,23 @@ const char* const GRBL_VERSION_BUILD = "20261001";
 
 #include "I2SOut.h"
 
+// Diagnostico de memoria (apagado): compilar con -DENABLE_MEM_DIAG para que MEMLOG("etapa") escriba por el
+// puerto serie la memoria interna usada/libre/mayor bloque en cada etapa del arranque.
+#ifdef ENABLE_MEM_DIAG
+#    include "esp_heap_caps.h"
+#    include "rom/ets_sys.h"
+#    define MEMLOG(tag) \
+        do { \
+            multi_heap_info_t mhi; \
+            heap_caps_get_info(&mhi, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT); \
+            ets_printf("[mem] %-30s used=%6u free=%6u largest=%6u\r\n", tag, (unsigned)mhi.total_allocated_bytes, (unsigned)mhi.total_free_bytes, (unsigned)mhi.largest_free_block); \
+        } while (0)
+#else
+#    define MEMLOG(tag) \
+        do { \
+        } while (0)
+#endif
+
 void grbl_init();
 void run_once();
 void _mc_task_init(void);

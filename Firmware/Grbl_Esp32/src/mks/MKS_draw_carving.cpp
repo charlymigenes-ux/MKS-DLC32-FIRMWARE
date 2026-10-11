@@ -1,4 +1,5 @@
 #include "MKS_draw_carving.h"
+#include "MKS_draw_fileview.h"
 #include "MKS_draw_language.h"   // mc_language: textos del LCD
 #include "MKS_LVGL.h"
 #include "FS.h"
@@ -288,7 +289,7 @@ static int        file_selected = -1;
 static char       file_sel_txt[96], file_page_txt[24];
 
 static const char* file_T(const char* es, const char* en, const char* ch) {
-	return mks_grbl.language == SimpleChinese ? ch : (mks_grbl.language == Espanol ? es : en);
+	return mks_grbl.language == SimpleChinese ? ch : mks_tr(es, en);
 }
 
 // Corta el nombre a max_cp caracteres (UTF-8 sin partir un caracter) y pone "..." si no cabe.
@@ -383,7 +384,7 @@ static void file_open_row(int n) {
 	mks_lv_clean_ui();
 	get_print_file_name(mks_file_list.filename_str[n]);
 	frame_ctrl.is_use_same_file = false;
-	mks_draw_inFile(mks_file_list.filename_str[n]);
+	mks_draw_fileview(mks_file_list.filename_str[n]);
 #else
 	mks_draw_caving_popup(mks_file_list.file_begin_num, mks_file_list.filename_str[n]);
 #endif

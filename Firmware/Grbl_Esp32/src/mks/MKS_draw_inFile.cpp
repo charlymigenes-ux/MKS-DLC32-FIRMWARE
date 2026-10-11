@@ -143,6 +143,9 @@ static void event_handler_sure(void) {
 }
 
 
+// Para la pantalla de vista previa: el mismo aviso de pasadas que el boton Iniciar
+void mks_infile_start_dialog(void) { event_handler_sure(); }
+
 static void event_handler_com_info(lv_obj_t* obj, lv_event_t event){
 
 	if (event == LV_EVENT_RELEASED) {
@@ -297,7 +300,7 @@ static lv_obj_t*  inf_btn[IB_COUNT];
 static char       inf_name_txt[64], inf_size_txt[16];
 
 static const char* inf_T(const char* es, const char* en, const char* ch) {
-	return mks_grbl.language == SimpleChinese ? ch : (mks_grbl.language == Espanol ? es : en);
+	return mks_grbl.language == SimpleChinese ? ch : mks_tr(es, en);
 }
 
 static void inf_name_fit(char* out, size_t n, const char* name, int max_cp) {   // UTF-8 sin partir caracteres

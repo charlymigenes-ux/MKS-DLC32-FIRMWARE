@@ -10,13 +10,13 @@ typedef struct {
     lv_obj_t *imgbtn_back;
     lv_obj_t *imgbtn_simple_cn;         // 简体中文
     lv_obj_t *imgbtn_en;                // 英语
-    lv_obj_t *imgbtn_de;                // 德语
+    lv_obj_t *imgbtn_pt;                // portugués
     lv_obj_t *imgbtn_es;                // español ($40=3)
 
     lv_obj_t *label_back;
     lv_obj_t *label_simple_cn;         // 简体中文
     lv_obj_t *label_en;                // 英语
-    lv_obj_t *label_de;                // 德语
+    lv_obj_t *label_pt;                // portugués
     lv_obj_t *label_es;                // español
 
 
@@ -163,6 +163,8 @@ extern mc_lg_muilt_t mc_language;
 // Rellena mc_language con las cadenas del LCD. OJO: antes solo se llamaba desde
 // set_language() (al cambiar el idioma desde la pantalla), nunca al arrancar.
 void mc_language_init(void);
+// Texto suelto segun el idioma: espanol y portugues (via tabla) o el ingles de respaldo.
+const char* mks_tr(const char* es, const char* en);
 const lv_font_t* mc_font(void);   // fuente de texto segun el idioma: con chino, la que trae los glifos chinos
 
 

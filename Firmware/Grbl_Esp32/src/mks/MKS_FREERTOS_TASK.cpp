@@ -1,6 +1,10 @@
 #include "MKS_FREERTOS_TASK.h"
+#include "MKS_draw_boot.h"
+#include "MKS_draw_fileview.h"
 #include "MKS_draw_language.h"   // mc_language_init: recarga de $40 en caliente
 
+// 8 KB: con 5 KB la lista de archivos (SD + FAT + snprintf con decimales) desbordaba la pila y corrompia el heap
+// ("CORRUPT HEAP ... abort()" al pulsar Grabado). El minimo medido en reposo (1,6 KB) no sirve: hay que medir bajo carga.
 #define DISP_TASK_STACK                 4096*2
 #define DISP_TASK_PRO                   2
 #define DISP_TASK_CORE                  1
@@ -36,16 +40,18 @@ IRAM_ATTR void lvgl_disp_task(void *parg) {
 #endif
 
     bool logo_flag = true;   
-    uint16_t logo_flag_count = 0; 
     mks_lvgl_init();
+    MEMLOG("tras mks_lvgl_init");
 
     mks_global_style_init();
+    MEMLOG("tras estilos globales");
 
-    mks_draw_logo();
+    mks_boot_begin();   // logo 4 s con la version; si se mantiene pulsado, QR del repositorio
+    MEMLOG("tras pantalla de arranque");
 
     // 创建二值量
     is_fram_need = xSemaphoreCreateBinary();
-    frame_task_init();
+    // la tarea del marco (8 KB de pila) ya no se crea al arrancar: nace al pulsar Marco y se borra al terminar
     mks_grbl.wifi_connect_enable = true;
 
     while(1) {
@@ -56,13 +62,12 @@ IRAM_ATTR void lvgl_disp_task(void *parg) {
 
         if(logo_flag == true) {
             lv_task_handler();
-            logo_flag_count++;
 
-            if(logo_flag_count == 100) {
+            if(mks_boot_backlight_due()) {
                  LCD_BLK_ON;
             }
 
-            if(logo_flag_count == 400) {
+            if(mks_boot_tick()) {
                 mks_lv_clean_ui();
 
                 if(mks_updata.updata_flag == UD_HAD_FILE) {
@@ -74,6 +79,7 @@ IRAM_ATTR void lvgl_disp_task(void *parg) {
                         mks_draw_ready();
                     }
                 }
+                MEMLOG("tras dibujar pantalla principal");
                 logo_flag = false;
             }
         }else {
@@ -102,6 +108,18 @@ uint8_t fram_count = 0;
 static void mks_page_data_updata(void) { 
 
     ts35_beep_tick();   // sonidos de fin de trabajo / error (patrones del zumbador)
+#ifdef ENABLE_MEM_DIAG
+    {   // cada 5 s durante los primeros 3 minutos: linea de tiempo (aqui se ve cuando entra el WiFi)
+        static uint32_t last_mem = 0;
+        uint32_t        now_ms   = millis();
+        if (now_ms < 180000 && now_ms - last_mem >= 5000) {
+            last_mem = now_ms;
+            char tag[32];
+            snprintf(tag, sizeof(tag), "t=%us", (unsigned)(now_ms / 1000));
+            MEMLOG(tag);
+        }
+    }
+#endif
 
     // $40 se puede cambiar desde la pantalla (set_language) o a distancia, con
     // la WebUI escribiendo "$40=n". Aqui se detecta el cambio y se recargan las
@@ -134,7 +152,7 @@ static void mks_page_data_updata(void) {
         static uint8_t job_seen = 0;
         mks_ui_page_t  pg       = mks_ui_page.mks_ui_page;
         bool           otra     = (pg == MKS_UI_Ready) || (pg == MKS_UI_Control) || (pg == MKS_UI_Caving) ||
-                        (pg == MKS_UI_inFile) || (pg == MKS_UI_Tool) || (pg == MKS_UI_LANGUAGE) || (pg == MKS_UI_Adjust);
+                        (pg == MKS_UI_inFile) || (pg == MKS_UI_FileView) || (pg == MKS_UI_Tool) || (pg == MKS_UI_LANGUAGE) || (pg == MKS_UI_Adjust);
         if(otra && get_sd_state(false) == SDState::BusyPrinting) {
             if(++job_seen >= 40) {
                 job_seen = 0;
@@ -178,6 +196,9 @@ static void mks_page_data_updata(void) {
             move_pos_update();
             probe_check();
         }
+    }
+    else if(mks_ui_page.mks_ui_page == MKS_UI_FileView) {    // vista previa del archivo
+        mks_fileview_poll();
     }
     else if(mks_ui_page.mks_ui_page == MKS_UI_Control) {  //控制界面
 
@@ -297,7 +318,13 @@ IRAM_ATTR void frame_task(void *parg) {
             mks_run_frame(frame_ctrl.file_name);
             vTaskResume(lv_disp_tcb);   // 恢复任务
         }
+        frame_task_tcb = NULL;   // tarea de un solo uso: libera sus 8 KB de pila
+        vTaskDelete(NULL);
     }
+}
+
+void frame_task_ensure(void) {
+    if(frame_task_tcb == NULL) frame_task_init();
 }
 
 IRAM_ATTR void frame_task_init(void ) {
