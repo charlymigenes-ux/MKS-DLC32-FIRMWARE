@@ -22,7 +22,7 @@
   var UI_LANG = "es";
   try {
     var savedLang = localStorage.getItem("dlc32.lang");
-    if (savedLang === "en" || savedLang === "es" || savedLang === "zh") UI_LANG = savedLang;
+    if (savedLang === "en" || savedLang === "es" || savedLang === "zh" || savedLang === "pt") UI_LANG = savedLang;
   } catch (e) {}
 
   var I18N_ATTRS = ["placeholder", "title", "alt", "aria-label"];
@@ -37,7 +37,14 @@
     return i18nDict(text);
   }
 
+  // Los nombres de archivo y carpeta (translate="no") son datos del usuario: no se traducen
+  function i18nSkipped(node) {
+    var el = node.nodeType === 1 ? node : node.parentNode;
+    return !!(el && el.closest && el.closest('[translate="no"]'));
+  }
+
   function i18nTextNode(node) {
+    if (i18nSkipped(node)) return;
     var cur = node.nodeValue;
     if (typeof cur !== "string") return;
 
@@ -92,7 +99,7 @@
     if (!node) return;
     if (node.nodeType === 3) { i18nTextNode(node); return; }
     if (node.nodeType !== 1) return;
-    if (node.tagName === "SCRIPT" || node.tagName === "STYLE") return;
+    if (node.tagName === "SCRIPT" || node.tagName === "STYLE" || node.getAttribute("translate") === "no") return;
     for (var i = 0; i < I18N_ATTRS.length; i++) i18nAttr(node, I18N_ATTRS[i]);
     var kids = node.childNodes;
     for (var j = 0; j < kids.length; j++) i18nWalk(kids[j]);
@@ -129,7 +136,7 @@
   }
 
   function i18nSetLang(lang) {
-    if (lang !== "en" && lang !== "es" && lang !== "zh") return;
+    if (lang !== "en" && lang !== "es" && lang !== "zh" && lang !== "pt") return;
     // Se vuelve primero al español (restaura los originales) y luego se aplica el idioma nuevo.
     if (UI_LANG !== "es") { UI_LANG = "es"; i18nApplyAll(); }
     if (typeof i18nUse === "function") i18nUse(lang);
@@ -140,7 +147,7 @@
       b.classList.toggle("active", b.dataset.uilang === lang);
     });
     var badge = document.getElementById("uilang-current");
-    if (badge) badge.textContent = lang === "en" ? "English" : (lang === "zh" ? "中文" : "Español");
+    if (badge) badge.textContent = lang === "en" ? "English" : (lang === "zh" ? "中文" : (lang === "pt" ? "Português" : "Español"));
   }
 
   // confirm()/alert() no pasan por el DOM: se traducen en el momento de llamar.
@@ -738,18 +745,75 @@
   // ---------- SD File ----------
   var sdFiles = [];
   var sdSelected = null;
+  var sdPath = "/";        // carpeta abierta de la SD ("/" o "/a/b")
+
+  // Ruta con "/" final, como la espera /upload (path=/a/b/)
+  function sdDirParam() { return sdPath === "/" ? "/" : sdPath + "/"; }
+  // Ruta completa de un archivo/carpeta de la carpeta abierta
+  function sdFull(name) { return (sdPath === "/" ? "" : sdPath) + "/" + name; }
+  function sdEnc(p) { return p.split("/").map(encodeURIComponent).join("/"); }
+  // La respuesta de /upload es 200 aunque falle la accion: el resultado viene en "status"
+  function sdActionFailed(data) {
+    return !!(data && data.status && /does not exist|already exists|cannot|error|failed|busy|no sd/i.test(data.status));
+  }
 
   function loadSdFiles() {
-    fetch("/upload?path=/")
+    fetch("/upload?path=" + encodeURIComponent(sdDirParam()))
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        sdFiles = (data.files || []).filter(function (f) { return f.size !== "-1"; });
+        sdFiles = (data.files || []).filter(function (f) {
+          return f.name !== "System Volume Information" && f.name.charAt(0) !== ".";
+        }).map(function (f) { f.isDir = f.size === "-1"; return f; });
         renderSdSpace(data);
+        renderSdPath();
         renderSdList();
       })
       .catch(function () {
         els["sd-space-label"].textContent = "Error al leer la SD";
       });
+  }
+
+  function sdClearSelection() {
+    sdSelected = null;
+    sdSelectedFile = null;
+    els["sd-details-empty"].hidden = false;
+    els["sd-details-body"].hidden = true;
+  }
+
+  function sdOpenDir(path) {
+    sdPath = path || "/";
+    sdClearSelection();
+    els["sd-search"].value = "";
+    loadSdFiles();
+  }
+
+  // Miga de pan: SD / carpeta / subcarpeta (cada tramo lleva a esa carpeta)
+  function renderSdPath() {
+    var box = els["sd-breadcrumb"];
+    box.innerHTML = "";
+    var acc = "";
+    function crumb(label, path, last) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "sd-crumb" + (last ? " is-last" : "");
+      if (path !== "/") b.setAttribute("translate", "no");
+      b.textContent = label;
+      if (!last) b.addEventListener("click", function () { sdOpenDir(path); });
+      box.appendChild(b);
+    }
+    var parts = sdPath === "/" ? [] : sdPath.substring(1).split("/");
+    crumb("SD", "/", parts.length === 0);
+    parts.forEach(function (seg, i) {
+      acc += "/" + seg;
+      var sep = document.createElement("span");
+      sep.className = "sd-crumb-sep";
+      sep.textContent = "/";
+      box.appendChild(sep);
+      crumb(seg, acc, i === parts.length - 1);
+    });
+    var nd = sdFiles.filter(function (f) { return f.isDir; }).length, nf = sdFiles.length - nd;
+    els["sd-count"].textContent = nf + " " + tr(nf === 1 ? "archivo" : "archivos") + " · " +
+      nd + " " + tr(nd === 1 ? "carpeta" : "carpetas");
   }
 
   function formatBytes(n) {
@@ -790,29 +854,106 @@
     });
 
     list.sort(function (a, b) {
-      if (sortMode === "name-asc") return a.name.localeCompare(b.name);
+      if (a.isDir !== b.isDir) return a.isDir ? -1 : 1;   // las carpetas primero
       if (sortMode === "name-desc") return b.name.localeCompare(a.name);
-      if (sortMode === "size-desc") return sizeToBytes(b.size) - sizeToBytes(a.size);
-      if (sortMode === "size-asc") return sizeToBytes(a.size) - sizeToBytes(b.size);
-      return 0;
+      if (sortMode === "size-desc") return a.isDir ? a.name.localeCompare(b.name) : sizeToBytes(b.size) - sizeToBytes(a.size);
+      if (sortMode === "size-asc") return a.isDir ? a.name.localeCompare(b.name) : sizeToBytes(a.size) - sizeToBytes(b.size);
+      return a.name.localeCompare(b.name);
     });
 
     list = list.slice(0, pageSize);
 
     var tbody = els["sd-table-body"];
     tbody.innerHTML = "";
+    function iconBtn(cls, title, glyph, fn) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "sd-row-btn " + cls;
+      b.title = title;
+      b.setAttribute("aria-label", title);
+      b.textContent = glyph;
+      b.addEventListener("click", function (ev) { ev.stopPropagation(); fn(); });
+      return b;
+    }
+    if (sdPath !== "/") {
+      var up = document.createElement("tr");
+      up.className = "sd-row-dir sd-row-up";
+      up.innerHTML = '<td>&#8593;</td><td>..</td><td></td><td><span class="sd-badge sd-badge-dir">Subir un nivel</span></td>';
+      up.addEventListener("click", function () { sdOpenDir(sdPath.substring(0, sdPath.lastIndexOf("/")) || "/"); });
+      tbody.appendChild(up);
+    }
     list.forEach(function (f) {
       var row = document.createElement("tr");
       row.dataset.name = f.name;
-      if (sdSelected === f.name) row.classList.add("selected");
-      row.innerHTML =
-        '<td>&#128196;</td>' +
-        '<td>' + escapeHtml(f.name) + '</td>' +
-        '<td>' + escapeHtml(f.size) + '</td>' +
-        '<td><span class="sd-badge">Listo</span></td>';
-      row.addEventListener("click", function () { selectSdFile(f); });
+      if (f.isDir) {
+        row.className = "sd-row-dir";
+        row.innerHTML =
+          '<td>&#128193;</td>' +
+          '<td translate="no">' + escapeHtml(f.name) + '</td>' +
+          '<td>&mdash;</td>' +
+          '<td></td>';
+        var cell = row.lastChild;
+        var badge = document.createElement("span");
+        badge.className = "sd-badge sd-badge-dir";
+        badge.textContent = "Carpeta";
+        cell.appendChild(badge);
+        cell.appendChild(iconBtn("sd-row-rename", "Renombrar", "\u270e", function () { sdRenameDir(f.name); }));
+        cell.appendChild(iconBtn("sd-row-delete", "Eliminar", "\u2716", function () { sdDeleteDir(f.name); }));
+        row.addEventListener("click", function () { sdOpenDir(sdFull(f.name)); });
+      } else {
+        if (sdSelected === f.name) row.classList.add("selected");
+        row.innerHTML =
+          '<td>&#128196;</td>' +
+          '<td translate="no">' + escapeHtml(f.name) + '</td>' +
+          '<td>' + escapeHtml(f.size) + '</td>' +
+          '<td><span class="sd-badge">Listo</span></td>';
+        row.addEventListener("click", function () { selectSdFile(f); });
+      }
       tbody.appendChild(row);
     });
+    if (!sdFiles.length) {
+      var empty = document.createElement("tr");
+      empty.innerHTML = '<td colspan="4" class="sd-empty">Carpeta vacía.</td>';
+      tbody.appendChild(empty);
+    }
+  }
+
+  // ---------- CRUD de carpetas ----------
+  function sdCall(query, okMsg, failMsg, onOk) {
+    return fetch("/upload?" + query + "&path=" + encodeURIComponent(sdDirParam()))
+      .then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.json();
+      })
+      .then(function (data) {
+        if (sdActionFailed(data)) throw new Error(data.status);
+        if (onOk) onOk();
+        loadSdFiles();
+        if (okMsg) logSdActivity(okMsg);
+      })
+      .catch(function (err) { alert(tr(failMsg) + ": " + err.message); });
+  }
+
+  function sdCreateDir() {
+    var name = prompt(tr("Nombre de la nueva carpeta:"), "");
+    if (!name) return;
+    name = name.trim().replace(/[\\/]/g, "");
+    if (!name) return;
+    sdCall("action=createdir&filename=" + encodeURIComponent(name), "Carpeta creada: " + name, "No se pudo crear la carpeta");
+  }
+
+  function sdRenameDir(name) {
+    var nn = prompt(tr("Nuevo nombre para") + " " + name + ":", name);
+    if (!nn) return;
+    nn = nn.trim().replace(/[\\/]/g, "");
+    if (!nn || nn === name) return;
+    sdCall("action=rename&filename=" + encodeURIComponent(name) + "&newname=" + encodeURIComponent(nn),
+      "Carpeta renombrada: " + name + " -> " + nn, "No se pudo renombrar");
+  }
+
+  function sdDeleteDir(name) {
+    if (!confirm(tr("¿Eliminar la carpeta") + " " + name + " " + tr("y todo su contenido?"))) return;
+    sdCall("action=deletedir&filename=" + encodeURIComponent(name), "Carpeta eliminada: " + name, "No se pudo eliminar la carpeta");
   }
 
   function sizeToBytes(sizeStr) {
@@ -834,9 +975,12 @@
   }
 
   var sdPreviewCache = null;
+  var sdSelectedFile = null;
+  var sdSelectedDir = "/";
 
   function selectSdFile(f) {
     sdSelected = f.name;
+    sdSelectedFile = f;
     sdPreviewCache = null;
     renderSdList();
     els["sd-details-empty"].hidden = true;
@@ -844,85 +988,397 @@
     els["sd-detail-name"].textContent = f.name;
     els["sd-detail-size"].textContent = f.size;
     els["sd-detail-modified"].textContent = f.datetime || "--";
+    sdSelectedDir = sdPath === "/" ? "/" : sdPath + "/";
     els["sd-preview-body"].hidden = true;
-    els["sd-preview-load-btn"].hidden = false;
-    els["sd-preview-load-btn"].textContent = "Cargar vista previa";
-    els["sd-preview-svg"].innerHTML = "";
+    els["sd-preview-loading"].hidden = true;
+    els["sd-preview-load-btn"].hidden = true;
+    var pcv = els["sd-preview-canvas"]; if (pcv) pcv.getContext("2d").clearRect(0, 0, pcv.width, pcv.height);
+    prevRequest(f);              // se pide sola; si ya esta hecha sale al instante
+    renderPreviewPanel();
   }
 
   // ---------- Vista previa: parseo real de G-code, sin datos inventados ----------
-  function parseGcodePreview(text) {
-    var lines = text.split(/\r?\n/);
-    var x = 0, y = 0, relative = false;
-    var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    var points = [[0, 0]];
-    var travel = 0;
-    lines.forEach(function (raw) {
-      var line = raw.split(";")[0].split("(")[0].trim();
+  // Se guardan los tramos de corte/grabado (G1/G2/G3 con el laser encendido), tambien los de S0, con su
+  // potencia. Se pintan sobremuestreados y reducidos con suavizado: el tramado de puntos de un raster se
+  // convierte en medios tonos y se ve la imagen. Las dimensiones salen de los tramos con S > 0.
+  function newGcodePreviewParser() {
+    var x = 0, y = 0, relative = false, mode = 0, laserOn = true, sNow = 0;
+    var allMinX = Infinity, allMinY = Infinity, allMaxX = -Infinity, allMaxY = -Infinity;
+    var bMinX = Infinity, bMinY = Infinity, bMaxX = -Infinity, bMaxY = -Infinity;
+    var cap = 65536, n = 0, seg = new Float32Array(cap * 5);
+    var points = 0, travel = 0, maxS = 0, hasBurn = false;
+    var rest = "";
+
+    function oneLine(raw) {
+      var line = raw.split(";")[0].split("(")[0];
+      if (!line) return;
+      line = line.trim().toUpperCase();
       if (!line) return;
       if (/\bG91\b/.test(line)) relative = true;
       if (/\bG90\b/.test(line)) relative = false;
-      if (!/\bG0?[0-3]\b/.test(line)) return;
+      if (/\bM[34]\b/.test(line)) laserOn = true;
+      if (/\bM5\b/.test(line)) laserOn = false;
+      var gm = /\bG0?([0-3])\b/.exec(line);
+      if (gm) mode = parseInt(gm[1], 10);
+      var sm = /S(-?[\d.]+)/.exec(line);
+      if (sm) sNow = parseFloat(sm[1]);
       var xMatch = /X(-?[\d.]+)/.exec(line);
       var yMatch = /Y(-?[\d.]+)/.exec(line);
       if (!xMatch && !yMatch) return;
+      if (!gm && /\bG(?:[4-9]|[1-9]\d)\b/.test(line)) return;
       var nx = xMatch ? (relative ? x + parseFloat(xMatch[1]) : parseFloat(xMatch[1])) : x;
       var ny = yMatch ? (relative ? y + parseFloat(yMatch[1]) : parseFloat(yMatch[1])) : y;
-      travel += Math.sqrt((nx - x) * (nx - x) + (ny - y) * (ny - y));
+      var dx = nx - x, dy = ny - y;
+      travel += Math.sqrt(dx * dx + dy * dy);
+      points++;
+      if (nx < allMinX) allMinX = nx; if (nx > allMaxX) allMaxX = nx;
+      if (ny < allMinY) allMinY = ny; if (ny > allMaxY) allMaxY = ny;
+      if (mode >= 1 && laserOn) {
+        if (n === cap) { cap *= 2; var big = new Float32Array(cap * 5); big.set(seg); seg = big; }
+        var o = n * 5;
+        seg[o] = x; seg[o + 1] = y; seg[o + 2] = nx; seg[o + 3] = ny; seg[o + 4] = sNow;
+        n++;
+        if (sNow > 0) {
+          hasBurn = true;
+          if (sNow > maxS) maxS = sNow;
+          if (x < bMinX) bMinX = x; if (x > bMaxX) bMaxX = x; if (y < bMinY) bMinY = y; if (y > bMaxY) bMaxY = y;
+          if (nx < bMinX) bMinX = nx; if (nx > bMaxX) bMaxX = nx; if (ny < bMinY) bMinY = ny; if (ny > bMaxY) bMaxY = ny;
+        }
+      }
       x = nx;
       y = ny;
-      minX = Math.min(minX, x);
-      maxX = Math.max(maxX, x);
-      minY = Math.min(minY, y);
-      maxY = Math.max(maxY, y);
-      points.push([x, y]);
-    });
-    if (!isFinite(minX)) { minX = 0; maxX = 0; minY = 0; maxY = 0; }
-    return { minX: minX, minY: minY, maxX: maxX, maxY: maxY, points: points, travel: travel };
+    }
+
+    return {
+      // Procesa un trozo de texto; la ultima linea, si llega cortada, espera al trozo siguiente.
+      feed: function (chunk) {
+        var text = rest + chunk;
+        var from = 0, nl;
+        while ((nl = text.indexOf("\n", from)) !== -1) { oneLine(text.substring(from, nl)); from = nl + 1; }
+        rest = text.substring(from);
+      },
+      finish: function () {
+        if (rest) { oneLine(rest); rest = ""; }
+        var minX = hasBurn ? bMinX : allMinX, maxX = hasBurn ? bMaxX : allMaxX;
+        var minY = hasBurn ? bMinY : allMinY, maxY = hasBurn ? bMaxY : allMaxY;
+        if (!isFinite(minX)) { minX = 0; maxX = 0; minY = 0; maxY = 0; }
+        return { minX: minX, minY: minY, maxX: maxX, maxY: maxY, seg: seg, nseg: n, maxS: maxS || 1000,
+                 points: points, travel: travel };
+      }
+    };
   }
 
-  function renderGcodePreview(data) {
+  function parseGcodePreview(text) {
+    var p = newGcodePreviewParser();
+    p.feed(text);
+    return p.finish();
+  }
+
+  function renderGcodePreview(data, cv) {
+    // Siempre a la misma resolucion, en un lienzo aparte: asi se puede terminar aunque el usuario ya este en otro archivo
+    var W = 640, H = 460;
+    cv.width = W; cv.height = H;
     var w = data.maxX - data.minX || 1;
     var h = data.maxY - data.minY || 1;
-    var scale = Math.min(180 / w, 180 / h);
-    var offX = 10 + (180 - w * scale) / 2;
-    var offY = 10 + (180 - h * scale) / 2;
-    function mapPt(p) {
-      var px = (p[0] - data.minX) * scale + offX;
-      var py = 200 - ((p[1] - data.minY) * scale + offY);
-      return px.toFixed(1) + "," + py.toFixed(1);
+    var pad = 12;
+    // Sobremuestreo: hasta x4, limitado a ~4,5 millones de celdas para no agotar la memoria del navegador
+    var ss = Math.max(1, Math.min(4, Math.floor(Math.sqrt(4500000 / (W * H)))));
+    var SW = W * ss, SH = H * ss;
+    var scale = Math.min((SW - 2 * pad * ss) / w, (SH - 2 * pad * ss) / h);
+    var offX = (SW - w * scale) / 2;
+    var offY = (SH - h * scale) / 2;
+    var sum = new Float32Array(SW * SH), cnt = new Uint16Array(SW * SH);
+    var seg = data.seg, k, o;
+    for (k = 0; k < data.nseg; k++) {
+      o = k * 5;
+      var ax = (seg[o] - data.minX) * scale + offX, ay = SH - ((seg[o + 1] - data.minY) * scale + offY);
+      var bx = (seg[o + 2] - data.minX) * scale + offX, by = SH - ((seg[o + 3] - data.minY) * scale + offY);
+      var p = Math.min(1, seg[o + 4] / data.maxS);
+      var steps = Math.max(1, Math.ceil(Math.max(Math.abs(bx - ax), Math.abs(by - ay))));
+      for (var t = 0; t <= steps; t++) {
+        var px = Math.round(ax + (bx - ax) * t / steps), py = Math.round(ay + (by - ay) * t / steps);
+        if (px < 0 || py < 0 || px >= SW || py >= SH) continue;
+        var idx = py * SW + px;
+        sum[idx] += p; if (cnt[idx] < 65535) cnt[idx]++;
+      }
     }
-    var pts = data.points;
-    if (pts.length > 4000) {
-      var step = Math.ceil(pts.length / 4000);
-      var sampled = [];
-      for (var i = 0; i < pts.length; i += step) sampled.push(pts[i]);
-      pts = sampled;
+    // Reduccion con suavizado: potencia media de las celdas recorridas de cada bloque ss x ss
+    var val = new Float32Array(W * H), hist = new Uint32Array(256), seen = 0, i, x, y, bx2, by2;
+    for (y = 0; y < H; y++) {
+      for (x = 0; x < W; x++) {
+        var s2 = 0, c2 = 0;
+        for (by2 = 0; by2 < ss; by2++) {
+          var row = (y * ss + by2) * SW + x * ss;
+          for (bx2 = 0; bx2 < ss; bx2++) { s2 += sum[row + bx2]; c2 += cnt[row + bx2]; }
+        }
+        i = y * W + x;
+        if (c2) { var v = s2 / c2; val[i] = v; hist[Math.min(255, Math.floor(v * 255))]++; seen++; }
+        else val[i] = -1;
+      }
     }
-    var d = "M" + pts.map(mapPt).join(" L");
-    els["sd-preview-svg"].innerHTML = '<path d="' + d + '"></path>';
-    els["sd-preview-dims"].textContent = w.toFixed(1) + " x " + h.toFixed(1) + " mm";
-    els["sd-preview-travel"].textContent = (data.travel / 1000).toFixed(2) + " m";
-    els["sd-preview-points"].textContent = data.points.length.toLocaleString();
+    // Niveles automaticos: el 99,5 % de la potencia queda como blanco (una imagen suave no sale apagada)
+    var hi = 1, acc = 0, lim = seen * 0.995;
+    for (i = 0; i < 256; i++) { acc += hist[i]; if (acc >= lim) { hi = Math.max(0.05, (i + 1) / 255); break; } }
+    // Como el papel: blanco lo que no se graba y negro lo que si (cuanta mas potencia, mas negro)
+    var ctx = cv.getContext("2d"), img = ctx.createImageData(W, H), d = img.data;
+    for (i = 0; i < W * H; i++) {
+      var q = i * 4, vv = val[i], c;
+      if (vv < 0) c = 222;   // fuera del recorrido: gris muy claro
+      else {
+        var f = Math.min(1, vv / hi);
+        f = Math.pow(f, 0.85);
+        c = 252 - 244 * f;   // 252 (blanco) -> 8 (negro)
+      }
+      d[q] = c; d[q + 1] = c; d[q + 2] = c; d[q + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
   }
 
-  els["sd-preview-load-btn"].addEventListener("click", function () {
-    if (!sdSelected) return;
-    els["sd-preview-load-btn"].hidden = true;
-    els["sd-preview-loading"].hidden = false;
-    fetch("/SD/" + encodeURIComponent(sdSelected))
-      .then(function (r) { return r.text(); })
-      .then(function (text) {
-        sdPreviewCache = parseGcodePreview(text);
-        renderGcodePreview(sdPreviewCache);
-        els["sd-preview-loading"].hidden = true;
-        els["sd-preview-body"].hidden = false;
+  // ---------- Vista previa automatica ----------
+  // Al seleccionar un archivo se pide sola (sin boton). Las descargas van de una en una (la placa solo atiende
+  // una a la vez), en cola, y siguen aunque se navegue a otro archivo o carpeta: el progreso no se pierde y, al
+  // volver, la miniatura ya esta. Se guarda en memoria y en el navegador (localStorage) para la proxima vez.
+  var SD_PREV_KEY = "dlc32-sd-preview-bn";   // v2: blanco y negro (las miniaturas viejas eran en negativo)
+  var SD_PREV_MAX = 24;
+  var prevJobs = {};        // clave -> { state: "queued"|"loading"|"done"|"error", got, total, t0, entry, ctl }
+  var prevQueue = [];       // claves en espera
+  var prevActive = null;    // clave que se esta descargando
+
+  function prevCacheKey(f, dir) { return (dir === undefined ? sdFull(f.name) : dir + f.name) + "|" + f.size + "|" + (f.datetime || ""); }
+  function prevCacheRead() {
+    try { return JSON.parse(localStorage.getItem(SD_PREV_KEY) || "[]"); } catch (e) { return []; }
+  }
+  function prevCacheGet(key) {
+    var j = prevJobs[key];
+    if (j && j.state === "done") return j.entry;
+    var list = prevCacheRead();
+    for (var i = 0; i < list.length; i++) if (list[i].k === key) return list[i];
+    return null;
+  }
+  function prevCachePut(entry) {
+    var list = prevCacheRead().filter(function (e) { return e.k !== entry.k; });
+    list.push(entry);
+    while (list.length > SD_PREV_MAX) list.shift();
+    while (list.length) {
+      try { localStorage.setItem(SD_PREV_KEY, JSON.stringify(list)); return; }
+      catch (e) { list.shift(); }   // sin espacio: se descartan las mas viejas
+    }
+  }
+
+  function showPreviewInfo(d) {
+    var w = d.maxX - d.minX || 1, h = d.maxY - d.minY || 1;
+    els["sd-preview-dims"].textContent = w.toFixed(1) + " x " + h.toFixed(1) + " mm";
+    els["sd-preview-travel"].textContent = (d.travel / 1000).toFixed(2) + " m";
+    els["sd-preview-points"].textContent = d.points.toLocaleString();
+  }
+
+  function fmtMB(b) { return (b / 1048576).toFixed(1) + " MB"; }
+
+  // Pinta en el panel de detalles el estado del archivo seleccionado (cola, descarga, listo o error)
+  function renderPreviewPanel() {
+    if (!sdSelectedFile) return;
+    var key = prevCacheKey(sdSelectedFile, sdSelectedDir);
+    var job = prevJobs[key];
+    var entry = prevCacheGet(key);
+    var body = els["sd-preview-body"], load = els["sd-preview-loading"], retry = els["sd-preview-load-btn"];
+    retry.hidden = true;
+    if (entry) {
+      load.hidden = true;
+      var img = new Image();
+      img.onload = function () {
+        if (sdSelectedFile && prevCacheKey(sdSelectedFile, sdSelectedDir) !== key) return;
+        var cv = els["sd-preview-canvas"];
+        cv.width = img.width; cv.height = img.height;
+        cv.getContext("2d").drawImage(img, 0, 0);
+        sdPreviewCache = { minX: entry.minX, minY: entry.minY, maxX: entry.maxX, maxY: entry.maxY, travel: entry.travel, points: entry.points };
+        showPreviewInfo(entry);
+        body.hidden = false;
+      };
+      img.src = entry.png;
+      return;
+    }
+    body.hidden = true;
+    sdPreviewCache = null;
+    if (!job) { load.hidden = true; return; }
+    load.hidden = false;
+    if (job.state === "error") {
+      load.hidden = true;
+      retry.hidden = false;
+      retry.textContent = "Error, reintentar";
+    } else if (job.state === "queued") {
+      els["sd-preview-status"].textContent = tr("En cola") + " · " + (prevQueue.indexOf(key) + 1) + "/" + prevQueue.length;
+      els["sd-preview-bar"].style.width = "0%";
+    } else {
+      var secs = Math.max(0.2, (Date.now() - job.t0) / 1000), rate = job.got / secs;
+      var txt = tr("Leyendo archivo...") + " " + fmtMB(job.got);
+      if (job.total > 0) {
+        var pct = Math.min(100, Math.round(100 * job.got / job.total));
+        txt += " / " + fmtMB(job.total) + " (" + pct + " %)";
+        els["sd-preview-bar"].style.width = pct + "%";
+        if (rate > 0 && job.got > 0) txt += " · " + Math.max(1, Math.round((job.total - job.got) / rate)) + " s";
+      } else {
+        els["sd-preview-bar"].style.width = "100%";
+      }
+      txt += " · " + (rate / 1024).toFixed(0) + " KB/s";
+      els["sd-preview-status"].textContent = txt;
+    }
+  }
+
+  // ---------- Miniatura para la pantalla de la maquina (se sube a la SD) ----------
+  // La pantalla puede generar la vista previa ella sola, pero con poca RAM y despacio. El navegador ya tiene los
+  // datos: construye la misma imagen de 4 bits (0 = fuera del recorrido, 1 = blanco ... 15 = negro) y la sube a
+  // /.mx/pv_<hash>.mxp; la pantalla solo la lee. El hash y el formato son los de MKS_preview.cpp (FNV-1a de
+  // "ruta" con el tamano exacto del archivo en bytes).
+  function mxpHash(path, size) {
+    var b = new TextEncoder().encode(path), h = (2166136261 ^ size) >>> 0;
+    for (var i = 0; i < b.length; i++) { h ^= b[i]; h = Math.imul(h, 16777619) >>> 0; }
+    return ("00000000" + h.toString(16)).slice(-8);
+  }
+
+  function buildMxp(data, size) {
+    var SIDE = 152;
+    var w = data.maxX - data.minX || 0.01, h = data.maxY - data.minY || 0.01;
+    var sc = (SIDE - 2) / Math.max(w, h);
+    var gw = Math.min(SIDE, Math.floor(w * sc) + 3), gh = Math.min(SIDE, Math.floor(h * sc) + 3);
+    var sum = new Float32Array(gw * gh), cnt = new Uint32Array(gw * gh), seg = data.seg, k, o;
+    for (k = 0; k < data.nseg; k++) {
+      o = k * 5;
+      var ax = (seg[o] - data.minX) * sc + 0.5, ay = (gh - 1) - (seg[o + 1] - data.minY) * sc + 0.5;
+      var bx = (seg[o + 2] - data.minX) * sc + 0.5, by = (gh - 1) - (seg[o + 3] - data.minY) * sc + 0.5;
+      var p = Math.min(1, seg[o + 4] / data.maxS);
+      var m = Math.max(Math.abs(bx - ax), Math.abs(by - ay)), steps = m < 1 ? 1 : Math.ceil(m);
+      for (var t = 0; t <= steps; t++) {
+        var px = Math.floor(ax + (bx - ax) * t / steps), py = Math.floor(ay + (by - ay) * t / steps);
+        if (px < 0 || py < 0 || px >= gw || py >= gh) continue;
+        sum[py * gw + px] += p; cnt[py * gw + px]++;
+      }
+    }
+    var hist = new Uint32Array(256), seen = 0, i;
+    for (i = 0; i < gw * gh; i++) if (cnt[i]) { hist[Math.min(255, Math.floor(sum[i] / cnt[i] * 255))]++; seen++; }
+    var hi = 1, acc = 0, lim = seen * 0.995;
+    for (i = 0; i < 256; i++) { acc += hist[i]; if (acc >= lim) { hi = Math.max(0.05, (i + 1) / 255); break; } }
+    var rowb = (gw + 1) >> 1, out = new Uint8Array(28 + rowb * gh), dv = new DataView(out.buffer);
+    dv.setUint32(0, 0x3150584D, true);          // "MXP1"
+    dv.setUint32(4, size >>> 0, true);
+    dv.setUint16(8, gw, true); dv.setUint16(10, gh, true);
+    dv.setFloat32(12, w, true); dv.setFloat32(16, h, true); dv.setFloat32(20, data.travel / 1000, true);
+    dv.setUint32(24, data.points >>> 0, true);
+    for (var y = 0; y < gh; y++) {
+      for (var x = 0; x < gw; x++) {
+        var j = y * gw + x, lv = 0;
+        if (cnt[j]) { var f = Math.min(1, (sum[j] / cnt[j]) / hi); lv = 1 + Math.floor(14 * Math.pow(f, 0.85) + 0.5); }
+        out[28 + y * rowb + (x >> 1)] |= (x & 1) ? lv : (lv << 4);
+      }
+    }
+    return out;
+  }
+
+  function uploadMxp(path, size, bytes) {
+    if (isRunningState(machineState) || isPausedState(machineState)) return;   // con un trabajo en marcha la SD no se toca
+    var name = "pv_" + mxpHash(path, size) + ".mxp", rel = ".mx/" + name;
+    fetch("/upload?action=createdir&path=" + encodeURIComponent("/") + "&filename=" + encodeURIComponent(".mx"))
+      .catch(function () {})
+      .then(function () {
+        var fd = new FormData();
+        fd.append("path", "/.mx/");
+        fd.append(rel + "S", bytes.length);
+        fd.append("myfile[]", new Blob([bytes]), rel);
+        return fetch("/upload", { method: "POST", body: fd });
       })
-      .catch(function () {
-        els["sd-preview-loading"].hidden = true;
-        els["sd-preview-load-btn"].hidden = false;
-        els["sd-preview-load-btn"].textContent = "Error, reintentar";
-      });
+      .catch(function () {});   // si falla no pasa nada: la pantalla la genera ella
+  }
+
+  function prevFinish(key, name, dir, parser, job) {
+    var data = parser.finish();
+    var cv = document.createElement("canvas");
+    renderGcodePreview(data, cv);
+    var entry = { k: key, t: Date.now(), minX: data.minX, minY: data.minY, maxX: data.maxX, maxY: data.maxY,
+                  travel: data.travel, points: data.points, png: cv.toDataURL("image/png") };
+    job.entry = entry;
+    job.state = "done";
+    prevCachePut(entry);
+    try { uploadMxp(dir + name, job.got, buildMxp(data, job.got)); } catch (e) {}   // para la pantalla de la maquina
+  }
+
+  function prevNext() {
+    if (prevActive || !prevQueue.length) return;
+    var key = prevQueue.shift(), job = prevJobs[key];
+    if (!job) return prevNext();
+    prevActive = key;
+    job.state = "loading";
+    job.t0 = Date.now();
+    job.got = 0;
+    var parser = newGcodePreviewParser();
+    var ctl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+    job.ctl = ctl;
+    var last = 0;
+    function done(ok) {
+      if (ok) { try { prevFinish(key, job.name, job.dir, parser, job); } catch (e) { job.state = "error"; } }
+      else if (job.state !== "cancelled") job.state = "error";
+      if (job.state === "cancelled") delete prevJobs[key];
+      prevActive = null;
+      renderPreviewPanel();
+      prevNext();
+    }
+    fetch("/SD" + sdEnc(job.dir + job.name), ctl ? { signal: ctl.signal } : undefined).then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      job.total = parseInt(r.headers.get("Content-Length") || "0", 10) || 0;
+      if (!r.body || !r.body.getReader || typeof TextDecoder === "undefined") {
+        return r.text().then(function (text) { parser.feed(text); done(true); });
+      }
+      var reader = r.body.getReader(), dec = new TextDecoder("utf-8");
+      function pump() {
+        return reader.read().then(function (res) {
+          if (res.done) { parser.feed(dec.decode()); done(true); return; }
+          job.got += res.value.length;
+          parser.feed(dec.decode(res.value, { stream: true }));   // se va leyendo mientras llega
+          var now = Date.now();
+          if (now - last > 150) { last = now; renderPreviewPanel(); }
+          return pump();
+        });
+      }
+      return pump();
+    }).catch(function () { done(false); });
+  }
+
+  // Pide la vista previa de un archivo (si ya esta hecha o en curso, no hace nada); el seleccionado pasa al frente
+  function prevRequest(f) {
+    var dir = sdPath === "/" ? "/" : sdPath + "/";
+    var key = prevCacheKey(f, dir);
+    if (prevCacheGet(key)) return;
+    var job = prevJobs[key];
+    if (job && (job.state === "loading" || job.state === "queued")) {
+      var i = prevQueue.indexOf(key);
+      if (i > 0) { prevQueue.splice(i, 1); prevQueue.unshift(key); }   // el que miras va el primero de la cola
+      return;
+    }
+    prevJobs[key] = { state: "queued", got: 0, total: 0, name: f.name, dir: dir };
+    prevQueue.unshift(key);
+    prevNext();
+  }
+
+  // Cancelar la descarga del archivo seleccionado (en curso o en cola) para poder seguir con otro
+  els["sd-preview-cancel"].addEventListener("click", function () {
+    if (!sdSelectedFile) return;
+    var key = prevCacheKey(sdSelectedFile, sdSelectedDir), job = prevJobs[key];
+    if (!job) return;
+    if (job.state === "queued") {
+      var i = prevQueue.indexOf(key);
+      if (i >= 0) prevQueue.splice(i, 1);
+      delete prevJobs[key];
+    } else if (job.state === "loading") {
+      job.state = "cancelled";
+      if (job.ctl) job.ctl.abort();
+    }
+    renderPreviewPanel();
+  });
+
+  els["sd-preview-load-btn"].addEventListener("click", function () {
+    // solo aparece tras un error: reintenta
+    if (!sdSelectedFile) return;
+    delete prevJobs[prevCacheKey(sdSelectedFile, sdSelectedDir)];
+    prevRequest(sdSelectedFile);
+    renderPreviewPanel();
   });
 
   // ---------- Actividad reciente (log real de acciones hechas desde esta interfaz) ----------
@@ -959,41 +1415,39 @@
   els["sd-sort"].addEventListener("change", renderSdList);
   els["sd-page-size"].addEventListener("change", renderSdList);
   els["sd-refresh"].addEventListener("click", loadSdFiles);
+  els["sd-newdir-btn"].addEventListener("click", sdCreateDir);
 
+  var RUN_ICON = '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>';
+  var STOP_ICON = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="1"></rect></svg>';
+
+  // Sin trabajo: [Pasadas] [Iniciar]. Con trabajo: el boton pasa a Parar, Pasadas se apaga (gris) y
+  // aparece Pausar / Reanudar debajo.
   function updateRunButton(state) {
     var btn = els["sd-run-btn"];
-    btn.classList.remove("is-running", "is-paused");
-    if (isRunningState(state)) {
-      els["sd-run-label"].textContent = "Pausar";
-      btn.classList.add("is-running");
-    } else if (isPausedState(state)) {
-      els["sd-run-label"].textContent = "Reanudar";
-      btn.classList.add("is-paused");
-    } else {
-      els["sd-run-label"].textContent = "Iniciar trabajo";
-    }
+    var active = isRunningState(state) || isPausedState(state);
+    btn.classList.toggle("is-stop", active);
+    btn.classList.toggle("btn-primary", !active);
+    els["sd-run-label"].textContent = active ? "Parar" : "Iniciar trabajo";
+    els["sd-run-icon"].innerHTML = active ? STOP_ICON : RUN_ICON;
+    els["sd-passes-box"].classList.toggle("is-disabled", active);
+    ["sd-passes", "sd-passes-dec", "sd-passes-inc"].forEach(function (id) { els[id].disabled = active; });
+    els["sd-pause-row"].hidden = !active;
+    els["sd-pause-btn"].textContent = isPausedState(state) ? "Reanudar" : "Pausar";
   }
 
-  els["sd-run-btn"].addEventListener("click", function () {
-    if (isRunningState(machineState)) {
-      sendCommand("!");
-      logSdActivity("Trabajo pausado");
-      return;
-    }
-    if (isPausedState(machineState)) {
-      sendCommand("~");
-      logSdActivity("Trabajo reanudado");
-      return;
-    }
-    if (!sdSelected) return;
-    pendingJob = sdSelected;
-    jobEndReason = null;
-    sendCommand("$SD/Run=" + sdSelected);
-    logSdActivity("Trabajo iniciado: " + sdSelected);
-    updateJobStatus("Run");
-  });
+  // ---------- Pasadas (veces que se repite el archivo) ----------
+  function passesValue() {
+    var n = parseInt(els["sd-passes"].value, 10);
+    if (!(n >= 1)) n = 1;
+    if (n > 99) n = 99;
+    els["sd-passes"].value = n;
+    return n;
+  }
+  els["sd-passes-dec"].addEventListener("click", function () { els["sd-passes"].value = Math.max(1, passesValue() - 1); });
+  els["sd-passes-inc"].addEventListener("click", function () { els["sd-passes"].value = Math.min(99, passesValue() + 1); });
+  els["sd-passes"].addEventListener("change", passesValue);
 
-  els["sd-stop-btn"].addEventListener("click", function () {
+  function stopJob() {
     if (!confirm("¿Detener el trabajo en curso?")) return;
     // Feed hold para decelerar y luego Ctrl-X (0x18): en el firmware
     // mc_reset() apaga el laser, corta I/O y cierra el archivo SD
@@ -1008,17 +1462,39 @@
       jobWasBusy = false;
       updateJobStatus(machineState);
     }
+  }
+
+  els["sd-run-btn"].addEventListener("click", function () {
+    if (isRunningState(machineState) || isPausedState(machineState)) { stopJob(); return; }
+    if (!sdSelected) return;
+    pendingJob = sdSelected;
+    jobEndReason = null;
+    var passes = passesValue();
+    // "$SD/Passes=N" y "$SD/Run=archivo" van en la MISMA peticion (se ejecutan en ese orden): sin esto la
+    // placa podria repetir las pasadas que dejo pendientes un trabajo anterior.
+    sendCommand("$SD/Passes=" + passes + "\n$SD/Run=" + sdFull(sdSelected));
+    logSdActivity("Trabajo iniciado: " + sdSelected + (passes > 1 ? " \u00d7" + passes : ""));
+    updateJobStatus("Run");
   });
+
+  els["sd-pause-btn"].addEventListener("click", function () {
+    if (isRunningState(machineState)) {
+      sendCommand("!");
+      logSdActivity("Trabajo pausado");
+    } else if (isPausedState(machineState)) {
+      sendCommand("~");
+      logSdActivity("Trabajo reanudado");
+    }
+  });
+
   els["sd-delete-btn"].addEventListener("click", function () {
     if (!sdSelected) return;
     if (!confirm(tr("¿Eliminar ") + sdSelected + tr(" de la SD?"))) return;
     var deletedName = sdSelected;
-    fetch("/upload?action=delete&filename=/" + encodeURIComponent(sdSelected))
+    fetch("/upload?action=delete&path=" + encodeURIComponent(sdDirParam()) + "&filename=/" + encodeURIComponent(sdSelected))
       .then(function (r) {
         if (!r.ok) throw new Error("HTTP " + r.status);
-        sdSelected = null;
-        els["sd-details-empty"].hidden = false;
-        els["sd-details-body"].hidden = true;
+        sdClearSelection();
         loadSdFiles();
         logSdActivity("Archivo eliminado: " + deletedName);
       })
@@ -1030,7 +1506,7 @@
   els["sd-download-btn"].addEventListener("click", function () {
     if (!sdSelected) return;
     var a = document.createElement("a");
-    a.href = "/SD/" + encodeURIComponent(sdSelected);
+    a.href = "/SD" + sdEnc(sdFull(sdSelected));
     a.download = sdSelected;
     document.body.appendChild(a);
     a.click();
@@ -1043,7 +1519,7 @@
     var newName = prompt("Nuevo nombre para " + sdSelected + ":", sdSelected);
     if (!newName || newName === sdSelected) return;
     var oldName = sdSelected;
-    fetch("/upload?action=rename&filename=" + encodeURIComponent(oldName) + "&newname=" + encodeURIComponent(newName))
+    fetch("/upload?action=rename&path=" + encodeURIComponent(sdDirParam()) + "&filename=" + encodeURIComponent(oldName) + "&newname=" + encodeURIComponent(newName))
       .then(function (r) {
         if (!r.ok) throw new Error("HTTP " + r.status);
         sdSelected = newName;
@@ -1080,10 +1556,11 @@
   function uploadOne(file, onProgress) {
     return new Promise(function (resolve, reject) {
       var formData = new FormData();
-      var fullName = "/" + file.name;
-      formData.append("path", "/");
-      formData.append(fullName + "S", file.size);
-      formData.append("myfile[]", file, file.name);
+      // El firmware guarda el archivo con el nombre que recibe: para ir a una carpeta, el nombre lleva la ruta
+      var rel = (sdPath === "/" ? "" : sdPath.substring(1) + "/") + file.name;
+      formData.append("path", sdDirParam());
+      formData.append(rel + "S", file.size);
+      formData.append("myfile[]", file, rel);
       var xhr = new XMLHttpRequest();
       xhr.open("POST", "/upload");
       xhr.upload.addEventListener("progress", function (e) {
@@ -1189,7 +1666,7 @@
     "35": { name: "Valor PWM mínimo", unit: "% (float)", desc: "Valor PWM mínimo (requiere reinicio).", cat: "laser" },
     "36": { name: "Valor PWM máximo", unit: "% (float)", desc: "Valor PWM máximo (requiere reinicio).", cat: "laser" },
     "39": { name: "Sonidos de alerta", unit: "booleano", desc: "Zumbador al terminar un trabajo, al abortarlo por un error y en las alarmas.", cat: "sistema" },
-    "40": { name: "Idioma del LCD", unit: "0..3", desc: "Idioma de la pantalla: 0=中文 1=English 2=Deutsch 3=Español. Ver la vista Idioma.", cat: "sistema" },
+    "40": { name: "Idioma del LCD", unit: "0..3", desc: "Idioma de la pantalla: 0=中文 1=English 2=Português 3=Español. Ver la vista Idioma.", cat: "sistema" },
     "80": { name: "Entero de usuario 80", unit: "entero", desc: "Reservado para uso personalizado.", cat: "sistema" },
     "81": { name: "Entero de usuario 81", unit: "entero", desc: "Reservado para uso personalizado.", cat: "sistema" },
     "82": { name: "Entero de usuario 82", unit: "entero", desc: "Reservado para uso personalizado.", cat: "sistema" },
@@ -1340,7 +1817,7 @@
   var LANG_NAMES = {
     "0": "中文 · Chino",
     "1": "English · Inglés",
-    "2": "Deutsch · Alemán",
+    "2": "Português · Portugués",
     "3": "Español"
   };
 

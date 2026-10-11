@@ -69,7 +69,7 @@ var I18N_EN = {
   "Intérprete de G-code y planificador de movimiento originales.": "Original G-code interpreter and motion planner.",
   "Biblioteca gráfica de la pantalla táctil.": "Touchscreen graphics library.",
   "Este programa es software libre: puedes redistribuirlo y modificarlo bajo los términos de la": "This program is free software: you can redistribute it and modify it under the terms of the",
-  ". Se distribuye sin ninguna garantía.": ". It is distributed without any warranty.",
+  "Se distribuye sin ninguna garantía.": "It is distributed without any warranty.",
   "Conectando…": "Connecting…",
   "Conexión establecida": "Connected",
   "Sin conexión": "Disconnected",
@@ -86,6 +86,7 @@ var I18N_EN = {
   "Agrandar texto": "Increase text size",
   "Reducir texto": "Decrease text size",
   "ACCIONES RÁPIDAS": "QUICK ACTIONS",
+  "AJUSTES DE MOVIMIENTO": "MOTION SETTINGS",
   "Origen": "Home",
   "Posición": "Position",
   "LÁSER / SPINDLE": "LASER / SPINDLE",
@@ -146,7 +147,6 @@ var I18N_EN = {
   "DETALLES DEL ARCHIVO": "FILE DETAILS",
   "Selecciona un archivo de la lista.": "Select a file from the list.",
   "Iniciar trabajo": "Start job",
-  "Cargar vista previa": "Load preview",
   "Encuadrar": "Fit",
   "Detener": "Stop",
   "Renombrar": "Rename",
@@ -266,8 +266,8 @@ var I18N_EN = {
   "Valor PWM mínimo": "PWM min value",
   "Valor PWM máximo": "PWM max value",
   "Idioma del LCD": "LCD language",
-  "Idioma de la pantalla: 0=中文 1=English 2=Deutsch 3=Español. Ver la vista Idioma.":
-    "Screen language: 0=中文 1=English 2=Deutsch 3=Spanish. See the Language view.",
+  "Idioma de la pantalla: 0=中文 1=English 2=Português 3=Español. Ver la vista Idioma.":
+    "Screen language: 0=中文 1=English 2=Português 3=Spanish. See the Language view.",
   "Entero de usuario 80": "User integer 80",
   "Entero de usuario 81": "User integer 81",
   "Entero de usuario 82": "User integer 82",
@@ -355,6 +355,7 @@ var I18N_EN = {
   "Interfaz en español": "Interface in Spanish",
   "Interfaz en inglés": "Interface in English",
   "Interfaz en chino": "Interface in Chinese",
+  "Interfaz en portugués": "Interface in Portuguese",
   "Alcance": "Scope",
   "Menús, tablas, avisos y mensajes de esta web. No toca la consola ni la pantalla LCD.":
     "Menus, tables, notices and messages on this site. It does not touch the console or the LCD screen.",
@@ -362,19 +363,19 @@ var I18N_EN = {
   "IDIOMA DE LA PANTALLA (LCD)": "LCD SCREEN LANGUAGE",
   "Chino": "Chinese",
   "Inglés": "English",
-  "Alemán": "German",
+  "Portugués": "Portuguese",
   "Español": "Spanish",
   "Idioma actual": "Current language",
   "Última operación": "Last operation",
   "Desconocido": "Unknown",
   "中文 · Chino": "中文 · Chinese",
   "English · Inglés": "English",
-  "Deutsch · Alemán": "Deutsch · German",
+  "Português · Portugués": "Português · Portuguese",
   "NOTAS": "NOTES",
   "• El cambio de la pantalla es inmediato: el controlador recarga los textos del LCD en menos de un segundo. Si la página abierta no cambia de texto, entra y sale de esa página.":
     "• The screen change is immediate: the controller reloads the LCD texts in under a second. If the open page does not update its text, leave the page and come back.",
-  "• Deutsch muestra los textos en inglés: el firmware solo trae textos en inglés, español y chino.":
-    "• Deutsch shows the English text: the firmware only ships English, Spanish and Chinese texts.",
+  "• El portugués (Português) es el de Brasil. Las tildes y la ç se ven con la misma fuente Latin-1 (Roboto) que el español.":
+    "• Portuguese (Português) is the Brazilian variant. Accents and ç use the same Latin-1 font (Roboto) as Spanish.",
   "• El chino (中文) usa solo los 131 caracteres chinos que trae la fuente de la pantalla: algunos textos usan sinónimos o se quedan en inglés. Las tildes, la ñ, ¿ y ¡ se ven con una fuente Latin-1 (Roboto).":
     "• Chinese (中文) uses only the 131 Chinese characters in the screen font: some texts use synonyms or stay in English. Accents, ñ, ¿ and ¡ show with a Latin-1 font (Roboto).",
   "• El idioma de la pantalla se guarda en NVS: sobrevive a los reinicios. El de esta web se guarda en el navegador (localStorage) y no afecta a nadie más.":
@@ -399,7 +400,31 @@ var I18N_EN = {
   "Tu navegador no puede comprimir el .html: sube un index.html.gz.": "Your browser cannot compress the .html: upload an index.html.gz instead.",
   "No se pudo actualizar la WebUI": "Could not update the WebUI",
   "Sonidos de alerta": "Alert sounds",
-  "Zumbador al terminar un trabajo, al abortarlo por un error y en las alarmas.": "Buzzer when a job finishes, when it is aborted by an error, and on alarms."
+  "Zumbador al terminar un trabajo, al abortarlo por un error y en las alarmas.": "Buzzer when a job finishes, when it is aborted by an error, and on alarms.",
+  "Pasadas": "Passes",
+  "Menos pasadas": "Fewer passes",
+  "Más pasadas": "More passes",
+  "Veces que se repite el archivo completo (1 a 99).": "Times the whole file is repeated (1 to 99).",
+  "Subir un nivel": "Up one level",
+  "Carpeta vacía.": "Empty folder.",
+  "Nombre de la nueva carpeta:": "Name of the new folder:",
+  "No se pudo crear la carpeta": "Could not create the folder",
+  "No se pudo renombrar": "Could not rename",
+  "No se pudo eliminar la carpeta": "Could not delete the folder",
+  "y todo su contenido?": "and everything in it?",
+  "¿Eliminar la carpeta": "Delete the folder",
+  "Nueva carpeta": "New folder",
+  "Carpeta": "Folder",
+  "archivo": "file",
+  "archivos": "files",
+  "carpeta": "folder",
+  "carpetas": "folders",
+  "Carpeta creada:": "Folder created:",
+  "Carpeta renombrada:": "Folder renamed:",
+  "Carpeta eliminada:": "Folder deleted:",
+  "En cola": "Queued",
+  "Cancelar": "Cancel",
+  "Parar": "Stop"
 };
 
 /**
@@ -432,7 +457,8 @@ i18nLookup.cache = {};
 /** Elige el diccionario activo: "en" -> I18N_EN, "zh" -> I18N_ZH (si esta cargado). */
 var I18N_CUR = I18N_EN;
 function i18nUse(lang) {
-  I18N_CUR = lang === "zh" && typeof I18N_ZH !== "undefined" ? I18N_ZH : I18N_EN;
+  I18N_CUR = lang === "zh" && typeof I18N_ZH !== "undefined" ? I18N_ZH
+           : (lang === "pt" && typeof I18N_PT !== "undefined" ? I18N_PT : I18N_EN);
   i18nLookup.cache = {};
 }
 

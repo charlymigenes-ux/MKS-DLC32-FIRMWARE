@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>M+X - ESP32-WEB</title>
+  <link rel="icon" type="image/png" href="data:image/png;base64,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">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -256,6 +257,7 @@
               <input type="text" id="sd-search" placeholder="Buscar archivo...">
             </div>
             <button class="btn btn-outline btn-sm" id="sd-refresh"><span class="btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg></span> Actualizar</button>
+            <button class="btn btn-outline btn-sm" id="sd-newdir-btn" title="Nueva carpeta">&#128193;+ Nueva carpeta</button>
             <button class="btn btn-primary btn-sm" id="sd-upload-btn"><span class="btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg></span> Subir archivo</button>
             <input type="file" id="sd-upload-input" hidden multiple>
           </div>
@@ -263,6 +265,7 @@
             <div class="sd-upload-progress-label" id="sd-upload-progress-label"></div>
             <div class="sd-upload-progress-track"><div class="sd-upload-progress-fill" id="sd-upload-progress-fill"></div></div>
           </div>
+          <div class="sd-pathbar"><div id="sd-breadcrumb" class="sd-breadcrumb"></div><span id="sd-count" class="sd-count"></span></div>
           <div class="sd-filters">
             <div class="filter-block">
               <label>Ordenar por</label>
@@ -273,10 +276,12 @@
               <select id="sd-page-size"><option value="50">50</option><option value="100">100</option><option value="999999">Todos</option></select>
             </div>
           </div>
-          <table class="sd-table">
-            <thead><tr><th></th><th>Archivo</th><th>Tamaño</th><th>Estado</th></tr></thead>
-            <tbody id="sd-table-body"></tbody>
-          </table>
+          <div class="sd-table-wrap">
+            <table class="sd-table">
+              <thead><tr><th></th><th>Archivo</th><th>Tamaño</th><th>Estado</th></tr></thead>
+              <tbody id="sd-table-body"></tbody>
+            </table>
+          </div>
           <div class="sd-footer">
             <span id="sd-space-label">SD -- | Usado -- | Libre --</span>
             <div class="sd-space-bar"><div class="sd-space-bar-fill" id="sd-space-fill"></div></div>
@@ -288,7 +293,7 @@
           <div class="card-header"><span class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></span> DETALLES DEL ARCHIVO</div>
           <div id="sd-details-empty" class="sd-details-empty">Selecciona un archivo de la lista.</div>
           <div id="sd-details-body" class="sd-details-body" hidden>
-            <div class="sd-details-title"><span id="sd-detail-name"></span></div>
+            <div class="sd-details-title"><span id="sd-detail-name" translate="no"></span></div>
             <div class="sd-details-grid">
               <div><label>Tamaño</label><span id="sd-detail-size"></span></div>
               <div><label>Modificado</label><span id="sd-detail-modified"></span></div>
@@ -296,12 +301,12 @@
 
             <div class="sd-preview-header">
               VISTA PREVIA DEL TRABAJO
-              <button class="btn btn-ghost btn-sm" id="sd-preview-load-btn">Cargar vista previa</button>
+              <button class="btn btn-sm btn-preview" id="sd-preview-load-btn" hidden>Error, reintentar</button>
             </div>
             <div id="sd-preview-body" hidden>
               <div class="sd-preview-grid">
                 <div class="sd-preview-canvas-wrap">
-                  <svg id="sd-preview-svg" viewBox="0 0 200 200" preserveAspectRatio="xMidYMid meet"></svg>
+                  <canvas id="sd-preview-canvas" width="600" height="440"></canvas>
                 </div>
                 <div class="sd-preview-stats">
                   <div><label>Dimensiones</label><span id="sd-preview-dims">--</span></div>
@@ -310,14 +315,25 @@
                 </div>
               </div>
             </div>
-            <div id="sd-preview-loading" hidden>Leyendo archivo...</div>
+            <div id="sd-preview-loading" hidden><div class="sd-preview-loadrow"><span id="sd-preview-status">Leyendo archivo...</span><button type="button" class="sd-row-btn" id="sd-preview-cancel" title="Cancelar" aria-label="Cancelar">✖</button></div><div class="sd-preview-bar"><i id="sd-preview-bar"></i></div></div>
 
-            <div class="sd-actions">
+            <div class="sd-runrow" id="sd-runrow">
+              <div class="sd-passes" id="sd-passes-box">
+                <label for="sd-passes">Pasadas</label>
+                <div class="sd-passes-ctl">
+                  <button type="button" class="btn btn-outline btn-sm" id="sd-passes-dec" aria-label="Menos pasadas">&minus;</button>
+                  <input type="number" id="sd-passes" min="1" max="99" step="1" value="1" inputmode="numeric">
+                  <button type="button" class="btn btn-outline btn-sm" id="sd-passes-inc" aria-label="Más pasadas">+</button>
+                </div>
+              </div>
               <button class="btn btn-primary" id="sd-run-btn">
                 <span class="btn-icon" id="sd-run-icon"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg></span>
                 <span id="sd-run-label">Iniciar trabajo</span>
               </button>
-              <button class="btn btn-outline btn-stop" id="sd-stop-btn"><span class="btn-icon"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="1"></rect></svg></span> Detener</button>
+            </div>
+            <small class="sd-passes-hint">Veces que se repite el archivo completo (1 a 99).</small>
+            <div class="sd-actions" id="sd-pause-row" hidden>
+              <button class="btn btn-outline" id="sd-pause-btn">Pausar</button>
             </div>
             <div class="sd-actions">
               <button class="btn btn-outline" id="sd-frame-btn"><span class="btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect></svg></span> Encuadrar</button>
@@ -448,7 +464,7 @@
             <li><a href="https://github.com/gnea/grbl" target="_blank" rel="noopener">Grbl</a><span>Intérprete de G-code y planificador de movimiento originales.</span></li>
             <li><a href="https://lvgl.io" target="_blank" rel="noopener">LVGL</a><span>Biblioteca gráfica de la pantalla táctil.</span></li>
           </ul>
-          <p class="about-license">Este programa es software libre: puedes redistribuirlo y modificarlo bajo los términos de la <b>GNU General Public License v3</b>. Se distribuye sin ninguna garantía.</p>
+          <p class="about-license">Este programa es software libre: puedes redistribuirlo y modificarlo bajo los términos de la <b>GNU General Public License v3</b>. <b class="license-warn">Se distribuye sin ninguna garantía.</b></p>
         </div>
       </div>
     </section>
@@ -479,6 +495,11 @@
               <span class="lang-name">Interfaz en chino</span>
               <span class="lang-code">ZH</span>
             </button>
+            <button type="button" class="lang-option" data-uilang="pt">
+              <span class="lang-native">Português</span>
+              <span class="lang-name">Interfaz en portugués</span>
+              <span class="lang-code">PT</span>
+            </button>
           </div>
           <div class="settings-validation-row"><span>Idioma de la interfaz</span><span class="sd-badge" id="uilang-current">Español</span></div>
           <div class="settings-validation-row"><span>Alcance</span><span id="uilang-msg">Menús, tablas, avisos y mensajes de esta web. No toca la consola ni la pantalla LCD.</span></div>
@@ -498,8 +519,8 @@
               <span class="lang-code">$40=1</span>
             </button>
             <button type="button" class="lang-option" data-lang="2">
-              <span class="lang-native">Deutsch</span>
-              <span class="lang-name">Alemán</span>
+              <span class="lang-native">Português</span>
+              <span class="lang-name">Portugués</span>
               <span class="lang-code">$40=2</span>
             </button>
             <button type="button" class="lang-option" data-lang="3">
@@ -516,7 +537,7 @@
       <div class="card settings-tip lang-notes">
         <div class="card-header">NOTAS</div>
         <p>• El cambio de la pantalla es inmediato: el controlador recarga los textos del LCD en menos de un segundo. Si la página abierta no cambia de texto, entra y sale de esa página.</p>
-        <p>• Deutsch muestra los textos en inglés: el firmware solo trae textos en inglés, español y chino.</p>
+        <p>• El portugués (Português) es el de Brasil. Las tildes y la ç se ven con la misma fuente Latin-1 (Roboto) que el español.</p>
         <p>• El chino (中文) usa solo los 131 caracteres chinos que trae la fuente de la pantalla: algunos textos usan sinónimos o se quedan en inglés. Las tildes, la ñ, ¿ y ¡ se ven con una fuente Latin-1 (Roboto).</p>
         <p>• El idioma de la pantalla se guarda en NVS: sobrevive a los reinicios. El de esta web se guarda en el navegador (localStorage) y no afecta a nadie más.</p>
       </div>
@@ -540,7 +561,8 @@
   </span>
 </footer>
 
-<script src="js/i18n_zh.js"></script>
+<script src="js/i18n_pt.js"></script>
+  <script src="js/i18n_zh.js"></script>
   <script src="js/i18n.js"></script>
 <script src="js/app.js"></script>
 </body>

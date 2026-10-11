@@ -21,6 +21,8 @@ var i18nSrc = fs.readFileSync(path.join(dir, "js", "i18n.js"), "utf8");
 eval(i18nSrc); // define I18N_EN e i18nLookup
 var I18N_ZH_SRC = fs.readFileSync(path.join(dir, "js", "i18n_zh.js"), "utf8");
 var I18N_ZH_DICT = (new Function(I18N_ZH_SRC + "; return I18N_ZH;"))();
+var I18N_PT_SRC = fs.readFileSync(path.join(dir, "js", "i18n_pt.js"), "utf8");
+var I18N_PT_DICT = (new Function(I18N_PT_SRC + "; return I18N_PT;"))();
 
 /* Cosas que son tecnicas o estan ya en ingles y no se tocan. */
 var SKIP = new Set([
@@ -30,7 +32,7 @@ var SKIP = new Set([
   "0-255", "0..3", "%", "% (float)", "float", "X", "Y", "MX", "MY",
   "Z+", "Z-", "F (Feed)", "S (Spindle/Light)", "MPos", "WPos",
   "$40=0", "$40=1", "$40=2", "$40=3", "→", "—", "⇩", "⌖", "▲", "▼", "✎",
-  "中文", "Deutsch", "English", "MKS DLC32", "MKS DLC32 - ESP32-WEB", "M+X", "M+X - ESP32-WEB", "ESP32-WEB",
+  "中文", "Português", "English", "MKS DLC32", "MKS DLC32 - ESP32-WEB", "M+X", "M+X - ESP32-WEB", "ESP32-WEB",
   "MKS DLC32 Firmware", "MKS DLC32 (Makerbase)", "Grbl_ESP32", "Grbl", "LVGL",
   "GNU General Public License v3",
   "Control", "Autoscroll", "OFF", "ON", "Macro 1", "Macro 2", "Macro 3",
@@ -40,7 +42,7 @@ var SKIP = new Set([
   "Step direction invert", "Stallguard X", "Stallguard Y", "Stallguard Z",
   // literales de codigo / respuestas del firmware
   "Ok", "ok", "error", "files", "No SD Card", "Busy", "active",
-  "use strict", "G0 X", "G90 G0 Z0", "G92 X0 Y0", "M3 S", "Ctrl-X (reset)",
+  "use strict", "[translate=\"no\"]", "G0 X", "G90 G0 Z0", "G92 X0 Y0", "M3 S", "Ctrl-X (reset)",
   "[error]", "[error] HTTP",
   // comentarios y restos que no llegan al DOM
   "Ultima actualizacion: 12:00:01", "Archivo subido",
@@ -149,4 +151,31 @@ if (missing.length) {
 } else {
   console.log("sin cubrir: 0");
 }
-process.exit(missing.length || dups.length || zhMissing.length || zhExtra.length ? 1 : 0);
+var ptMissing = Object.keys(I18N_EN).filter(function (k) { return I18N_PT_DICT[k] === undefined; });
+var ptExtra = Object.keys(I18N_PT_DICT).filter(function (k) { return I18N_EN[k] === undefined; });
+if (ptMissing.length || ptExtra.length) {
+  console.log("PORTUGUÉS: faltan " + ptMissing.length + ", sobran " + ptExtra.length);
+  ptMissing.forEach(function (k) { console.log("  falta: " + k); });
+  ptExtra.forEach(function (k) { console.log("  sobra: " + k); });
+} else {
+  console.log("portugués: " + Object.keys(I18N_PT_DICT).length + " claves, cobertura completa");
+}
+
+var missing = extractHtml(path.join(dir, "index.html"))
+  .concat(extractJs(path.join(dir, "js", "app.js")));
+
+var dups = findDuplicates();
+var keys = Object.keys(I18N_EN);
+
+console.log("claves del diccionario: " + keys.length);
+if (dups.length) {
+  console.log("CLAVES DUPLICADAS (" + dups.length + "):");
+  dups.forEach(function (k) { console.log("  ! " + k); });
+}
+if (missing.length) {
+  console.log("SIN CUBRIR (" + missing.length + "):");
+  missing.forEach(function (r) { console.log("  - [" + r.from + "] " + r.text); });
+} else {
+  console.log("sin cubrir: 0");
+}
+process.exit(missing.length || dups.length || zhMissing.length || zhExtra.length || ptMissing.length || ptExtra.length ? 1 : 0);
