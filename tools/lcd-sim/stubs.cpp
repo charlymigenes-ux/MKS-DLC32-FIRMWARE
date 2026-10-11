@@ -88,3 +88,4 @@ void mks_listDir(fs::FS&, const char*, uint8_t) {
         if (mks_file_list.file_count >= mks_file_list.file_page * MKS_FILE_NUM) return;
     }
 }
+void frame_task_ensure(void) {}   // en el simulador no hay tarea del marco

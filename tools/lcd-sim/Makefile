@@ -1,5 +1,5 @@
 # Simulador de las pantallas del LCD: LVGL 6.1.1 + el codigo real de MKS_draw_*.cpp compilados en el PC.
-# make shots  -> regenera las capturas de los tres idiomas en ../../docs/pantallas/{es,en,zh}
+# make shots  -> regenera las capturas de los tres idiomas en ../../docs/pantallas/{es,en,zh,pt}
 # Se refrescan las fuentes de las pantallas ANTES de resolver dependencias (si no, corre en paralelo con la compilacion)
 $(shell ./refresh.sh)
 FW      := $(abspath ../../Firmware)
@@ -9,10 +9,10 @@ CFLAGS  := -Istubs -O1 -w -include stdlib.h -include string.h -include stdio.h -
 CXXFLAGS:= $(CFLAGS) -std=gnu++17 -Isrc -Isrc/mks
 LVGL_SRC:= $(shell find $(LVGL)/src/src -name '*.c')
 PIC_SRC := $(shell ls $(PIC)/*.c | grep -v ' ')
-DRAW_SRC:= $(wildcard src/mks/MKS_draw_*.cpp) src/mks/draw_ui.cpp
+DRAW_SRC:= $(wildcard src/mks/MKS_draw_*.cpp) src/mks/draw_ui.cpp src/mks/MKS_preview_core.cpp
 OBJ     := $(patsubst $(LVGL)/%.c,build/lvgl/%.o,$(LVGL_SRC)) \
            $(patsubst $(PIC)/%.c,build/pic/%.o,$(PIC_SRC)) \
-           $(patsubst src/mks/%.cpp,build/draw/%.o,$(DRAW_SRC)) build/main.o build/stubs.o
+           $(patsubst src/mks/%.cpp,build/draw/%.o,$(DRAW_SRC)) build/main.o build/stubs.o build/sim_preview.o
 
 sim: $(OBJ)
 	g++ -o $@ $(OBJ) -lm
@@ -24,12 +24,15 @@ build/draw/%.o: src/mks/%.cpp $(wildcard src/mks/*.h) src/Grbl.h
 	@mkdir -p $(dir $@) && g++ $(CXXFLAGS) -c $< -o $@
 build/main.o: main.cpp src/Grbl.h
 	@mkdir -p build && g++ $(CXXFLAGS) -c $< -o $@
+build/sim_preview.o: sim_preview.cpp $(wildcard src/mks/*.h)
+	@mkdir -p build && g++ $(CXXFLAGS) -c $< -o $@
 build/stubs.o: stubs.cpp src/Grbl.h
 	@mkdir -p build && g++ $(CXXFLAGS) -c $< -o $@
 
 OUT := $(abspath ../../docs/pantallas)
 shots: sim
-	@for l in es en zh; do rm -rf $(OUT)/$$l; mkdir -p $(OUT)/$$l; ./sim $(OUT)/$$l $$l > /dev/null; python3 ppm2png.py $(OUT)/$$l; done
+	@for l in es en zh pt; do rm -rf $(OUT)/$$l; mkdir -p $(OUT)/$$l; ./sim $(OUT)/$$l $$l > /dev/null; python3 ppm2png.py $(OUT)/$$l; done
+	@python3 gallery.py $(OUT)
 	@echo "capturas en $(OUT)"
 clean:
 	rm -rf build sim src/mks
