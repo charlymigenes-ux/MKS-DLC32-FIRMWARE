@@ -1,6 +1,6 @@
 <div align="center">
 
-# M+X · Firmware abierto para láser y CNC
+# M+X · Firmware abierto para láser, CNC y plotter de pluma
 
 **Grbl_ESP32 con interfaz web propia y pantalla táctil rediseñada, en español, inglés, portugués y chino**
 
@@ -14,7 +14,7 @@
 
 <br>
 
-[![Probado en](https://img.shields.io/badge/probado%20en-MKS%20LTS%20V1.1%20%C2%B7%20TTS%2055%20PRO%205W-1f2333?style=flat-square&labelColor=2de0a7&color=1f2333)](#-hardware-probado)
+[![Probado en](https://img.shields.io/badge/probado%20en-MKS%20LTS%20V1.1%20%C2%B7%20TTS%2055%20PRO%205W%20%C2%B7%20MKS%20DLC32%20V2.1-1f2333?style=flat-square&labelColor=2de0a7&color=1f2333)](#-hardware-probado)
 
 <br>
 
@@ -31,7 +31,7 @@
 
 ## Contenido
 
-[Hardware probado](#-hardware-probado) · [Qué incluye](#-qué-incluye) · [Pantalla LCD](#-pantalla-táctil-lcd) · [WebUI](#-webui) · [Modo láser y seguridad](#-modo-láser-y-seguridad) · [Sonidos](#-sonidos) · [Idiomas](#-idiomas) · [Ajustes `$`](#-ajustes--clave) · [Compilar y flashear](#-compilar-y-flashear) · [Actualizar la WebUI](#-actualizar-la-webui-sin-cable) · [Imagen de inicio](#-imagen-de-inicio) · [Simulador](#-simulador-del-lcd-y-capturas) · [Estructura](#-estructura-del-repositorio) · [Problemas frecuentes](#-problemas-frecuentes) · [Qué cambió](#-qué-cambió-respecto-al-firmware-de-mks) · [Créditos](#-créditos-y-licencia)
+[Hardware probado](#-hardware-probado) · [Qué incluye](#-qué-incluye) · [Pantalla LCD](#-pantalla-táctil-lcd) · [WebUI](#-webui) · [Modo láser y seguridad](#-modo-láser-y-seguridad) · [Sonidos](#-sonidos) · [Idiomas](#-idiomas) · [Ajustes `$`](#-ajustes--clave) · [Variante PLOTTER](#-variante-plotter-dibujo-con-pluma) · [Compilar y flashear](#-compilar-y-flashear) · [Actualizar la WebUI](#-actualizar-la-webui-sin-cable) · [Imagen de inicio](#-imagen-de-inicio) · [Simulador](#-simulador-del-lcd-y-capturas) · [Estructura](#-estructura-del-repositorio) · [Problemas frecuentes](#-problemas-frecuentes) · [Qué cambió](#-qué-cambió-respecto-al-firmware-de-mks) · [Créditos](#-créditos-y-licencia)
 
 ---
 
@@ -51,7 +51,9 @@
 | Placa | Estado |
 |---|---|
 | MKS LTS V1.1 (8 MB) | ✅ Probada: entorno `mks_dlc32_8mb` |
-| MKS DLC32 **V2.x** (4 u 8 MB) | ⚠️ **Sin probar.** Hay entornos experimentales (`mks_dlc32_v2_1` de 4 MB y `mks_dlc32_v2_1_8mb` de 8 MB) con el mapa de pines de la V2 (salida del láser GPIO32, sonda GPIO22), que coincide con el mapa publicado de MKS pero **no está verificado en una placa**. Esta placa no entra sola en modo de descarga desde el USB: hay que llevar IO0 (`SDA` del conector «I²C interface») a GND al arrancar |
+| **MKS DLC32 V2.1** | ✅ **Probada por el autor** con la variante PLOTTER (entorno `mks_dlc32_v2_1_plotter`, tabla de fábrica de 4 MB). El arranque y la WebUI también se verificaron con la tabla de 8 MB. |
+| MKS DLC32 **V2.x** (otras revisiones) | ⚠️ **Sin probar.** Mismos entornos, pero no se han verificado en esas placas |
+| *Programación por USB* | La V2.1 no entra en modo de descarga con la secuencia por defecto de algunas herramientas: su circuito de reset **cruza DTR y RTS** (ver [Variante PLOTTER](#-variante-plotter-dibujo-con-pluma)). Con la secuencia correcta, o llevando IO0 (`SDA` del conector «I²C interface») a GND al arrancar, sí entra |
 | Otras (Sculpfun, AVR, STM32…) | ❌ No compatible: el firmware es específico de la MKS DLC32 |
 
 ## ✨ Qué incluye
@@ -302,10 +304,73 @@ Los ajustes viven en la memoria no volátil (NVS) y **sobreviven a un reflasheo*
 | `$120`–`$122` | 500 | Aceleración (mm/s²) |
 | `$130`–`$132` | 300 / 300 / 80 | Recorrido máximo (mm) |
 | `$21`, `$22` | 1, 1 | Límites duros y homing activados |
+| `$41` | 3.0 mm | **Pluma**: altura con la pluma levantada (variante PLOTTER) |
+| `$42` | 0.0 mm | **Pluma**: altura de dibujo; 0 = la pluma toca el papel |
+| `$43` | 500 | **Pluma**: velocidad al bajar (mm/min) |
+| `$44` | 1500 | **Pluma**: velocidad de dibujo y de los movimientos manuales (mm/min) |
 
 **Comando propio para las pasadas** (lo usa la WebUI; también sirve desde la consola): `$SD/Passes=N` y, justo después, `$SD/Run=archivo`. Si no se manda `$SD/Passes`, el archivo corre una sola vez.
 
 > Los valores de fábrica están calibrados para una máquina de **300 × 300 mm con finales de carrera**. Ajústalos a la tuya.
+
+---
+
+## 📐 Variante PLOTTER (dibujo con pluma)
+
+Compilación (`-D PLOTTER_MODE`) pensada para usar la placa como **plotter de dibujo con pluma**: la pluma se sube y se baja con el eje Z, y no hay láser ni sonda. **Las demás compilaciones no cambian de comportamiento.** Probada por el autor en una **MKS DLC32 V2.1**.
+
+<div align="center">
+<img src="docs/plotter/maquetas_pantallas.png" width="760" alt="Maquetas de las pantallas de la variante plotter">
+<br><sub><b>Maquetas de diseño</b> de la pantalla de 480×320 (inicio, pluma y mover, dibujar con pasadas y ajustes de pluma). No son capturas de la pantalla real.</sub>
+</div>
+
+### Qué cambia
+
+- **Inicio**: tres mosaicos: *Dibujar* (archivos de la SD), *Pluma y mover* y *Ajustes*.
+- **Pluma y mover** (pantalla nueva): cruceta X/Y con pasos de 0.1, 1, 10 y 50 mm, **SUBIR** y **BAJAR PLUMA**, *Cero XY*, *Cero Z* y *A origen*. Muestra el estado de la pluma (arriba, abajo o en movimiento).
+- **Ajustes → Pluma** (la primera pestaña): `$41`–`$44` con botones − y +; se guardan al instante.
+- **Pantalla de archivo**: *Sonda Z* pasa a **Pluma** (sube o baja) y *Aire* pasa a **A origen**, así que ya no hay un botón que baje Z hasta tocar.
+- **Pasadas**: el aviso dice «Pasadas: N» y **entre pasadas la pluma sube y vuelve a X0 Y0** antes de empezar de nuevo.
+- **WebUI**: tarjeta **Pluma** arriba de la vista Control, con el mismo control y los ajustes. Solo aparece si la placa conoce `$41`; con el firmware PLOTTER se oculta lo del láser y «Ir a origen (Z)» (que bajaba la pluma en rápido).
+
+### Cómo se mueve la pluma
+
+La pluma se mueve con **Z en coordenadas de trabajo**: `Z = 0` es la pluma tocando el papel. Subir manda `$J=G90G21Z<$41>` y bajar `$J=G90G21Z<$42>`; solo con la máquina parada.
+
+1. Lleva la pluma hasta que **apenas toque el papel** (con el movimiento manual).
+2. Pulsa **Cero Z**: queda `Z = 0` (`G92 Z0`). Pide confirmación en la WebUI.
+3. `$41` define cuánto sube para viajar y `$42` a qué altura dibuja (0 = toca el papel).
+
+> [!NOTE]
+> Entre pasadas se usan movimientos absolutos (`G90`): los archivos de dibujo deben ir en coordenadas absolutas.
+
+### Instalar (por cable)
+
+| Entorno | Tabla de particiones | Aplicación | WebUI (SPIFFS) |
+|---|---|---|---|
+| `mks_dlc32_v2_1_plotter` | de fábrica de 4 MB (`huge_app`) | `0x10000` (3 MB) | `0x310000` (960 KB) |
+| `mks_dlc32_v2_1_8mb_plotter` | de 8 MB de este repositorio | `0x10000` (4 MB) | `0x410000` |
+
+```bash
+cd Firmware
+pio run -e mks_dlc32_v2_1_plotter                                    # compilar
+pio run -e mks_dlc32_v2_1_plotter -t upload   --upload-port <puerto> # aplicación
+pio run -e mks_dlc32_v2_1_plotter -t uploadfs --upload-port <puerto> # WebUI
+```
+
+**La WebUI va aparte de la aplicación** (partición SPIFFS): si solo escribes la aplicación, la placa sigue sirviendo la web que tuviera antes. Cámbiala con `uploadfs` o desde *Acerca de → Actualizar WebUI*.
+
+> [!WARNING]
+> **No actualices el firmware con la opción «Actualizar firmware» de la página.** Con esta tabla de particiones hay **un solo slot de aplicación**, así que la subida escribe sobre la aplicación que está en uso: si se interrumpe, la placa se queda sin firmware. Instala siempre por cable. La WebUI sí se puede actualizar sin cable, porque va en otra partición.
+
+### Entrar en modo de descarga en la DLC32 V2.1
+
+El circuito de reset de la V2.1 **cruza DTR y RTS** (no es el montaje clásico), por eso la secuencia por defecto de algunas herramientas no la hace entrar. Con la secuencia cruzada sí: deja RESET abajo (DTR inactivo, RTS activo) unos 0,3 s y después suelta RESET con IO0 abajo (DTR activo, RTS inactivo). El modo de descarga **no imprime nada**: para saber si entró hay que mandarle un SYNC. Alternativa: llevar IO0 (`SDA` del conector «I²C interface») a GND y dar un toque a RESET. Si el flasheo por USB falla o se corrompe, prueba un puerto USB directo y escribe en trozos pequeños verificando cada uno.
+
+### Limitaciones conocidas
+
+- Las pantallas se diseñaron sin simulador ni capturas de la placa real: las imágenes de esta sección son maquetas.
+- La WebUI de una placa con **señal WiFi baja** puede tardar decenas de segundos en cargar (ver *Problemas frecuentes*).
 
 ---
 
@@ -327,6 +392,8 @@ Resultado esperado: **Flash ≈ 47 %, RAM ≈ 25 %**.
 | `mks_dlc32_v2_1` | MKS DLC32 **V2.x, flash de 4 MB** (**experimental, sin probar**) |
 | `mks_dlc32_v2_1_8mb` | MKS DLC32 **V2.x, flash de 8 MB** (**experimental, sin probar**) |
 | `mks_dlc32_v2_1_CoreXY` | Entorno original de MKS para CoreXY, sin probar |
+| `mks_dlc32_v2_1_plotter` | **Plotter de pluma** en MKS DLC32 **V2.1 con la tabla de fábrica de 4 MB** (**probado**) |
+| `mks_dlc32_v2_1_8mb_plotter` | Plotter de pluma en MKS DLC32 V2.1 con la tabla de 8 MB (compila; misma base que el anterior) |
 
 > [!WARNING]
 > **Flashea solo con la máquina parada.** Abrir el puerto serie reinicia el ESP32 y detiene el trabajo. Y que **ningún otro programa tenga el puerto abierto** (monitores serie, gestores de impresoras…): un flasheo a medias deja la placa sin firmware hasta repetirlo.
@@ -374,7 +441,7 @@ Las capturas de la WebUI las hace [`tools/webui-shots`](tools/webui-shots) con u
 │   ├── platformio.ini · ini/    entornos de compilación
 │   └── Grbl_Esp32/
 │       ├── src/                 firmware (Protocol, Stepper, Spindles, WebUI…)
-│       │   ├── mks/             pantallas del LCD (LVGL), idiomas, tareas
+│       │   ├── mks/             pantallas del LCD (LVGL), idiomas, tareas (MKS_draw_pen.cpp: pluma del plotter)
 │       │   ├── lv_pic/          iconos, fuentes e imagen de inicio
 │       │   └── Machines/        mapa de pines y valores de fábrica (MKS DLC32)
 │       ├── data/index.html.gz   WebUI compilada (lo que sirve la placa)
@@ -419,6 +486,12 @@ La placa no tiene reloj propio: la hora llega por NTP en cuanto el Wifi conecta 
 En modo láser (`$32=1`) un `M3 S…` suelto no enciende mientras el modo de movimiento sea G0. El botón de la pantalla ya manda `G1 F1000 M3 S…`; si lo haces desde la consola, usa lo mismo.
 </details>
 
+<details>
+<summary><b>La WebUI tarda mucho en cargar y la placa responde con retraso</b></summary>
+
+Mira la señal WiFi en `[ESP420]` (línea `Signal`). Con una señal baja (se midió un 26 %) la página de ~65 KB tardó 15–40 s en una placa, frente a 0,6 s en otra con el 100 %. El servidor web comparte el lazo principal del firmware: mientras sirve la página con un enlace malo, el resto (también el puerto serie) se retrasa. Acerca la placa al router o mejora su antena.
+</details>
+
 ## 📜 Qué cambió respecto al firmware de MKS
 
 - **Rampa del PWM fuera de la interrupción** (causaba tartamudeo, ruido y reinicios en grabados con segmentos cortos).
@@ -429,6 +502,7 @@ En modo láser (`$32=1`) un `M3 S…` suelto no enciende mientras el modo de mov
 - **Sonidos** de fin de trabajo, error y alarma (`$39`).
 - **Valores de fábrica** calibrados (300×300 mm, homing, modo láser) y nombre de placa correcto (*MKS LTS V1.1*).
 - Diagnóstico `[diag]` opcional tras `#define ENABLE_JOB_DIAG` (apagado).
+- **Variante PLOTTER** (`-D PLOTTER_MODE`): pantalla y WebUI de control de pluma, ajustes `$41`–`$44` y pasadas con la pluma levantada entre una y otra.
 
 ## 🙏 Créditos y licencia
 
