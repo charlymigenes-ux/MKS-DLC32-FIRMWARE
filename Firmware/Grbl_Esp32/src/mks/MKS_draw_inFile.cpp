@@ -1,5 +1,6 @@
 #include "MKS_draw_inFile.h"
 #include "MKS_draw_language.h"   // mc_language: textos del LCD
+#include "MKS_draw_pen.h"        // PLOTTER_OR: Sonda Z -> Pluma y Aire -> A origen en la variante de plotter
 
 inFILE_PAGE_T infile_page;
 
@@ -408,8 +409,8 @@ static void inf_event(lv_obj_t* obj, lv_event_t event) {
 			case IB_XYZ0:  set_xyz_pos(obj, event); break;
 			case IB_STEP:  event_handler_len_set(); break;
 			case IB_SPEED: event_handler_speed(); break;
-			case IB_PROBE: set_knife(); break;
-			case IB_AIR:   set_cooling(obj, event); break;
+			case IB_PROBE: PLOTTER_OR(mks_pen_toggle(), set_knife()); break;
+			case IB_AIR:   PLOTTER_OR(mks_pen_go_origin(), set_cooling(obj, event)); break;
 			case IB_FRAME: inf_frame_start(); break;
 			case IB_START: event_handler_sure(); break;
 			case IB_BACK:
@@ -480,7 +481,7 @@ void mks_draw_inFile(char *fn) {
 	// ajustes: paso, velocidad y sonda de Z
 	lv_obj_t* step = inf_mkbtn(IB_STEP,  312,  68, 160, 52, "", &inf_text_style, &inf_btn_style);
 	lv_obj_t* spd  = inf_mkbtn(IB_SPEED, 312, 126, 160, 52, "", &inf_text_style, &inf_btn_style);
-	inf_mkbtn(IB_PROBE, 312, 184, 160, 52, inf_T("Sonda Z", "Z probe", "Z\xe6\xa3\x80\xe6\xb5\x8b"), &inf_text_style, &inf_btn_style);   // Z检测
+	inf_mkbtn(IB_PROBE, 312, 184, 160, 52, PLOTTER_OR(inf_T("Pluma", "Pen", "Pen"), inf_T("Sonda Z", "Z probe", "Z\xe6\xa3\x80\xe6\xb5\x8b")), &inf_text_style, &inf_btn_style);   // Z检测
 
 	// los manejadores del paso y la velocidad actualizan estas etiquetas
 	move_page.label_len = lv_obj_get_child(step, NULL);
@@ -493,7 +494,7 @@ void mks_draw_inFile(char *fn) {
 	else                                        lv_label_set_text(move_page.label_speed, mc_language.speed_high);
 
 	// fila inferior: aire, cero de los tres ejes y el boton grande de iniciar
-	inf_mkbtn(IB_AIR,    8, 244,  78, 68, inf_T("Aire", "Air", "M8"), &inf_text_style, &inf_btn_style);
+	inf_mkbtn(IB_AIR,    8, 244,  78, 68, PLOTTER_OR(inf_T("A origen", "To origin", "Origin"), inf_T("Aire", "Air", "M8")), &inf_text_style, &inf_btn_style);
 	inf_mkbtn(IB_XYZ0,  92, 244,  78, 68, "XYZ=0", &inf_text_style, &inf_btn_style);
 	inf_mkbtn(IB_FRAME, 176, 244, 78, 68, mc_language.frame, &inf_text_style, &inf_btn_style);
 	lv_obj_t* go = inf_mkbtn(IB_START, 260, 244, 212, 68, mc_language.start, &inf_dark_style, &inf_start_style);

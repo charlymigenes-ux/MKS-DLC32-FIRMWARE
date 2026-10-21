@@ -1,5 +1,8 @@
 #include "MKS_draw_ready.h"
 #include "MKS_draw_language.h"   // mc_language: textos del LCD
+#ifdef PLOTTER_MODE
+#include "MKS_draw_pen.h"
+#endif
 #include <time.h>
 
 MKS_PAGE_READY ready_src;
@@ -46,11 +49,19 @@ static void event_handler(lv_obj_t* obj, lv_event_t event) {
 
         switch(id) {
             // case ID_R_ADJUST:        mks_draw_power(); break;
+#ifdef PLOTTER_MODE
+            case ID_R_CONTRL:         // Dibujar: lista de archivos de la SD
+                file_popup_select_flag = false;
+                mks_draw_craving();
+            break;
+            case ID_R_SCULPTURE:      mks_draw_pen(); break;   // Pluma y mover
+#else
             case ID_R_CONTRL:         mks_draw_move();; break;
             case ID_R_SCULPTURE:
                 file_popup_select_flag = false;
                 mks_draw_craving();;
             break;
+#endif
             case ID_R_TOOL:     mks_draw_tool();  break;
 #ifdef ENABLE_WIFI
             // case ID_R_WIFI:
@@ -217,9 +228,15 @@ void mks_draw_ready(void) {
     }
 
     // mosaicos
+#ifdef PLOTTER_MODE
+    ready_src.ready_imgbtn_Control   = rd_tile(0, 6,   &png_tile_carve, mks_tr("Dibujar", "Draw"),             &ready_src.ready_label_Control);
+    ready_src.ready_imgbtn_Sculpture = rd_tile(1, 165, &png_tile_ctrl,  mks_tr("Pluma y mover", "Pen & move"), &ready_src.ready_label_Sculpture);
+    ready_src.ready_imgbtn_Tool      = rd_tile(2, 324, &png_tile_tool,  mks_tr("Ajustes", "Settings"),         &ready_src.ready_label_Tool);
+#else
     ready_src.ready_imgbtn_Control   = rd_tile(0, 6,   &png_tile_ctrl,   mc_language.control,   &ready_src.ready_label_Control);
     ready_src.ready_imgbtn_Sculpture = rd_tile(1, 165, &png_tile_carve, mc_language.sculpture, &ready_src.ready_label_Sculpture);
     ready_src.ready_imgbtn_Tool      = rd_tile(2, 324, &png_tile_tool,      mc_language.tool,      &ready_src.ready_label_Tool);
+#endif
 
     mks_ui_page.mks_ui_page = MKS_UI_Ready;
 }

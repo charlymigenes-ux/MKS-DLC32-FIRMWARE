@@ -2,6 +2,7 @@
 #include "MKS_draw_boot.h"
 #include "MKS_draw_fileview.h"
 #include "MKS_draw_language.h"   // mc_language_init: recarga de $40 en caliente
+#include "MKS_draw_pen.h"        // plotter: pantalla de la pluma
 
 // 8 KB: con 5 KB la lista de archivos (SD + FAT + snprintf con decimales) desbordaba la pila y corrompia el heap
 // ("CORRUPT HEAP ... abort()" al pulsar Grabado). El minimo medido en reposo (1,6 KB) no sirve: hay que medir bajo carga.
@@ -152,7 +153,7 @@ static void mks_page_data_updata(void) {
         static uint8_t job_seen = 0;
         mks_ui_page_t  pg       = mks_ui_page.mks_ui_page;
         bool           otra     = (pg == MKS_UI_Ready) || (pg == MKS_UI_Control) || (pg == MKS_UI_Caving) ||
-                        (pg == MKS_UI_inFile) || (pg == MKS_UI_FileView) || (pg == MKS_UI_Tool) || (pg == MKS_UI_LANGUAGE) || (pg == MKS_UI_Adjust);
+                        (pg == MKS_UI_inFile) || (pg == MKS_UI_FileView) || (pg == MKS_UI_Tool) || (pg == MKS_UI_LANGUAGE) || (pg == MKS_UI_Adjust) || (pg == MKS_UI_Pen);
         if(otra && get_sd_state(false) == SDState::BusyPrinting) {
             if(++job_seen >= 40) {
                 job_seen = 0;
@@ -195,6 +196,12 @@ static void mks_page_data_updata(void) {
         if((count_updata == 200) || (count_updata > 200) ) { // 200*5=1000ms = 1s
             move_pos_update();
             probe_check();
+        }
+    }
+    else if(mks_ui_page.mks_ui_page == MKS_UI_Pen) {          // plotter: coordenadas y estado de la pluma (cada 200 ms)
+        if(count_updata >= 40) {
+            mks_pen_update();
+            count_updata = 0;
         }
     }
     else if(mks_ui_page.mks_ui_page == MKS_UI_FileView) {    // vista previa del archivo

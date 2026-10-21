@@ -1,4 +1,10 @@
 #include "MKS_draw_lvgl.h"
+#include "MKS_draw_language.h"   // mks_tr
+#ifdef PLOTTER_MODE
+#define PASSES_FMT mks_tr("Pasadas: %d", "Passes: %d")   // plotter: el aviso de pasadas en el idioma de la pantalla
+#else
+#define PASSES_FMT "times:%d"
+#endif
 
 
 GLOBAL_OBJ_T mks_global;
@@ -545,7 +551,7 @@ static void event_handler_cave_add(lv_obj_t* obj, lv_event_t event) {
 			mks_grbl.carve_times = 99;
 		}
 
-		sprintf(buff , "times:%d", mks_grbl.carve_times);
+		sprintf(buff , PASSES_FMT, mks_grbl.carve_times);
 		lv_label_set_text(cavre_pupop.label_line2, buff);
 	}
 }
@@ -558,7 +564,7 @@ static void event_handler_cave_dec(lv_obj_t* obj, lv_event_t event) {
 		if(mks_grbl.carve_times < 1) {
 			mks_grbl.carve_times = 1;
 		}
-		sprintf(buff , "times:%d", mks_grbl.carve_times);
+		sprintf(buff , PASSES_FMT, mks_grbl.carve_times);
 		lv_label_set_text(cavre_pupop.label_line2, buff);
 	}
 }
@@ -624,7 +630,7 @@ void mks_draw_cavre_popup(char *fn, lv_event_cb_t event_cb_yes, lv_event_cb_t ev
 					 -20,
 					 fn);
 
-	sprintf(buff, "times:%d", mks_grbl.carve_times);
+	sprintf(buff, PASSES_FMT, mks_grbl.carve_times);
 	cavre_pupop.label_line2 = label_for_screen(cavre_pupop.com_popup_src, 
 											cavre_pupop.label_line2,
 											0,

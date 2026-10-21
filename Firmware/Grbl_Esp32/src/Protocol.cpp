@@ -26,6 +26,7 @@
 #include "mks/MKS_TS35.h"
 #include "lvgl.h"
 #include "mks/MKS_draw_print.h"
+#include "mks/MKS_draw_pen.h"
 #include "mks/MKS_draw_wifi.h"
 
 static void protocol_exec_rt_suspend();
@@ -344,6 +345,7 @@ void protocol_main_loop() {
                     if(mks_grbl.carve_times != 0) mks_grbl.carve_times--;
 
                     if(mks_grbl.carve_times > 0) {
+                        PEN_BETWEEN_PASSES();   // plotter: sube la pluma y vuelve al origen entre pasadas
                         setFilePos(0);
                         grbl_sendf(CLIENT_SERIAL , "times:%d\n", mks_grbl.carve_times);
                     }else {

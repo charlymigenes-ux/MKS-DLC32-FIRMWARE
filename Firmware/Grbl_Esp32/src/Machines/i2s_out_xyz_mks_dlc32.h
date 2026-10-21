@@ -42,7 +42,11 @@
 #    include "boards/lts_v1_1.h"
 #endif
 
+#ifdef PLOTTER_MODE
+#define FW_NAME                     "V1.0(M+X.PLT.20261021)"
+#else
 #define FW_NAME                     "V1.0(M+X.8M.20261001)"
+#endif
 
 
 #ifdef N_AXIS

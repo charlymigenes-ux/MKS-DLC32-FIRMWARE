@@ -66,6 +66,47 @@
       <div class="grid-control">
        <div class="control-left">
 
+        <div class="card" id="pen-card" hidden>
+          <div class="card-header"><span class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg></span> PLUMA <span class="pen-state" id="pen-state">&mdash;</span></div>
+          <div class="pen-body">
+            <div class="pen-main">
+              <div class="pen-readout"><label>Z (trabajo)</label><span id="pen-z">0.000</span> <small>mm</small></div>
+              <div class="pen-actions">
+                <button class="btn btn-primary btn-pen" id="pen-up"><span class="pen-arrow">&#9650;</span> Subir pluma</button>
+                <button class="btn btn-outline btn-pen" id="pen-down"><span class="pen-arrow">&#9660;</span> Bajar pluma</button>
+              </div>
+              <div class="quick-actions-grid">
+                <button class="btn btn-outline" id="pen-zero-z"><span>&#8982;</span> Cero Z (la pluma toca el papel)</button>
+                <button class="btn btn-outline" id="pen-origin"><span>&#8962;</span> A origen</button>
+              </div>
+              <p class="pen-msg" id="pen-msg" role="status" aria-live="polite"></p>
+            </div>
+            <div class="pen-side">
+              <div class="quick-actions-label">AJUSTES DE LA PLUMA</div>
+              <div class="pen-settings">
+                <div class="pen-field">
+                  <label for="pen-set-up">Altura arriba ($41)</label>
+                  <div class="number-input"><input type="number" id="pen-set-up" min="0.5" max="50" step="0.5" value="3"><span>mm</span></div>
+                </div>
+                <div class="pen-field">
+                  <label for="pen-set-down">Altura abajo ($42)</label>
+                  <div class="number-input"><input type="number" id="pen-set-down" min="-5" max="5" step="0.1" value="0"><span>mm</span></div>
+                </div>
+                <div class="pen-field">
+                  <label for="pen-set-plunge">Velocidad de bajada ($43)</label>
+                  <div class="number-input"><input type="number" id="pen-set-plunge" min="50" max="5000" step="50" value="500"><span>mm/min</span></div>
+                </div>
+                <div class="pen-field">
+                  <label for="pen-set-draw">Velocidad de dibujo ($44)</label>
+                  <div class="number-input"><input type="number" id="pen-set-draw" min="100" max="10000" step="100" value="1500"><span>mm/min</span></div>
+                </div>
+              </div>
+              <button class="btn btn-primary btn-sm" id="pen-save">Guardar ajustes de la pluma</button>
+              <p class="mode-hint">Subir y bajar mueven el eje Z en coordenadas de trabajo: Z=0 es la pluma tocando el papel. Solo con la máquina parada.</p>
+            </div>
+          </div>
+        </div>
+
         <div class="card">
           <div class="card-header"><span class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg></span> ESTADO DE MÁQUINA <span class="state-dot" id="machine-state-dot"></span></div>
           <div class="job-status is-idle" id="job-status">
@@ -150,25 +191,25 @@
             <button class="btn btn-outline" id="btn-home"><span class="btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg></span> Origen</button>
             <button class="btn btn-outline" id="btn-position"><span class="btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg></span> Posición</button>
           </div>
-          <div class="quick-actions-label">MODO DE LA MÁQUINA</div>
-          <div class="mode-switch" id="mode-switch">
+          <div class="quick-actions-label hide-plotter">MODO DE LA MÁQUINA</div>
+          <div class="mode-switch hide-plotter" id="mode-switch">
             <button class="btn btn-outline active" data-mode="1">Láser</button>
             <button class="btn btn-outline" data-mode="0">CNC</button>
           </div>
-          <p class="mode-hint">Cambia el parámetro $32 y los rótulos de la pantalla y de esta web. Solo con la máquina parada.</p>
-          <div class="quick-actions-label" data-laser="LÁSER" data-cnc="HUSILLO">LÁSER</div>
-          <div class="laser-power-row">
+          <p class="mode-hint hide-plotter">Cambia el parámetro $32 y los rótulos de la pantalla y de esta web. Solo con la máquina parada.</p>
+          <div class="quick-actions-label hide-plotter" data-laser="LÁSER" data-cnc="HUSILLO">LÁSER</div>
+          <div class="laser-power-row hide-plotter">
             <button class="btn btn-outline btn-power" data-power="0">OFF</button>
             <button class="btn btn-outline btn-power" data-power="5">5%</button>
             <button class="btn btn-outline btn-power" data-power="25">25%</button>
             <button class="btn btn-outline btn-power" data-power="50">50%</button>
             <button class="btn btn-outline btn-power" data-power="100">100%</button>
           </div>
-          <p class="mode-hint">Enciende el láser fijo en el punto actual hasta pulsar OFF. Usa gafas de protección y no lo dejes sobre el material.</p>
+          <p class="mode-hint hide-plotter">Enciende el láser fijo en el punto actual hasta pulsar OFF. Usa gafas de protección y no lo dejes sobre el material.</p>
           <div class="quick-actions-label">ACCIONES SECUNDARIAS</div>
           <div class="quick-actions-grid">
             <button class="btn btn-outline" id="btn-zero"><span>&#8982;</span> Establecer cero (X,Y)</button>
-            <button class="btn btn-outline" id="btn-goorigin"><span>&#8681;</span> Ir a origen (Z)</button>
+            <button class="btn btn-outline hide-plotter" id="btn-goorigin"><span>&#8681;</span> Ir a origen (Z)</button>
           </div>
           <div class="quick-actions-grid">
             <button class="btn btn-outline btn-stop" id="btn-reset-controller"><span class="btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg></span> Reiniciar controlador</button>

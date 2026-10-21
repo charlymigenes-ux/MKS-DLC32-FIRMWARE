@@ -510,3 +510,31 @@ body{display:flex;flex-direction:column;height:100vh;overflow:hidden;}
 /* Pasadas: solo los botones − y +, sin las flechas propias del navegador */
 .sd-passes-ctl input[type=number]{-moz-appearance:textfield;appearance:textfield;}
 .sd-passes-ctl input[type=number]::-webkit-outer-spin-button,.sd-passes-ctl input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+
+/* ---- Pluma (plotter) ---- */
+#pen-card[hidden]{display:none;}
+body.plotter .hide-plotter{display:none !important;}
+.pen-state{margin-left:auto;font-size:0.975rem;font-weight:700;padding:3px 12px;border-radius:999px;border:1px solid var(--border);color:var(--text-muted);white-space:nowrap;}
+.pen-state.is-up{color:var(--green-dark);border-color:var(--green);background:var(--green-light);}
+.pen-state.is-down{color:var(--text);border-color:var(--text-muted);background:var(--surface-2);}
+.pen-state.is-moving{color:var(--amber);border-color:var(--amber);}
+.pen-readout{display:flex;align-items:baseline;gap:8px;margin-bottom:12px;}
+.pen-readout label{font-size:0.975rem;color:var(--text-muted);}
+.pen-readout span{font-size:1.625rem;font-weight:700;}
+.pen-readout small{font-size:0.975rem;color:var(--text-muted);}
+.pen-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.btn-pen{min-height:56px;font-size:1.15rem;}
+.btn-pen .pen-arrow{font-size:1.3rem;}
+#pen-card .btn:disabled{opacity:.55;cursor:wait;}
+.pen-msg{min-height:1.2em;margin:0 0 8px;font-size:0.9rem;color:var(--green-dark);}
+.pen-msg.is-error{color:var(--danger);}
+.pen-settings label{display:block;font-size:0.975rem;margin-top:6px;}
+.pen-settings .number-input{margin-top:4px;margin-bottom:6px;}
+#pen-save{margin-top:6px;margin-bottom:8px;}
+
+/* la tarjeta de la pluma ocupa una fila entera arriba de la cuadrilla 2x2 (si no, su altura deja huecos) */
+#pen-card{grid-column:1 / -1;}
+.pen-body{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;}
+.pen-settings{display:grid;grid-template-columns:1fr 1fr;gap:2px 14px;}
+.pen-field label{margin-top:4px;}
+@media (max-width:1000px){.pen-body{grid-template-columns:1fr;gap:8px;}}

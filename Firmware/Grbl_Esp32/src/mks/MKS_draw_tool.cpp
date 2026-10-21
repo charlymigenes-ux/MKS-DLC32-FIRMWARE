@@ -23,13 +23,25 @@ lv_obj_t *about_src1;
 #define COL_MUTED    LV_COLOR_MAKE(0x9A, 0xA3, 0xC0)
 
 // El orden del menu lateral es el de este enum (SEC_BACK siempre primero).
+#ifdef PLOTTER_MODE
+// Plotter: la pestana Pluma va la primera tras Atras (8 botones, un poco mas bajos para que quepan).
+enum { SEC_BACK, SEC_PEN, SEC_WIFI, SEC_BEEP, SEC_LANG, SEC_TOOL, SEC_BOARD, SEC_ABOUT, SEC_COUNT };
+#define SEC_FIRST SEC_PEN
+#else
 enum { SEC_BACK, SEC_WIFI, SEC_BEEP, SEC_LANG, SEC_TOOL, SEC_BOARD, SEC_ABOUT, SEC_COUNT };
+#define SEC_FIRST SEC_TOOL
+#endif
 
 #define TOOL_SIDE_X     6
 #define TOOL_SIDE_Y     38
 #define TOOL_SIDE_W     104
+#ifdef PLOTTER_MODE
+#define TOOL_SIDE_H     30
+#define TOOL_SIDE_GAP   2
+#else
 #define TOOL_SIDE_H     36
 #define TOOL_SIDE_GAP   3
+#endif
 #define TOOL_PANEL_X    118
 #define TOOL_PANEL_Y    38
 #define TOOL_PANEL_W    356
@@ -51,8 +63,8 @@ static lv_obj_t* tool_panel = NULL;
 static lv_obj_t* tool_crumb = NULL;
 static lv_obj_t* tool_beep_val = NULL;
 static lv_obj_t* tool_alert_val = NULL;
-static int       tool_section = SEC_TOOL;
-static int       tool_last_section = SEC_TOOL;   // se reabre al volver de las pantallas de Wifi
+static int       tool_section = SEC_FIRST;
+static int       tool_last_section = SEC_FIRST;   // se reabre al volver de las pantallas de Wifi
 static lv_obj_t* tool_lang_row[4];
 static lv_style_t tool_tile_sel_style;   // idioma activo: borde esmeralda
 static int       tool_wifi_state = TOOL_WIFI_SUMMARY;
@@ -77,6 +89,9 @@ static const char* tool_section_title(int sec) {
     switch (sec) {
         case SEC_BACK:  return mc_language.back;
         case SEC_TOOL:  return TC("Herramienta", "Tool", "\xe5\xb7\xa5\xe5\x85\xb7");              // 工具
+#ifdef PLOTTER_MODE
+        case SEC_PEN:   return T("Pluma", "Pen");
+#endif
         case SEC_WIFI:  return "Wifi";
         case SEC_LANG:  return mc_language.language;
         case SEC_BEEP:  return "Beeper";
@@ -95,7 +110,7 @@ static void tool_url_event(lv_obj_t* obj, lv_event_t event) {
 }
 
 static void tool_go_back(void) {
-    tool_last_section = SEC_TOOL;   // la proxima vez que se entre desde el menu, empieza en Herramienta
+    tool_last_section = SEC_FIRST;  // la proxima vez que se entre desde el menu, empieza en la primera pestana
 #if defined(ENABLE_WIFI)
     mks_wifi.wifi_scanf_status = wifi_none;   // detiene la maquina de estados del Wifi
 #endif
@@ -443,6 +458,97 @@ static void tool_build_wifi(void) {
 }
 #endif
 
+#ifdef PLOTTER_MODE
+// ---- Pestana Pluma: alturas y velocidades ($41..$44). Cada toque en - o + manda el ajuste y se guarda al instante. ----
+#define PEN_ROWS 4
+static lv_obj_t* tool_pen_minus[PEN_ROWS];
+static lv_obj_t* tool_pen_plus[PEN_ROWS];
+static lv_obj_t* tool_pen_val[PEN_ROWS];
+static float     tool_pen_cur[PEN_ROWS];
+static char      tool_pen_txt[PEN_ROWS][16];
+static const char  tool_pen_id[PEN_ROWS][4]     = { "41", "42", "43", "44" };
+static const float tool_pen_step[PEN_ROWS]      = { 0.5f, 0.1f, 50.0f, 100.0f };
+static const float tool_pen_min[PEN_ROWS]       = { 0.5f, -5.0f, 50.0f, 100.0f };
+static const float tool_pen_max[PEN_ROWS]       = { 50.0f, 5.0f, 5000.0f, 10000.0f };
+
+static void tool_pen_fmt(int i) {
+    if (i < 2) snprintf(tool_pen_txt[i], sizeof(tool_pen_txt[i]), "%.1f mm", (double)tool_pen_cur[i]);
+    else       snprintf(tool_pen_txt[i], sizeof(tool_pen_txt[i]), "F %d", (int)tool_pen_cur[i]);
+}
+
+static void tool_pen_event(lv_obj_t* obj, lv_event_t event) {
+    if (event != LV_EVENT_RELEASED) return;
+    for (int i = 0; i < PEN_ROWS; i++) {
+        float dir = 0.0f;
+        if (obj == tool_pen_minus[i]) dir = -1.0f;
+        else if (obj == tool_pen_plus[i]) dir = 1.0f;
+        else continue;
+        float v = tool_pen_cur[i] + dir * tool_pen_step[i];
+        if (v < tool_pen_min[i]) v = tool_pen_min[i];
+        if (v > tool_pen_max[i]) v = tool_pen_max[i];
+        v = (float)((int)(v * 10.0f + (v >= 0 ? 0.5f : -0.5f))) / 10.0f;   // un decimal, sin acumular errores de coma flotante
+        tool_pen_cur[i] = v;
+        char cmd[24];
+        snprintf(cmd, sizeof(cmd), "$%s=%.1f\n", tool_pen_id[i], (double)v);
+        MKS_GRBL_CMD_SEND(cmd);
+        tool_pen_fmt(i);
+        lv_label_set_text(tool_pen_val[i], tool_pen_txt[i]);
+        lv_obj_align(tool_pen_val[i], lv_obj_get_parent(tool_pen_val[i]), LV_ALIGN_IN_LEFT_MID, 196, 0);
+        return;
+    }
+}
+
+static lv_obj_t* tool_pen_btn(lv_obj_t* row, lv_coord_t x, const char* sym) {
+    lv_obj_t* b = lv_btn_create(row, NULL);
+    lv_obj_set_size(b, 40, 38);
+    lv_obj_set_pos(b, x, 6);
+    lv_btn_set_style(b, LV_BTN_STYLE_REL, &tool_side_rel_style);
+    lv_btn_set_style(b, LV_BTN_STYLE_PR, &tool_side_pr_style);
+    lv_obj_set_event_cb(b, tool_pen_event);
+    lv_cont_set_layout(b, LV_LAYOUT_OFF);
+    lv_obj_t* l = lv_label_create(b, NULL);
+    lv_label_set_style(l, LV_LABEL_STYLE_MAIN, &tool_title_style);
+    lv_label_set_text(l, sym);
+    lv_obj_align(l, b, LV_ALIGN_CENTER, 0, 0);
+    return b;
+}
+
+static void tool_build_pen(void) {
+    tool_panel_head(T("Pluma", "Pen"), T("Los cambios se guardan al instante", "Changes are saved instantly"));
+    tool_pen_cur[0] = pen_up_mm->get();
+    tool_pen_cur[1] = pen_down_mm->get();
+    tool_pen_cur[2] = pen_plunge_feed->get();
+    tool_pen_cur[3] = pen_draw_feed->get();
+    const char* title[PEN_ROWS] = { T("Altura arriba", "Pen up height"), T("Altura abajo", "Pen down height"),
+                                    T("Velocidad de bajada", "Plunge speed"), T("Velocidad de dibujo", "Draw speed") };
+    const char* sub[PEN_ROWS]   = { T("Pluma levantada para viajar ($41)", "Raised pen, for travel ($41)"),
+                                    T("Z de dibujo, 0 = toca el papel ($42)", "Drawing Z, 0 = touches paper ($42)"),
+                                    T("Avance al bajar la pluma ($43)", "Feed when lowering ($43)"),
+                                    T("Avance de trazo y de mover ($44)", "Stroke and jog feed ($44)") };
+    for (int i = 0; i < PEN_ROWS; i++) {
+        lv_obj_t* row = lv_obj_create(tool_panel, NULL);
+        lv_obj_set_style(row, &tool_row_info_style);
+        lv_obj_set_size(row, TOOL_ROW_W, TOOL_ROW_H);
+        lv_obj_set_pos(row, TOOL_ROW_X, TOOL_ROW_Y0 + i * TOOL_ROW_STEP);
+        lv_obj_t* t = lv_label_create(row, NULL);
+        lv_label_set_style(t, LV_LABEL_STYLE_MAIN, &tool_text_style);
+        lv_label_set_text(t, title[i]);
+        lv_obj_set_pos(t, 10, 4);
+        lv_obj_t* s = lv_label_create(row, NULL);
+        lv_label_set_style(s, LV_LABEL_STYLE_MAIN, &tool_muted_style);
+        lv_label_set_text(s, sub[i]);
+        lv_obj_set_pos(s, 10, 27);
+        tool_pen_fmt(i);
+        tool_pen_val[i] = lv_label_create(row, NULL);
+        lv_label_set_style(tool_pen_val[i], LV_LABEL_STYLE_MAIN, &tool_ok_style);
+        lv_label_set_text(tool_pen_val[i], tool_pen_txt[i]);
+        lv_obj_align(tool_pen_val[i], row, LV_ALIGN_IN_LEFT_MID, 196, 0);
+        tool_pen_minus[i] = tool_pen_btn(row, 238, "-");
+        tool_pen_plus[i]  = tool_pen_btn(row, 282, "+");
+    }
+}
+#endif
+
 static void tool_build_panel(int sec) {
     tool_beep_val = NULL;
     tool_alert_val = NULL;
@@ -521,6 +627,11 @@ static void tool_build_panel(int sec) {
         snprintf(tool_buf[2], sizeof(tool_buf[2]), "%04X", (unsigned)(uint16_t)(ESP.getEfuseMac() >> 32));
         tool_row(2, "ID", T("Identificador del chip", "Chip identifier"), tool_buf[2], NULL, NULL);
     }
+#ifdef PLOTTER_MODE
+    else if (sec == SEC_PEN) {
+        tool_build_pen();
+    }
+#endif
     else {  // SEC_ABOUT
         tool_panel_head(tool_section_title(sec), "M+X");
         tool_row(0, T("Licencia", "License"), T("Software libre", "Free software"), "GPL v3", NULL, NULL);

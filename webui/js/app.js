@@ -320,6 +320,7 @@
     ws.onopen = function () {
       setConnected(true);
       setTimeout(function () { sendCommand("$32", true); }, 600);  // modo laser / CNC
+      setTimeout(penLoad, 1000);  // ajustes de la pluma ($41-$44), si la placa los tiene
     };
     ws.onclose = function () {
       setConnected(false);
@@ -394,6 +395,8 @@
     // loadLanguage() ya se haya cerrado (otro "ok" podia terminarlo antes de tiempo)
     var m40 = /^\$40=([0-3])\b/.exec(line.trim());
     if (m40) renderLanguage(m40[1]);
+    var mPen = /^\$(4[1-4])=(-?[0-9.]+)\b/.exec(line.trim());
+    if (mPen) penApplySetting(mPen[1], parseFloat(mPen[2]));
     if (settingsCollector) {
       var trimmed = line.trim();
       var m = /^\$(\d+)=(.+)$/.exec(trimmed);
@@ -546,6 +549,7 @@
     if (work) {
       els["stat-x"].textContent = fmt(work, 0);
       els["stat-y"].textContent = fmt(work, 1);
+      penSetZ(work[2]);
     }
   }
 
@@ -715,6 +719,147 @@
   });
   updateVSlider(els["jog-speed"], els["jog-speed-thumb"], els["jog-speed-fill"]);
   updateVSlider(els["jog-dist"], els["jog-dist-thumb"], els["jog-dist-fill"]);
+
+  // ---------- Pluma (plotter): subir y bajar con el eje Z ----------
+  // La tarjeta solo aparece si la placa contesta a $41 (alturas de la pluma): en un firmware sin esos ajustes
+  // responde error:3 y la tarjeta se queda oculta. Subir y bajar son movimientos "$J=" en coordenadas de
+  // trabajo, igual que en la pantalla de la maquina: Z=0 es la pluma tocando el papel.
+  var pen = { known: false, up: 3, down: 0, plunge: 500, draw: 1500, z: null, msgTimer: null };
+  var PEN_TOL = 0.3;                                         // mm: margen para decir "arriba" o "abajo"
+  var PEN_FIELDS = { "41": "up", "42": "down", "43": "plunge", "44": "draw" };
+
+  function penSay(text, isError) {
+    els["pen-msg"].textContent = text;
+    els["pen-msg"].classList.toggle("is-error", !!isError);
+    clearTimeout(pen.msgTimer);
+    pen.msgTimer = setTimeout(function () { els["pen-msg"].textContent = ""; }, 5000);
+  }
+
+  function penRenderState() {
+    if (!pen.known || pen.z === null) return;
+    els["pen-z"].textContent = pen.z.toFixed(3);
+    var txt, cls;
+    if (pen.z >= pen.up - PEN_TOL)        { txt = "▲ ARRIBA";        cls = "pen-state is-up"; }
+    else if (pen.z <= pen.down + PEN_TOL) { txt = "▼ ABAJO";         cls = "pen-state is-down"; }
+    else                                  { txt = "● EN MOVIMIENTO"; cls = "pen-state is-moving"; }
+    els["pen-state"].textContent = txt;
+    els["pen-state"].className = cls;
+  }
+
+  function penSetZ(v) {
+    var n = parseFloat(v);
+    if (isNaN(n)) return;
+    pen.z = n;
+    penRenderState();
+  }
+
+  function penFillInputs() {
+    ["up", "down", "plunge", "draw"].forEach(function (k) {
+      var el = els["pen-set-" + k];
+      if (el && document.activeElement !== el) el.value = pen[k];   // no pisa lo que el usuario esta escribiendo
+    });
+    penRenderState();
+  }
+
+  function penApplySetting(code, n) {
+    var k = PEN_FIELDS[code];
+    if (!k || isNaN(n)) return;
+    pen[k] = n;
+    pen.known = true;
+    els["pen-card"].hidden = false;
+    penFillInputs();
+  }
+
+  function penLoad() {
+    sendCommand("$41", true);
+    setTimeout(function () {
+      if (!pen.known) return;                                // sin $41 no hay pluma: no se piden los demas
+      sendCommand("$42", true);
+      setTimeout(function () { sendCommand("$43", true); }, 250);
+      setTimeout(function () { sendCommand("$44", true); }, 500);
+    }, 700);
+    // la variante de plotter se reconoce por su nombre (V1.0(M+X.PLT...)): ahi se oculta lo del laser
+    fetch("/command?commandText=" + encodeURIComponent("[ESP420]"))
+      .then(function (r) { return r.ok ? r.text() : ""; })
+      .then(function (t) { if (/M\+X\.PLT/.test(t)) document.body.classList.add("plotter"); })
+      .catch(function () {});
+  }
+
+  function penCanMove() {
+    if (isRunningState(machineState) || isPausedState(machineState)) {
+      alert(tr("Detén el trabajo antes de mover la pluma."));
+      return false;
+    }
+    if (machineState === "Alarm") {
+      alert(tr("La máquina está en alarma. Desbloquéala con $X antes de mover la pluma."));
+      return false;
+    }
+    return true;
+  }
+
+  // el boton se desactiva un momento (no se acumulan ordenes) y se pide el estado para ver el resultado enseguida
+  function penBusy(btn) {
+    btn.disabled = true;
+    setTimeout(function () { btn.disabled = false; }, 1200);
+    setTimeout(function () { sendCommand("?", true); }, 400);
+    setTimeout(function () { sendCommand("?", true); }, 1600);
+  }
+
+  function penGoZ(z, feed, btn) {
+    if (!penCanMove()) return false;
+    sendCommand("$J=G90G21Z" + z.toFixed(2) + "F" + Math.round(feed));
+    penBusy(btn);
+    return true;
+  }
+
+  els["pen-up"].addEventListener("click", function () { penGoZ(pen.up, pen.draw, this); });
+  els["pen-down"].addEventListener("click", function () { penGoZ(pen.down, pen.plunge, this); });
+
+  els["pen-origin"].addEventListener("click", function () {   // sube la pluma y va al origen de trabajo, en ese orden
+    if (!penGoZ(pen.up, pen.draw, els["pen-up"])) return;
+    sendCommand("$J=G90G21X0Y0F" + Math.round(pen.draw));
+    penBusy(this);
+  });
+
+  els["pen-zero-z"].addEventListener("click", function () {
+    if (!penCanMove()) return;
+    if (!confirm(tr("¿Poner Z=0 aquí? La pluma debe estar apenas tocando el papel."))) return;
+    sendCommand("G92 Z0");
+    penBusy(this);
+    penSay(tr("Z=0 establecido en la posición actual."), false);
+  });
+
+  els["pen-save"].addEventListener("click", function () {
+    var v = {
+      "41": parseFloat(els["pen-set-up"].value),
+      "42": parseFloat(els["pen-set-down"].value),
+      "43": parseFloat(els["pen-set-plunge"].value),
+      "44": parseFloat(els["pen-set-draw"].value)
+    };
+    var limits = { "41": [0.5, 50], "42": [-5, 5], "43": [50, 5000], "44": [100, 10000] };
+    for (var code in limits) {
+      if (isNaN(v[code]) || v[code] < limits[code][0] || v[code] > limits[code][1]) {
+        penSay(tr("Revisa los valores: $") + code + " (" + limits[code][0] + " a " + limits[code][1] + ")", true);
+        return;
+      }
+    }
+    if (v["41"] <= v["42"]) {
+      penSay(tr("La altura de arriba debe ser mayor que la de abajo."), true);
+      return;
+    }
+    var btn = this;
+    btn.disabled = true;
+    var map = {};
+    Object.keys(v).forEach(function (code) { map[code] = String(v[code]); });
+    applySettingsValues(map, function (errors) {
+      btn.disabled = false;
+      if (errors && errors.length) {
+        penSay(errors.length + " rechazado(s)", true);
+      } else {
+        penSay(tr("Ajustes de la pluma guardados."), false);
+      }
+    });
+  });
 
   els["btn-home"].addEventListener("click", function () { sendCommand("$H"); });
   els["btn-position"].addEventListener("click", function () { sendCommand("?"); });
@@ -1667,6 +1812,10 @@
     "36": { name: "Valor PWM máximo", unit: "% (float)", desc: "Valor PWM máximo (requiere reinicio).", cat: "laser" },
     "39": { name: "Sonidos de alerta", unit: "booleano", desc: "Zumbador al terminar un trabajo, al abortarlo por un error y en las alarmas.", cat: "sistema" },
     "40": { name: "Idioma del LCD", unit: "0..3", desc: "Idioma de la pantalla: 0=中文 1=English 2=Português 3=Español. Ver la vista Idioma.", cat: "sistema" },
+    "41": { name: "Pluma: altura arriba", unit: "mm", desc: "Altura de la pluma levantada para viajar (plotter).", cat: "pluma" },
+    "42": { name: "Pluma: altura abajo", unit: "mm", desc: "Z de dibujo; 0 es la pluma tocando el papel (plotter).", cat: "pluma" },
+    "43": { name: "Pluma: velocidad de bajada", unit: "mm/min", desc: "Avance al bajar la pluma (plotter).", cat: "pluma" },
+    "44": { name: "Pluma: velocidad de dibujo", unit: "mm/min", desc: "Avance de trazo y de los movimientos manuales (plotter).", cat: "pluma" },
     "80": { name: "Entero de usuario 80", unit: "entero", desc: "Reservado para uso personalizado.", cat: "sistema" },
     "81": { name: "Entero de usuario 81", unit: "entero", desc: "Reservado para uso personalizado.", cat: "sistema" },
     "82": { name: "Entero de usuario 82", unit: "entero", desc: "Reservado para uso personalizado.", cat: "sistema" },
@@ -1702,8 +1851,8 @@
     "171": { name: "Stallguard Y", unit: "0-255", desc: "Sensibilidad de detección de bloqueo (SPI/Trinamic).", cat: "sistema" },
     "172": { name: "Stallguard Z", unit: "0-255", desc: "Sensibilidad de detección de bloqueo (SPI/Trinamic).", cat: "sistema" }
   };
-  var CATEGORY_LABELS = { movimiento: "Movimiento", limites: "Límites", laser: "Láser", reportes: "Reportes", sistema: "Sistema", otros: "Otros" };
-  var CATEGORY_ORDER = ["movimiento", "limites", "laser", "reportes", "sistema", "otros"];
+  var CATEGORY_LABELS = { movimiento: "Movimiento", limites: "Límites", laser: "Láser", pluma: "Pluma", reportes: "Reportes", sistema: "Sistema", otros: "Otros" };
+  var CATEGORY_ORDER = ["movimiento", "limites", "laser", "pluma", "reportes", "sistema", "otros"];
   var SETTINGS_BACKUP_KEY = "dlc32-settings-backup";
 
   var settingsCollector = null;

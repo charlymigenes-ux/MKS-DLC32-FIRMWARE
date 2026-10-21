@@ -24,6 +24,10 @@ AxisMaskSetting* stallguard_debug_mask;
 IntSetting* language_select;
 FlagSetting* beep_status; // mks-fix
 FlagSetting* alert_sound_status;   // $39: sonidos de fin de trabajo, error y alarma
+FloatSetting* pen_up_mm;           // $41..$44: pluma del plotter (existen en todas las compilaciones; solo se usan con PLOTTER_MODE)
+FloatSetting* pen_down_mm;
+FloatSetting* pen_plunge_feed;
+FloatSetting* pen_draw_feed;
 
 
 
@@ -344,6 +348,10 @@ void make_settings() {
     language_select              = new IntSetting(GRBL, WG, "40", "Language", DEFAULT_LANGUAGE_STATUS, 0, 3);  // max 3: 0=cn 1=en 2=de 3=es
     beep_status                  = new FlagSetting(GRBL, WG, "38", "beep_status", DEFAULT_BEEP_STATUS);
     alert_sound_status           = new FlagSetting(GRBL, WG, "39", "alert_sound", true);
+    pen_up_mm                    = new FloatSetting(GRBL, WG, "41", "Pen/Up", 3.0, 0.5, 50.0);
+    pen_down_mm                  = new FloatSetting(GRBL, WG, "42", "Pen/Down", 0.0, -5.0, 5.0);
+    pen_plunge_feed              = new FloatSetting(GRBL, WG, "43", "Pen/PlungeFeed", 500.0, 50.0, 5000.0);
+    pen_draw_feed                = new FloatSetting(GRBL, WG, "44", "Pen/DrawFeed", 1500.0, 100.0, 10000.0);
     
     // Spindle Settings
     spindle_type =

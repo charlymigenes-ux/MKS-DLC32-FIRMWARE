@@ -30,6 +30,10 @@ extern AxisMaskSetting* homing_cycle[MAX_N_AXIS];
 extern IntSetting* language_select;
 extern FlagSetting* beep_status;
 extern FlagSetting* alert_sound_status;
+extern FloatSetting* pen_up_mm;          // $41: altura de la pluma levantada (plotter)
+extern FloatSetting* pen_down_mm;        // $42: altura de dibujo (0 = la pluma toca el papel)
+extern FloatSetting* pen_plunge_feed;    // $43: velocidad al bajar la pluma
+extern FloatSetting* pen_draw_feed;      // $44: velocidad de dibujo y de los movimientos manuales
 
 extern FlagSetting* step_enable_invert;
 extern FlagSetting* limit_invert;
