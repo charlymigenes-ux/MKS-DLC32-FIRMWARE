@@ -490,6 +490,11 @@ namespace WebUI {
         } else {
             WiFi.mode(WIFI_OFF);
         }
+#ifdef NO_LCD
+        // El ahorro de energia del WiFi (modem sleep) retrasa cada acuse "ok" hasta ~100 ms y el emisor
+        // del trabajo deja al planificador sin lineas: pausas en el grabado.
+        if (WiFi.getMode() != WIFI_MODE_NULL) WiFi.setSleep(false);
+#endif
     }
 
     /**
