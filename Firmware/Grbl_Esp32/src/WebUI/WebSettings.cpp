@@ -445,10 +445,12 @@ namespace WebUI {
             webPrintln("Task loop stack_free_min: ", String((unsigned)uxTaskGetStackHighWaterMark(NULL)));
             webPrintln("Task clientCheck stack_free_min: ", String((unsigned)client_task_stack_free()));
             if (frame_task_tcb) webPrintln("Task frame stack_free_min: ", String((unsigned)uxTaskGetStackHighWaterMark(frame_task_tcb)));
+#ifndef NO_LCD   // sin pantalla LVGL no se inicializa: lv_mem_monitor divide por cero (pool de 0 bytes)
             lv_mem_monitor_t lvm;
             lv_mem_monitor(&lvm);   // pool de LVGL: total, usado y mayor bloque libre
             webPrintln("LVGL pool: ", String((unsigned)lvm.total_size) + " used=" + String((unsigned)(lvm.total_size - lvm.free_size)) +
                                           " max_used=" + String((unsigned)lvm.used_pct) + "% largest_free=" + String((unsigned)lvm.free_biggest_size));
+#endif
         }
         webPrintln("SDK: ", ESP.getSdkVersion());
         webPrintln("Board Version: ", String(BOARD_NAME).substring(6));   // sin el prefijo "Board:"
