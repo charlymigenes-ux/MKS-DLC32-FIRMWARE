@@ -29,7 +29,13 @@ namespace WebUI {
     class Serial_2_Socket : public Print {
         static const int TXBUFFERSIZE = 1200;
         static const int RXBUFFERSIZE = 256;
+#ifdef NO_LCD
+        // Los "ok" del trabajo viajan por aqui. Con 500 ms de retencion el emisor (conteo de caracteres, ventana de 128 B)
+        // solo podia mantener ~20-30 lineas/s y un grabado por barrido dejaba al planificador sin bloques.
+        static const int FLUSHTIMEOUT = 15;
+#else
         static const int FLUSHTIMEOUT = 500;
+#endif
     public:
         Serial_2_Socket();
 
