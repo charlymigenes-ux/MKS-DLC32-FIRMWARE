@@ -48,9 +48,11 @@ void grbl_init() {
 #endif  // ENABLE_JOB_DIAG
 
     MEMLOG("grbl_init: inicio");
+#ifndef NO_LCD
     pinMode(LCD_EN, OUTPUT);
     
     LCD_BLK_OFF;
+#endif
     
 #ifdef USE_I2S_OUT
     i2s_out_init();  // The I2S out must be initialized before it can access the expanded GPIO port
@@ -144,6 +146,7 @@ void _mc_task_init(void) {
     MEMLOG("_mc_task_init: inicio");
     mks_grbl_parg_init();
     MEMLOG("tras mks_grbl_parg_init");
+#ifndef NO_LCD
     ts35_beep_init();
     MEMLOG("tras ts35_beep_init");
     bsp_led_init();
@@ -155,6 +158,7 @@ void _mc_task_init(void) {
     MEMLOG("antes de crear tarea LVGL");
     disp_task_init();
     MEMLOG("tras crear tarea LVGL");
+#endif  // NO_LCD (placa sin pantalla ni zumbador ni SD)
 }
 
 
@@ -185,7 +189,9 @@ static void reset_variables() {
     // client_reset_read_buffer(CLIENT_ALL);
     gc_init();  // Set g-code parser to default state
 
+#ifndef NO_LCD
     test_cfg_find_init();
+#endif
 
     spindle->stop();
 
@@ -214,11 +220,15 @@ static void reset_variables() {
         lcd_init_status = true;
 
         /* SD cfg updata */
+#ifdef NO_LCD
+        mks_updata.updata_flag = UD_NO_FILE;   // sin SD: solo arrancar el WiFi
+#else
         if(mks_grbl.is_test_mode != true) {
             mks_updata_init();
         }else {
             mks_updata.updata_flag = UD_NONE;
         }
+#endif
 
         if(mks_updata.updata_flag == UD_NO_FILE) {
             WebUI::wifi_config.mks_setup();
