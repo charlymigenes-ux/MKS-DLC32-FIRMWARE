@@ -35,7 +35,11 @@ static bool pen_can_move(void) {
 static void pen_goto_z(float z_mm, float feed) {
     if (!pen_can_move()) return;
     char s[48];
+#ifdef PEN_SERVO
+    snprintf(s, sizeof(s), "$J=G90G21G53Z%.2fF%d\n", (double)z_mm, (int)feed);   // coordenadas de maquina: no dependen de G92/G54
+#else
     snprintf(s, sizeof(s), "$J=G90G21Z%.2fF%d\n", (double)z_mm, (int)feed);
+#endif
     MKS_GRBL_CMD_SEND(s);
 }
 
@@ -44,7 +48,9 @@ void mks_pen_down(void) { pen_goto_z(pen_down_mm->get(), pen_plunge_feed->get())
 
 void mks_pen_toggle(void) {
     float* p = system_get_mpos();
+#ifndef PEN_SERVO
     mpos_to_wpos(p);
+#endif
     if (p[2] >= pen_up_mm->get() - PEN_TOL) mks_pen_down();
     else                                    mks_pen_up();
 }
@@ -63,7 +69,11 @@ void mks_pen_go_origin(void) {      // sube la pluma y vuelve al origen de traba
 // primero sube la pluma, luego vuelve al origen de trabajo en rapido (con la pluma ya arriba).
 void mks_pen_between_passes(void) {
     char l1[40], l2[16];
+#ifdef PEN_SERVO
+    snprintf(l1, sizeof(l1), "G90G53G0Z%.2f", (double)pen_up_mm->get());
+#else
     snprintf(l1, sizeof(l1), "G90G0Z%.2f", (double)pen_up_mm->get());
+#endif
     snprintf(l2, sizeof(l2), "G90G0X0Y0");
     report_status_message(execute_line(l1, SD_client, SD_auth_level), SD_client);
     report_status_message(execute_line(l2, SD_client, SD_auth_level), SD_client);
@@ -200,7 +210,9 @@ static void pen_event(lv_obj_t* obj, lv_event_t event) {
     else if (obj == pen_b_xn)   { if (pen_can_move()) set_move('X', -st, feed); }
     else if (obj == pen_b_xp)   { if (pen_can_move()) set_move('X',  st, feed); }
     else if (obj == pen_b_cxy)  pen_set_zero("G92X0Y0\n");
+#ifndef PEN_SERVO       // con servo, Z=0 es una posicion del servo y un desplazamiento G92 solo la descolocaria
     else if (obj == pen_b_cz)   pen_set_zero("G92Z0\n");
+#endif
     else if (obj == pen_b_up)   mks_pen_up();
     else if (obj == pen_b_down) mks_pen_down();
     else if (obj == pen_b_home) mks_pen_go_origin();    // sube la pluma y vuelve al origen de trabajo
@@ -279,7 +291,9 @@ void mks_pen_update(void) {
     if (pen_lbl_pos == NULL || pen_lbl_state == NULL || pen_bar == NULL) return;
 
     float* p = system_get_mpos();
+#ifndef PEN_SERVO
     mpos_to_wpos(p);
+#endif
 
     char buf[48];
     snprintf(buf, sizeof(buf), "X %.1f   Y %.1f   Z %.1f", (double)p[0], (double)p[1], (double)p[2]);

@@ -21,4 +21,6 @@
 
 #define SPINDLE_OUTPUT_PIN  GPIO_NUM_32
 #define LASER_OUTPUT_PIN    GPIO_NUM_32
+#ifndef PEN_SERVO   // con servo de pluma el GPIO22 es la salida del servo
 #define PROBE_PIN           GPIO_NUM_22
+#endif

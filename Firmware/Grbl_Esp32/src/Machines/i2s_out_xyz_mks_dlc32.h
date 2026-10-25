@@ -27,6 +27,14 @@
 
 #define USR_Z_MOTOR
 
+#ifdef PEN_SERVO
+// Pluma con servo RC: el eje Z es un servo en GPIO22 (conector J12 "Probe": pin1 GND, pin2 +5 V, pin3 senal),
+// sin motor ni final de carrera de Z y sin sonda (el GPIO22 pasa a ser la salida del servo).
+// Z mapea 0..$132 mm a 1,0..2,0 ms (con el bit de Z de $23 puesto): Z=0 pluma abajo, Z=$41 pluma arriba.
+#undef USR_Z_MOTOR
+#define Z_SERVO_PIN GPIO_NUM_22
+#endif
+
 // #define USE_BEEP
 
 // #define USE_BL_TOUCH
@@ -43,7 +51,11 @@
 #endif
 
 #ifdef PLOTTER_MODE
+#ifdef PEN_SERVO
+#define FW_NAME                     "V1.0(M+X.PLT.SRV.20261025)"
+#else
 #define FW_NAME                     "V1.0(M+X.PLT.20261021)"
+#endif
 #else
 #define FW_NAME                     "V1.0(M+X.8M.20261001)"
 #endif
@@ -144,7 +156,11 @@
 #define DEFAULT_STEP_PULSE_MICROSECONDS     10
 
 
+#ifdef PEN_SERVO
+#define DEFAULT_STEPPER_IDLE_LOCK_TIME 255   // $1: el servo debe seguir alimentado para sostener la pluma
+#else
 #define DEFAULT_STEPPER_IDLE_LOCK_TIME      25
+#endif
 
 #define DEFAULT_STEPPING_INVERT_MASK    	0 // uint8_t
 #define DEFAULT_DIRECTION_INVERT_MASK   	2 // uint8_t          $3
@@ -164,7 +180,11 @@
 #define DEFAULT_HOMING_CYCLE_0              (bit(X_AXIS) | bit(Y_AXIS))
 #define DEFAULT_HOMING_CYCLE_1              0           // (bit(Z_AXIS))        /* If you want star Z axis, select (bit(Z_AXIS)) */
 #define DEFAULT_HOMING_ENABLE           	1           // true     $22
+#ifdef PEN_SERVO
+#define DEFAULT_HOMING_DIR_MASK 7           // $23: X,Y invertidos y Z positivo (el servo recorre 0..$132)
+#else
 #define DEFAULT_HOMING_DIR_MASK         	3           // $23: X,Y invertidos
+#endif
 #define DEFAULT_HOMING_FEED_RATE        	300.0       // mm/min
 #define DEFAULT_HOMING_SEEK_RATE        	3000.0      // mm/min   $25
 #define DEFAULT_HOMING_DEBOUNCE_DELAY   	250         // msec (0-65k)
@@ -193,7 +213,11 @@
 
 #define DEFAULT_X_MAX_TRAVEL 300.0 // mm  $130: area real de la maquina
 #define DEFAULT_Y_MAX_TRAVEL 300.0 // mm  $131: area real de la maquina
+#ifdef PEN_SERVO
+#define DEFAULT_Z_MAX_TRAVEL 10.0 // $132: recorrido del servo en 'mm' (1,0..2,0 ms)
+#else
 #define DEFAULT_Z_MAX_TRAVEL 80.0 // mm   $132
+#endif
 
 #define DEFAULT_SPINDLE_FREQ        1000    // Hz  $28: PWM del laser
 #define DEFAULT_LASER_FULL_POWER    1000
