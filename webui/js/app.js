@@ -549,7 +549,7 @@
     if (work) {
       els["stat-x"].textContent = fmt(work, 0);
       els["stat-y"].textContent = fmt(work, 1);
-      penSetZ(work[2]);
+      penSetZ(pen.servo ? machine[2] : work[2]);
     }
   }
 
@@ -724,7 +724,7 @@
   // La tarjeta solo aparece si la placa contesta a $41 (alturas de la pluma): en un firmware sin esos ajustes
   // responde error:3 y la tarjeta se queda oculta. Subir y bajar son movimientos "$J=" en coordenadas de
   // trabajo, igual que en la pantalla de la maquina: Z=0 es la pluma tocando el papel.
-  var pen = { known: false, up: 3, down: 0, plunge: 500, draw: 1500, z: null, msgTimer: null };
+  var pen = { known: false, up: 3, down: 0, plunge: 500, draw: 1500, z: null, msgTimer: null, servo: false };
   var PEN_TOL = 0.3;                                         // mm: margen para decir "arriba" o "abajo"
   var PEN_FIELDS = { "41": "up", "42": "down", "43": "plunge", "44": "draw" };
 
@@ -781,7 +781,10 @@
     // la variante de plotter se reconoce por su nombre (V1.0(M+X.PLT...)): ahi se oculta lo del laser
     fetch("/command?commandText=" + encodeURIComponent("[ESP420]"))
       .then(function (r) { return r.ok ? r.text() : ""; })
-      .then(function (t) { if (/M\+X\.PLT/.test(t)) document.body.classList.add("plotter"); })
+      .then(function (t) {
+        if (/M\+X\.PLT/.test(t)) document.body.classList.add("plotter");
+        if (/PLT\.SRV/.test(t)) { pen.servo = true; document.body.classList.add("servo"); }   // eje Z = servo RC
+      })
       .catch(function () {});
   }
 
@@ -807,7 +810,7 @@
 
   function penGoZ(z, feed, btn) {
     if (!penCanMove()) return false;
-    sendCommand("$J=G90G21Z" + z.toFixed(2) + "F" + Math.round(feed));
+    sendCommand("$J=G90G21" + (pen.servo ? "G53" : "") + "Z" + z.toFixed(2) + "F" + Math.round(feed));
     penBusy(btn);
     return true;
   }
@@ -861,7 +864,58 @@
     });
   });
 
-  els["btn-home"].addEventListener("click", function () { sendCommand("$H"); });
+  // Home seguro del plotter: desbloquea si hay alarma, sube la pluma, espera a que la maquina pare y lanza $H.
+  // Igual que el boton Home de la pantalla; asi la pluma no se arrastra por el papel durante el homing.
+  var penHoming = false;
+  function penHome(btn) {
+    if (penHoming) return;
+    if (isRunningState(machineState) || isPausedState(machineState)) {
+      alert(tr("Detén el trabajo antes de mover la pluma."));
+      return;
+    }
+    penHoming = true;
+    if (btn) btn.disabled = true;
+    var t0 = Date.now(), unlocked = false, raised = false;
+    penSay(tr("Home: subiendo la pluma…"), false);
+    function finish(ok) {
+      clearInterval(iv);
+      setTimeout(function () { penHoming = false; if (btn) btn.disabled = false; }, ok ? 2500 : 0);
+      if (!ok) penSay(tr("Home cancelado: la máquina no quedó libre a tiempo."), true);
+    }
+    var iv = setInterval(function () {
+      if (Date.now() - t0 > 25000) { finish(false); return; }
+      if (machineState === "Alarm") {
+        if (!unlocked) { sendCommand("$X"); unlocked = true; }
+        return;
+      }
+      if (machineState !== "Idle") return;
+      var up = pen.z !== null && pen.z >= pen.up - PEN_TOL;
+      if (!up && !raised) {
+        sendCommand("$J=G90G21" + (pen.servo ? "G53" : "") + "Z" + pen.up.toFixed(2) + "F" + Math.round(pen.draw));
+        raised = true;
+        return;
+      }
+      if (!up) return;                         // todavia subiendo
+      penSay(tr("Home: buscando los interruptores…"), false);
+      sendCommand("$H");
+      finish(true);
+    }, 300);
+  }
+  els["pen-home"].addEventListener("click", function () { penHome(this); });
+
+  // botones rapidos de distancia y velocidad: rellenan los campos de siempre, que siguen aceptando cualquier valor
+  document.querySelectorAll(".chip").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var el = els[b.dataset.target];
+      el.value = b.dataset.val;
+      el.dispatchEvent(new Event("input"));
+    });
+  });
+
+  els["btn-home"].addEventListener("click", function () {
+    if (pen.known && document.body.classList.contains("plotter")) penHome(this);   // plotter: sube la pluma antes del homing
+    else sendCommand("$H");
+  });
   els["btn-position"].addEventListener("click", function () { sendCommand("?"); });
   els["btn-zero"].addEventListener("click", function () { sendCommand("G92 X0 Y0"); });
   els["btn-goorigin"].addEventListener("click", function () { sendCommand("G90 G0 Z0"); });

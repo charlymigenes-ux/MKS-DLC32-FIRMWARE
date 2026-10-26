@@ -538,3 +538,11 @@ body.plotter .hide-plotter{display:none !important;}
 .pen-settings{display:grid;grid-template-columns:1fr 1fr;gap:2px 14px;}
 .pen-field label{margin-top:4px;}
 @media (max-width:1000px){.pen-body{grid-template-columns:1fr;gap:8px;}}
+
+/* botones rapidos de distancia y velocidad del movimiento manual */
+.chip-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.chip{padding:4px 11px;border:1px solid var(--border);border-radius:999px;background:var(--surface-2);color:var(--text);font-size:0.875rem;cursor:pointer;}
+.chip:hover{border-color:var(--green);color:var(--green-dark);}
+/* firmware con el eje Z como servo: no hay Cero Z (Z es una posicion del servo) */
+body.servo #pen-zero-z{display:none;}
+body.servo #pen-origin{grid-column:1 / -1;}
