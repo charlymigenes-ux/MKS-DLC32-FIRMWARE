@@ -335,6 +335,9 @@ Compilación (`-D PLOTTER_MODE`) pensada para usar la placa como **plotter de di
 - **Pantalla de archivo**: *Sonda Z* pasa a **Pluma** (sube o baja) y *Aire* pasa a **A origen**, así que ya no hay un botón que baje Z hasta tocar.
 - **Pasadas**: el aviso dice «Pasadas: N» y **entre pasadas la pluma sube y vuelve a X0 Y0** antes de empezar de nuevo.
 - **WebUI**: tarjeta **Pluma** arriba de la vista Control, con el mismo control y los ajustes. Solo aparece si la placa conoce `$41`; con el firmware PLOTTER se oculta lo del láser y «Ir a origen (Z)» (que bajaba la pluma en rápido).
+  - **Home seguro**: el botón *Home: subir pluma y buscar interruptores* de la tarjeta Pluma desbloquea si hay alarma, sube la pluma, espera a que la máquina pare y lanza `$H`. El botón *Origen* de la vista Control hace lo mismo cuando la web detecta un plotter.
+  - **Botones rápidos** de distancia (0,1 · 1 · 10 · 50) y de velocidad (500 · 1000 · 1500 · 3000) del movimiento manual; rellenan los campos de siempre, que aceptan cualquier valor.
+  - Con el firmware de **servo** (`PLT.SRV` en `[ESP420]`) sube y baja la pluma en coordenadas de máquina (`G53`) y oculta *Cero Z*.
 
 ### Cómo se mueve la pluma
 
@@ -416,8 +419,8 @@ El circuito de reset de la V2.1 **cruza DTR y RTS** (no es el montaje clásico),
 ### Limitaciones conocidas
 
 - Las pantallas se diseñaron sin simulador ni capturas de la placa real: las imágenes de esta sección son maquetas.
-- **Home, velocidad y paso personalizado** solo existen en la pantalla de la máquina: la WebUI todavía no los tiene, y con servo muestra *Cero Z*, que no debes usar.
-- La velocidad y el paso personalizado de la pantalla se pierden al apagar la placa.
+- La velocidad y el paso personalizado de la pantalla de la máquina se pierden al apagar la placa. En la WebUI, la distancia y la velocidad del movimiento manual se pierden al recargar la página.
+- El Home de la WebUI y sus botones rápidos están compilados y servidos por la placa, pero no han pasado todavía una prueba completa en la máquina.
 - La WebUI de una placa con **señal WiFi baja** puede tardar decenas de segundos en cargar (ver *Problemas frecuentes*).
 
 ---
