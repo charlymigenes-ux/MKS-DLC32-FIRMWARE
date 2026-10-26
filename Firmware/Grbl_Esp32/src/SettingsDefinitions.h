@@ -33,7 +33,9 @@ extern FlagSetting* alert_sound_status;
 extern FloatSetting* pen_up_mm;          // $41: altura de la pluma levantada (plotter)
 extern FloatSetting* pen_down_mm;        // $42: altura de dibujo (0 = la pluma toca el papel)
 extern FloatSetting* pen_plunge_feed;    // $43: velocidad al bajar la pluma
-extern FloatSetting* pen_draw_feed;      // $44: velocidad de dibujo y de los movimientos manuales
+extern FloatSetting* pen_draw_feed;      // $44: velocidad de dibujo y de subida de la pluma
+extern FloatSetting* pen_jog_feed_set;   // $45: velocidad de los movimientos manuales de la pantalla (se guarda al cambiarla)
+extern FloatSetting* pen_custom_step_set; // $46: paso personalizado de la pantalla, en mm (se guarda al cambiarlo)
 
 extern FlagSetting* step_enable_invert;
 extern FlagSetting* limit_invert;

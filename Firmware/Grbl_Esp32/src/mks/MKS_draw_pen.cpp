@@ -27,8 +27,10 @@ static lv_obj_t *pen_lbl_pos = NULL, *pen_lbl_state = NULL, *pen_bar = NULL;
 static uint8_t   pen_step_idx = 1;                                   // 1 mm por defecto
 static const float pen_steps[4] = { 0.1f, 1.0f, 10.0f, 50.0f };
 static const char* pen_step_txt[4] = { "0.1", "1", "10", "50" };
-static float     pen_custom_step = 2.5f;                             // mm del paso personalizado (no se guarda al apagar)
-static float     pen_jog_feed = 0;                                   // mm/min de los movimientos manuales; 0 = tomar $44 la primera vez
+static float     pen_custom_step = 2.5f;                             // mm del paso personalizado: se guarda en $46
+static float     pen_jog_feed = 0;                                   // mm/min de los movimientos manuales: se guarda en $45
+static bool      pen_prefs_dirty = false;                            // hay un cambio de velocidad o de paso sin guardar en ajustes
+static uint32_t  pen_prefs_t = 0;                                    // cuando fue el ultimo cambio (se guarda 1,5 s despues)
 
 static lv_obj_t *pen_b_hm = NULL, *pen_b_vm = NULL, *pen_b_vp = NULL, *pen_b_vv = NULL, *pen_lbl_vel = NULL;
 static uint8_t   pen_home_stage = 0;                                 // 0 libre, 1 preparar, 2 subiendo la pluma, 3 lanzar $H
@@ -186,8 +188,35 @@ static lv_obj_t* pen_big_btn(lv_obj_t* parent, lv_coord_t y, const char* symbol,
 static float pen_cur_step(void) { return pen_step_idx < 4 ? pen_steps[pen_step_idx] : pen_custom_step; }
 
 static uint32_t pen_cur_feed(void) {
-    if (pen_jog_feed < 50.0f) pen_jog_feed = pen_draw_feed->get();   // la primera vez parte de la velocidad de dibujo ($44)
+    if (pen_jog_feed < 50.0f) pen_jog_feed = pen_jog_feed_set->get();
     return (uint32_t)pen_jog_feed;
+}
+
+// Velocidad y paso personalizado viven en $45 y $46: se leen al abrir la pantalla y se escriben al cambiarlos.
+static void pen_prefs_load(void) {
+    pen_jog_feed    = pen_jog_feed_set->get();
+    pen_custom_step = pen_custom_step_set->get();
+    pen_prefs_dirty = false;
+}
+
+static void pen_prefs_mark(void) { pen_prefs_dirty = true; pen_prefs_t = millis(); }
+
+// Escribe $45 y $46 si cambiaron. Espera 1,5 s sin tocar nada (el - y el + cambian la velocidad muchas veces seguidas)
+// y solo con la maquina parada, porque los ajustes no se pueden cambiar en movimiento.
+static void pen_prefs_flush(bool force) {
+    if (!pen_prefs_dirty) return;
+    if (!force && millis() - pen_prefs_t < 1500) return;
+    if (sys.state != State::Idle && sys.state != State::Alarm) return;
+    char s[40];
+    if ((int)pen_jog_feed != (int)pen_jog_feed_set->get()) {
+        snprintf(s, sizeof(s), "$45=%d\n", (int)pen_jog_feed);
+        MKS_GRBL_CMD_SEND(s);
+    }
+    if (fabsf(pen_custom_step - pen_custom_step_set->get()) > 0.001f) {
+        snprintf(s, sizeof(s), "$46=%.2f\n", (double)pen_custom_step);
+        MKS_GRBL_CMD_SEND(s);
+    }
+    pen_prefs_dirty = false;
 }
 
 static void pen_refresh_vel(void) {
@@ -214,10 +243,11 @@ static void pen_adjust_feed(int dir) {                      // - / +: de 100 en 
     if (v > 10000.0f) v = 10000.0f;
     pen_jog_feed = v;
     pen_refresh_vel();
+    pen_prefs_mark();
 }
 
-static void pen_set_jog_feed(float v)     { pen_jog_feed = v; pen_refresh_vel(); }
-static void pen_set_custom_step(float v)  { pen_custom_step = v; pen_refresh_custom_label(); }
+static void pen_set_jog_feed(float v)     { pen_jog_feed = v; pen_refresh_vel(); pen_prefs_mark(); }
+static void pen_set_custom_step(float v)  { pen_custom_step = v; pen_refresh_custom_label(); pen_prefs_mark(); }
 
 // ---------------------------------------------------------------- teclado numerico
 static void kp_update(void) { if (kp_val) lv_label_set_text(kp_val, kp_len ? kp_buf : "0"); }
@@ -334,6 +364,7 @@ static void pen_home_tick(void) {
 
 // ---------------------------------------------------------------- eventos
 static void pen_go_back(void) {
+    pen_prefs_flush(true);                         // si se cambio algo y la maquina esta parada, se guarda antes de salir
     kp_cont = NULL; kp_val = NULL;                 // lv_obj_clean() ya los borra
     pen_home_stage = 0;
     pen_lbl_vel = pen_b_vv = pen_b_hm = pen_b_vm = pen_b_vp = NULL;
@@ -402,6 +433,7 @@ static void pen_event(lv_obj_t* obj, lv_event_t event) {
 // ---------------------------------------------------------------- pantalla
 void mks_draw_pen(void) {
     pen_styles_init();
+    pen_prefs_load();                              // velocidad ($45) y paso personalizado ($46) guardados
 
     // barra superior: volver, titulo y coordenadas de trabajo
     pen_bar = lv_obj_create(mks_global.mks_src, NULL);
@@ -492,6 +524,7 @@ void mks_draw_pen(void) {
 // Coordenadas de trabajo y estado de la pluma segun la Z actual
 void mks_pen_update(void) {
     pen_home_tick();      // secuencia del boton Home (pluma arriba, esperar y $H)
+    pen_prefs_flush(false);                        // guarda velocidad y paso 1,5 s despues del ultimo cambio
     if (pen_lbl_pos == NULL || pen_lbl_state == NULL || pen_bar == NULL) return;
 
     float* p = system_get_mpos();

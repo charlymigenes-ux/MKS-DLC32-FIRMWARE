@@ -28,6 +28,8 @@ FloatSetting* pen_up_mm;           // $41..$44: pluma del plotter (existen en to
 FloatSetting* pen_down_mm;
 FloatSetting* pen_plunge_feed;
 FloatSetting* pen_draw_feed;
+FloatSetting* pen_jog_feed_set;
+FloatSetting* pen_custom_step_set;
 
 
 
@@ -352,6 +354,8 @@ void make_settings() {
     pen_down_mm                  = new FloatSetting(GRBL, WG, "42", "Pen/Down", 0.0, -5.0, 5.0);
     pen_plunge_feed              = new FloatSetting(GRBL, WG, "43", "Pen/PlungeFeed", 500.0, 50.0, 5000.0);
     pen_draw_feed                = new FloatSetting(GRBL, WG, "44", "Pen/DrawFeed", 1500.0, 100.0, 10000.0);
+    pen_jog_feed_set             = new FloatSetting(GRBL, WG, "45", "Pen/JogFeed", 1500.0, 50.0, 10000.0);
+    pen_custom_step_set          = new FloatSetting(GRBL, WG, "46", "Pen/CustomStep", 2.5, 0.01, 400.0);
     
     // Spindle Settings
     spindle_type =

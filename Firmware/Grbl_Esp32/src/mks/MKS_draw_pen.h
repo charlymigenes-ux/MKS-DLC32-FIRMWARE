@@ -5,7 +5,8 @@
 
 // Variante PLOTTER_MODE: pantalla "Pluma y mover" y control de la pluma (eje Z).
 // La pluma se sube y se baja con el eje Z en coordenadas de trabajo: Z=0 es "la pluma toca el papel".
-// Alturas y velocidades en los ajustes $41 (arriba), $42 (abajo), $43 (velocidad de bajada) y $44 (velocidad de dibujo).
+// Alturas y velocidades en los ajustes $41 (arriba), $42 (abajo), $43 (velocidad de bajada) y $44 (velocidad de dibujo y de subida).
+// La velocidad y el paso personalizado de los movimientos manuales de la pantalla se guardan en $45 y $46.
 void mks_draw_pen(void);     // dibuja la pantalla (la limpia quien llama)
 void mks_pen_update(void);   // refresca coordenadas y estado de la pluma (la llama la tarea de la interfaz)
 void mks_pen_up(void);       // sube la pluma a la altura de $41
