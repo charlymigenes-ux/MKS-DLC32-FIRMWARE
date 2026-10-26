@@ -307,7 +307,9 @@ Los ajustes viven en la memoria no volátil (NVS) y **sobreviven a un reflasheo*
 | `$41` | 3.0 mm | **Pluma**: altura con la pluma levantada (variante PLOTTER) |
 | `$42` | 0.0 mm | **Pluma**: altura de dibujo; 0 = la pluma toca el papel |
 | `$43` | 500 | **Pluma**: velocidad al bajar (mm/min) |
-| `$44` | 1500 | **Pluma**: velocidad de dibujo y de los movimientos manuales (mm/min) |
+| `$44` | 1500 | **Pluma**: velocidad de dibujo y de subida de la pluma (mm/min) |
+| `$45` | 1500 | **Pluma**: velocidad de los movimientos manuales de la pantalla (mm/min); se guarda sola al cambiarla |
+| `$46` | 2.5 | **Pluma**: paso personalizado de la pantalla (mm); se guarda solo al cambiarlo |
 
 **Comando propio para las pasadas** (lo usa la WebUI; también sirve desde la consola): `$SD/Passes=N` y, justo después, `$SD/Run=archivo`. Si no se manda `$SD/Passes`, el archivo corre una sola vez.
 
@@ -329,8 +331,8 @@ Compilación (`-D PLOTTER_MODE`) pensada para usar la placa como **plotter de di
 - **Inicio**: tres mosaicos: *Dibujar* (archivos de la SD), *Pluma y mover* y *Ajustes*.
 - **Pluma y mover** (pantalla nueva): cruceta X/Y con pasos de 0.1, 1, 10 y 50 mm y un **paso personalizado** (se teclea de 0,01 a 400 mm), **SUBIR** y **BAJAR PLUMA**, *Cero XY*, *Cero Z* y *A origen*. Muestra el estado de la pluma (arriba, abajo o en movimiento).
   - **Home** (icono de casa, esquina de la cruceta): desbloquea si hay alarma, sube la pluma, espera a que la máquina pare y lanza el homing (`$H`).
-  - **Velocidad** de los movimientos manuales: botones **−** y **+** (de 100 en 100 hasta 1000 y de 500 en 500 por encima) o tocar el valor para escribirla con el teclado (50 a 10000 mm/min). Parte del valor de `$44`.
-  - La velocidad y el paso personalizado **no se guardan** al apagar la placa.
+  - **Velocidad** de los movimientos manuales: botones **−** y **+** (de 100 en 100 hasta 1000 y de 500 en 500 por encima) o tocar el valor para escribirla con el teclado (50 a 10000 mm/min). Se guarda en `$45`.
+  - La velocidad (`$45`) y el paso personalizado (`$46`) **se guardan solos** 1,5 s después del último cambio, o al salir de la pantalla, y solo con la máquina parada (los ajustes no se pueden escribir en movimiento).
 - **Ajustes → Pluma** (la primera pestaña): `$41`–`$44` con botones − y +; se guardan al instante.
 - **Pantalla de archivo**: *Sonda Z* pasa a **Pluma** (sube o baja) y *Aire* pasa a **A origen**, así que ya no hay un botón que baje Z hasta tocar.
 - **Pasadas**: el aviso dice «Pasadas: N» y **entre pasadas la pluma sube y vuelve a X0 Y0** antes de empezar de nuevo.
@@ -419,7 +421,8 @@ El circuito de reset de la V2.1 **cruza DTR y RTS** (no es el montaje clásico),
 ### Limitaciones conocidas
 
 - Las pantallas se diseñaron sin simulador ni capturas de la placa real: las imágenes de esta sección son maquetas.
-- La velocidad y el paso personalizado de la pantalla de la máquina se pierden al apagar la placa. En la WebUI, la distancia y la velocidad del movimiento manual se pierden al recargar la página.
+- En la WebUI, la distancia y la velocidad del movimiento manual se pierden al recargar la página (la pantalla de la máquina sí las guarda en `$45` y `$46`).
+- El guardado de `$45` y `$46` está implementado y flasheado, pero falta la prueba de apagar y volver a encender la placa para confirmar que conserva los valores.
 - El Home de la WebUI y sus botones rápidos están compilados y servidos por la placa, pero no han pasado todavía una prueba completa en la máquina.
 - La WebUI de una placa con **señal WiFi baja** puede tardar decenas de segundos en cargar (ver *Problemas frecuentes*).
 
@@ -554,7 +557,7 @@ Mira la señal WiFi en `[ESP420]` (línea `Signal`). Con una señal baja (se mid
 - **Sonidos** de fin de trabajo, error y alarma (`$39`).
 - **Valores de fábrica** calibrados (300×300 mm, homing, modo láser) y nombre de placa correcto (*MKS LTS V1.1*).
 - Diagnóstico `[diag]` opcional tras `#define ENABLE_JOB_DIAG` (apagado).
-- **Variante PLOTTER** (`-D PLOTTER_MODE`): pantalla y WebUI de control de pluma, ajustes `$41`–`$44` y pasadas con la pluma levantada entre una y otra. Pantalla con **Home**, velocidad manual y **paso personalizado**; opción de **servo RC** (`-D PEN_SERVO`) en el conector J12.
+- **Variante PLOTTER** (`-D PLOTTER_MODE`): pantalla y WebUI de control de pluma, ajustes `$41`–`$46` y pasadas con la pluma levantada entre una y otra. Pantalla con **Home**, velocidad manual y **paso personalizado**; opción de **servo RC** (`-D PEN_SERVO`) en el conector J12.
 
 ## 🙏 Créditos y licencia
 
