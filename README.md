@@ -51,7 +51,7 @@
 | Placa | Estado |
 |---|---|
 | MKS LTS V1.1 (8 MB) | ✅ Probada: entorno `mks_dlc32_8mb` |
-| **MKS DLC32 V2.1** | ✅ **Probada por el autor** con la variante PLOTTER (entorno `mks_dlc32_v2_1_plotter`, tabla de fábrica de 4 MB). El arranque y la WebUI también se verificaron con la tabla de 8 MB. |
+| **MKS DLC32 V2.1** | ✅ **Probada por el autor** con la variante PLOTTER (entorno `mks_dlc32_v2_1_plotter`, tabla de fábrica de 4 MB). El arranque y la WebUI también se verificaron con la tabla de 8 MB. También probada con la pluma en un **servo RC** (entorno `mks_dlc32_v2_1_plotter_servo`: servo, homing y pantalla probados en la máquina). |
 | MKS DLC32 **V2.x** (otras revisiones) | ⚠️ **Sin probar.** Mismos entornos, pero no se han verificado en esas placas |
 | *Programación por USB* | La V2.1 no entra en modo de descarga con la secuencia por defecto de algunas herramientas: su circuito de reset **cruza DTR y RTS** (ver [Variante PLOTTER](#-variante-plotter-dibujo-con-pluma)). Con la secuencia correcta, o llevando IO0 (`SDA` del conector «I²C interface») a GND al arrancar, sí entra |
 | Otras (Sculpfun, AVR, STM32…) | ❌ No compatible: el firmware es específico de la MKS DLC32 |
@@ -327,7 +327,10 @@ Compilación (`-D PLOTTER_MODE`) pensada para usar la placa como **plotter de di
 ### Qué cambia
 
 - **Inicio**: tres mosaicos: *Dibujar* (archivos de la SD), *Pluma y mover* y *Ajustes*.
-- **Pluma y mover** (pantalla nueva): cruceta X/Y con pasos de 0.1, 1, 10 y 50 mm, **SUBIR** y **BAJAR PLUMA**, *Cero XY*, *Cero Z* y *A origen*. Muestra el estado de la pluma (arriba, abajo o en movimiento).
+- **Pluma y mover** (pantalla nueva): cruceta X/Y con pasos de 0.1, 1, 10 y 50 mm y un **paso personalizado** (se teclea de 0,01 a 400 mm), **SUBIR** y **BAJAR PLUMA**, *Cero XY*, *Cero Z* y *A origen*. Muestra el estado de la pluma (arriba, abajo o en movimiento).
+  - **Home** (icono de casa, esquina de la cruceta): desbloquea si hay alarma, sube la pluma, espera a que la máquina pare y lanza el homing (`$H`).
+  - **Velocidad** de los movimientos manuales: botones **−** y **+** (de 100 en 100 hasta 1000 y de 500 en 500 por encima) o tocar el valor para escribirla con el teclado (50 a 10000 mm/min). Parte del valor de `$44`.
+  - La velocidad y el paso personalizado **no se guardan** al apagar la placa.
 - **Ajustes → Pluma** (la primera pestaña): `$41`–`$44` con botones − y +; se guardan al instante.
 - **Pantalla de archivo**: *Sonda Z* pasa a **Pluma** (sube o baja) y *Aire* pasa a **A origen**, así que ya no hay un botón que baje Z hasta tocar.
 - **Pasadas**: el aviso dice «Pasadas: N» y **entre pasadas la pluma sube y vuelve a X0 Y0** antes de empezar de nuevo.
@@ -344,11 +347,54 @@ La pluma se mueve con **Z en coordenadas de trabajo**: `Z = 0` es la pluma tocan
 > [!NOTE]
 > Entre pasadas se usan movimientos absolutos (`G90`): los archivos de dibujo deben ir en coordenadas absolutas.
 
+### Pluma con servo RC
+
+El entorno `mks_dlc32_v2_1_plotter_servo` (`-D PEN_SERVO`) sube y baja la pluma con un **servo RC** en vez de un motor paso a paso: el eje **Z es un servo** en el **GPIO 22**. Quita el motor Z, el final de carrera de Z y la sonda (el GPIO 22 pasa a ser la salida del servo). El servo recorre pulsos de 1,0 a 2,0 ms entre Z=0 y `$132`; `$41` y `$42` fijan la altura de arriba y de abajo dentro de ese recorrido.
+
+**Conexión: conector J12 «Probe»** (3 pines, con el mismo orden que un servo):
+
+| Pin de J12 | Señal | Cable del servo |
+|---|---|---|
+| 1 | GND | marrón o negro |
+| 2 | +5 V | rojo |
+| 3 | señal (GPIO 22, 3,3 V) | naranja o amarillo |
+
+> [!CAUTION]
+> **No conectes el servo al conector del láser (J18):** sus pines son **+12 V**, GND y señal, y el servo se quemaría. Antes de conectar, **mide 5 V entre los pines 1 y 2 de J12** con el servo desconectado.
+> Los pinouts de esta sección salen de la hoja `V2.0_001` del esquema de MKS (carpeta `V2.1_003` de su repositorio); tu placa puede diferir. El rail de 5 V sale de un convertidor con polifusible de capacidad desconocida: sirve para un micro servo; si la placa se reinicia al mover, alimenta el servo aparte compartiendo GND.
+
+**Ajustes después de flashear.** Los ajustes viven en la memoria de la placa; los valores por defecto del firmware solo se aplican a los que no están guardados.
+
+| Ajuste | Valor | Para qué |
+|---|---|---|
+| `$23` | sumar el bit de Z (**4**) al valor actual | el servo recorre de 0 a `$132` (con los interruptores de X e Y en el sentido negativo, `$23=7`) |
+| `$1` | `255` | mantiene el servo alimentado para sostener la pluma (con `25` se suelta a los 25 ms) |
+| `$132` | `10` | recorrido del servo (los «mm» de Z son posiciones del servo) |
+| `$3` | sumar el bit de Z (**4**) si el servo va al revés | invierte el sentido del servo |
+| `$41` / `$42` | p. ej. 5 / -0.5 | altura de pluma arriba y abajo, dentro del recorrido |
+
+- Subir y bajar la pluma usan **coordenadas de máquina** (`G53`), así que no dependen de ningún `G92`. Por eso la pantalla no muestra *Cero Z*.
+- **Al activarse por primera vez, el servo va a Z=0, que es pluma abajo:** monta la pluma alta o sin papel en la primera prueba.
+- Calibración fina de los extremos: `$Z/RcServo/Cal/Min` y `$Z/RcServo/Cal/Max`.
+
+### Finales de carrera y homing
+
+Los conectores **J9 (X−), J10 (Y−) y J11 (Z−)** son también GND, **+5 V** y señal (pines 1, 2 y 3), y cada señal tiene un pull-up a 3,3 V en la placa. Las señales entran por GPIO 36 (X), 35 (Y) y 34 (Z).
+
+> [!WARNING]
+> Un interruptor de dos cables va entre el **pin 3 (señal) y el pin 1 (GND)**. **Nunca lo conectes al pin 2**: meterías 5 V en una entrada del ESP32, que solo tolera 3,3 V.
+
+- **`$5`** es la polaridad de los límites. Con interruptores normalmente abiertos, `$5=0`: en reposo el campo `Pn:` del informe de estado (`?`) sale vacío y al pulsar un interruptor aparece su letra. Compruébalo a mano antes del primer homing.
+- **`$23`** fija el sentido del homing: con el bit de un eje puesto, ese eje va hacia el sentido **negativo**; con el bit a cero, hacia el positivo (X vale 1, Y vale 2 y Z vale 4). Si los interruptores están en el origen, X e Y llevan el bit puesto.
+- La primera vez, baja la velocidad de búsqueda `$25` (por ejemplo 800 mm/min), deja el carro libre y ten la mano en la alimentación por si algún interruptor no responde.
+- Ejemplo probado por el autor: interruptores a la izquierda (X) y al frente (Y), `+X` hacia la derecha y `+Y` hacia el fondo, `$23=7`, `$5=0`, `$24=300` y `$25=1500`.
+
 ### Instalar (por cable)
 
 | Entorno | Tabla de particiones | Aplicación | WebUI (SPIFFS) |
 |---|---|---|---|
 | `mks_dlc32_v2_1_plotter` | de fábrica de 4 MB (`huge_app`) | `0x10000` (3 MB) | `0x310000` (960 KB) |
+| `mks_dlc32_v2_1_plotter_servo` | de fábrica de 4 MB (`huge_app`) | `0x10000` (3 MB) | `0x310000` (960 KB) |
 | `mks_dlc32_v2_1_8mb_plotter` | de 8 MB de este repositorio | `0x10000` (4 MB) | `0x410000` |
 
 ```bash
@@ -370,6 +416,8 @@ El circuito de reset de la V2.1 **cruza DTR y RTS** (no es el montaje clásico),
 ### Limitaciones conocidas
 
 - Las pantallas se diseñaron sin simulador ni capturas de la placa real: las imágenes de esta sección son maquetas.
+- **Home, velocidad y paso personalizado** solo existen en la pantalla de la máquina: la WebUI todavía no los tiene, y con servo muestra *Cero Z*, que no debes usar.
+- La velocidad y el paso personalizado de la pantalla se pierden al apagar la placa.
 - La WebUI de una placa con **señal WiFi baja** puede tardar decenas de segundos en cargar (ver *Problemas frecuentes*).
 
 ---
@@ -394,6 +442,7 @@ Resultado esperado: **Flash ≈ 47 %, RAM ≈ 25 %**.
 | `mks_dlc32_v2_1_CoreXY` | Entorno original de MKS para CoreXY, sin probar |
 | `mks_dlc32_v2_1_plotter` | **Plotter de pluma** en MKS DLC32 **V2.1 con la tabla de fábrica de 4 MB** (**probado**) |
 | `mks_dlc32_v2_1_8mb_plotter` | Plotter de pluma en MKS DLC32 V2.1 con la tabla de 8 MB (compila; misma base que el anterior) |
+| `mks_dlc32_v2_1_plotter_servo` | **Plotter con la pluma en un servo RC** (GPIO22, conector J12 *Probe*), V2.1 con la tabla de fábrica de 4 MB (**probado**; ver [Pluma con servo RC](#pluma-con-servo-rc)) |
 
 > [!WARNING]
 > **Flashea solo con la máquina parada.** Abrir el puerto serie reinicia el ESP32 y detiene el trabajo. Y que **ningún otro programa tenga el puerto abierto** (monitores serie, gestores de impresoras…): un flasheo a medias deja la placa sin firmware hasta repetirlo.
@@ -502,7 +551,7 @@ Mira la señal WiFi en `[ESP420]` (línea `Signal`). Con una señal baja (se mid
 - **Sonidos** de fin de trabajo, error y alarma (`$39`).
 - **Valores de fábrica** calibrados (300×300 mm, homing, modo láser) y nombre de placa correcto (*MKS LTS V1.1*).
 - Diagnóstico `[diag]` opcional tras `#define ENABLE_JOB_DIAG` (apagado).
-- **Variante PLOTTER** (`-D PLOTTER_MODE`): pantalla y WebUI de control de pluma, ajustes `$41`–`$44` y pasadas con la pluma levantada entre una y otra.
+- **Variante PLOTTER** (`-D PLOTTER_MODE`): pantalla y WebUI de control de pluma, ajustes `$41`–`$44` y pasadas con la pluma levantada entre una y otra. Pantalla con **Home**, velocidad manual y **paso personalizado**; opción de **servo RC** (`-D PEN_SERVO`) en el conector J12.
 
 ## 🙏 Créditos y licencia
 
