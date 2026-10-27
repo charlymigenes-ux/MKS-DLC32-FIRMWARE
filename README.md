@@ -54,7 +54,8 @@
 | **MKS DLC32 V2.1** | ✅ **Probada por el autor** con la variante PLOTTER (entorno `mks_dlc32_v2_1_plotter`, tabla de fábrica de 4 MB). El arranque y la WebUI también se verificaron con la tabla de 8 MB. |
 | MKS DLC32 **V2.x** (otras revisiones) | ⚠️ **Sin probar.** Mismos entornos, pero no se han verificado en esas placas |
 | *Programación por USB* | La V2.1 no entra en modo de descarga con la secuencia por defecto de algunas herramientas: su circuito de reset **cruza DTR y RTS** (ver [Variante PLOTTER](#-variante-plotter-dibujo-con-pluma)). Con la secuencia correcta, o llevando IO0 (`SDA` del conector «I²C interface») a GND al arrancar, sí entra |
-| Otras (Sculpfun, AVR, STM32…) | ❌ No compatible: el firmware es específico de la MKS DLC32 |
+| **Sculpfun S30 Pro** (rama `sculpfun`) | ✅ **Probada por el autor** (ESP32 de 4 MB, entorno `sculpfun_s30`): grabado y corte, WebUI y asistencia de aire con `M8` (GPIO21) y `M7` (GPIO22). Solo en esta rama; el firmware de fábrica queda intacto en el otro slot OTA |
+| Otras (AVR, STM32…) | ❌ No compatible: el firmware es específico de la MKS DLC32 y de la Sculpfun S30 Pro |
 
 ## ✨ Qué incluye
 
