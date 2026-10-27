@@ -33,9 +33,6 @@ extern FlagSetting* alert_sound_status;
 extern FloatSetting* pen_up_mm;          // $41: altura de la pluma levantada (plotter)
 extern FloatSetting* pen_down_mm;        // $42: altura de dibujo (0 = la pluma toca el papel)
 extern FloatSetting* pen_plunge_feed;    // $43: velocidad al bajar la pluma
-#ifdef USE_SCULPFUN_AIR_PUMP
-extern IntSetting* air_pump_duty;   // $Air: nivel de la bomba de aire con M9 (0 = apagada, 500 = maximo)
-#endif
 extern FloatSetting* pen_draw_feed;      // $44: velocidad de dibujo y de los movimientos manuales
 
 extern FlagSetting* step_enable_invert;

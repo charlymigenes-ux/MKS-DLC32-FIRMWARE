@@ -45,13 +45,11 @@
 #define SPINDLE_OUTPUT_PIN          GPIO_NUM_4
 #define LASER_OUTPUT_PIN            SPINDLE_OUTPUT_PIN
 
-// Bomba de aire de la S30: NO es un rele de nivel fijo. Los dos pines se alternan con un temporizador
-// (ver CoolantControl.cpp): M8 = bomba a pleno rendimiento; con M9, el ajuste $Air (0..500) fija el nivel de reposo.
-#define USE_SCULPFUN_AIR_PUMP
-#define COOLANT_FLOOD_PIN           GPIO_NUM_16
-#define COOLANT_MIST_PIN            GPIO_NUM_17
-#define MAX_AIR_PUMP_DUTY           500
-#define DEFAULT_AIR_PUMP_DUTY       0     // 0 = apagada con M9; el firmware de Sculpfun traia 250 (la mitad de potencia en reposo)
+// Bomba de aire de la S30: M8 = nivel fijo en el pin Flood, igual que el firmware de fabrica.
+// OJO: el SculpFun.h del repo oficial dice GPIO16/17, pero el binario real de la placa usa GPIO21/22
+// (leido del desensamblado: pinName(21) para Flood y pinName(22) para Mist). Con 16/17 la bomba no responde.
+#define COOLANT_FLOOD_PIN           GPIO_NUM_21   // M8 = bomba de aire (nivel fijo). Leido del binario de fabrica (el repo oficial dice 16/17)
+#define COOLANT_MIST_PIN            GPIO_NUM_22   // M7
 
 // Sin zumbador, sin LCD, sin sonda
 #define BEEPER                      UNDEFINED_PIN
