@@ -28,6 +28,9 @@ FloatSetting* pen_up_mm;           // $41..$44: pluma del plotter (existen en to
 FloatSetting* pen_down_mm;
 FloatSetting* pen_plunge_feed;
 FloatSetting* pen_draw_feed;
+#ifdef USE_SCULPFUN_AIR_PUMP
+IntSetting* air_pump_duty;
+#endif
 
 
 
@@ -355,6 +358,10 @@ void make_settings() {
     pen_draw_feed                = new FloatSetting(GRBL, WG, "44", "Pen/DrawFeed", 1500.0, 100.0, 10000.0);
 #endif
     
+#ifdef USE_SCULPFUN_AIR_PUMP
+    air_pump_duty                = new IntSetting(EXTENDED, WG, NULL, "Air", DEFAULT_AIR_PUMP_DUTY, 0, MAX_AIR_PUMP_DUTY);
+#endif
+
     // Spindle Settings
     spindle_type =
         new EnumSetting(NULL, EXTENDED, WG, NULL, "Spindle/Type", static_cast<int8_t>(SPINDLE_TYPE), &spindleTypes, checkSpindleChange);

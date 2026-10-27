@@ -23,6 +23,99 @@
 
 #include "Grbl.h"
 
+#ifdef USE_SCULPFUN_AIR_PUMP
+#    include "driver/timer.h"
+
+// Bomba de aire de la Sculpfun S30. No es un rele: es una bomba que se mueve con DOS pines que se alternan (GPIO16 y
+// GPIO17, como un puente en H). Una interrupcion de temporizador cada 40 us los gobierna:
+//   M8 (flood)  -> alternancia continua, 10 ms por fase (50 Hz): bomba a pleno rendimiento.
+//   M9 (parada) -> tren de pulsos cuyo ancho fija $Air (0..500): 0 = parada, 250 = la mitad.
+// Esquema tomado del firmware original de Sculpfun (GPL-3.0). Cambios: el temporizador se crea una sola vez y la
+// interrupcion lee una copia en RAM de $Air (la interrupcion no debe tocar el ajuste, que vive en memoria de programa).
+static hw_timer_t*       air_timer = NULL;
+static volatile bool     air_on    = false;
+static volatile uint8_t  air_phase = 0;
+static volatile int      air_cnt   = 0;
+static volatile int      air_duty  = 0;
+
+static void IRAM_ATTR air_timer_isr() {
+    if (--air_cnt > 0) {
+        return;
+    }
+    if (air_on) {
+        if (air_phase == 0) {
+            digitalWrite(COOLANT_MIST_PIN, HIGH);
+            digitalWrite(COOLANT_FLOOD_PIN, LOW);
+            air_phase = 3;
+        } else {
+            digitalWrite(COOLANT_MIST_PIN, LOW);
+            digitalWrite(COOLANT_FLOOD_PIN, HIGH);
+            air_phase = 0;
+        }
+        air_cnt = MAX_AIR_PUMP_DUTY / 2;
+        return;
+    }
+    const int duty = air_duty;
+    if (duty <= 0) {                                   // apagada del todo
+        digitalWrite(COOLANT_MIST_PIN, LOW);
+        digitalWrite(COOLANT_FLOOD_PIN, LOW);
+        air_phase = 0;
+        air_cnt   = MAX_AIR_PUMP_DUTY;
+        return;
+    }
+    switch (air_phase) {
+        case 0:
+            digitalWrite(COOLANT_MIST_PIN, LOW);
+            digitalWrite(COOLANT_FLOOD_PIN, HIGH);
+            air_cnt = duty / 2;
+            air_phase = 1;
+            break;
+        case 1:
+            digitalWrite(COOLANT_MIST_PIN, HIGH);
+            digitalWrite(COOLANT_FLOOD_PIN, LOW);
+            air_cnt = duty / 2;
+            air_phase = 2;
+            break;
+        default:
+            digitalWrite(COOLANT_MIST_PIN, LOW);
+            digitalWrite(COOLANT_FLOOD_PIN, LOW);
+            air_cnt = MAX_AIR_PUMP_DUTY - duty;
+            air_phase = 0;
+            break;
+    }
+}
+
+void coolant_init() {
+    static bool init_message = true;
+    pinMode(COOLANT_FLOOD_PIN, OUTPUT);
+    pinMode(COOLANT_MIST_PIN, OUTPUT);
+    air_duty = air_pump_duty->get();
+    if (air_timer == NULL) {                           // coolant_init() se llama varias veces (homing, reinicios): solo un temporizador
+        air_timer = timerBegin(1, 80, true);           // reloj de 1 MHz; el temporizador 0 es el de los motores
+        timerAttachInterrupt(air_timer, &air_timer_isr, true);
+        timerAlarmWrite(air_timer, 40, true);          // cada 40 us
+        timerAlarmEnable(air_timer);
+    }
+    if (init_message) {
+        grbl_msg_sendf(CLIENT_SERIAL, MsgLevel::Info, "Air pump on pins %s/%s (M8 on, $Air=%d in M9)", pinName(COOLANT_FLOOD_PIN).c_str(), pinName(COOLANT_MIST_PIN).c_str(), (int)air_duty);
+        init_message = false;
+    }
+    coolant_stop();
+}
+
+// El estado de la bomba es el pedido por G-code (M8), no el nivel de los pines, que se alternan.
+CoolantState coolant_get_state() {
+    CoolantState cl_state = {};
+    air_duty = air_pump_duty->get();                   // los cambios de $Air se notan en cuanto se pide el estado
+    cl_state.Flood = air_on ? 1 : 0;
+    return cl_state;
+}
+
+static inline void coolant_write(CoolantState state) {
+    air_duty = air_pump_duty->get();
+    air_on   = state.Flood;
+}
+#else
 void coolant_init() {
     static bool init_message = true;  // used to show messages only once.
 
@@ -93,6 +186,8 @@ static inline void coolant_write(CoolantState state) {
     digitalWrite(COOLANT_MIST_PIN, pinState);
 #endif
 }
+
+#endif  // USE_SCULPFUN_AIR_PUMP
 
 // Directly called by coolant_init(), coolant_set_state(), and mc_reset(), which can be at
 // an interrupt-level. No report flag set, but only called by routines that don't need it.
